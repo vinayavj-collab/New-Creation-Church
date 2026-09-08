@@ -1,0 +1,84 @@
+package com.example.data.bible.local
+
+import androidx.room.*
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface BibleDao {
+    @Query("""
+        SELECT * FROM bible_verses 
+        WHERE translationId = :translationId AND bookId = :bookId AND chapter = :chapter 
+        ORDER BY verse ASC
+    """)
+    fun getVersesForChapter(translationId: String, bookId: Int, chapter: Int): Flow<List<BibleVerseEntity>>
+
+    @Query("""
+        SELECT * FROM bible_verses 
+        WHERE translationId = :translationId AND bookId = :bookId AND chapter = :chapter 
+        ORDER BY verse ASC
+    """)
+    suspend fun getVersesForChapterSync(translationId: String, bookId: Int, chapter: Int): List<BibleVerseEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertVerses(verses: List<BibleVerseEntity>)
+
+    @Query("""
+        SELECT * FROM bible_verses 
+        WHERE translationId = :translationId AND text LIKE '%' || :query || '%' 
+        ORDER BY bookId ASC, chapter ASC, verse ASC 
+        LIMIT 100
+    """)
+    fun searchVerses(translationId: String, query: String): Flow<List<BibleVerseEntity>>
+
+    @Query("SELECT COUNT(*) FROM bible_verses WHERE translationId = :translationId")
+    suspend fun getVerseCount(translationId: String): Int
+
+    // Bookmarks
+    @Query("SELECT * FROM bible_bookmarks ORDER BY timestamp DESC")
+    fun getAllBookmarks(): Flow<List<BibleBookmarkEntity>>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM bible_bookmarks WHERE bookId = :bookId AND chapter = :chapter AND verse = :verse)")
+    fun isVerseBookmarked(bookId: Int, chapter: Int, verse: Int): Flow<Boolean>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookmark(bookmark: BibleBookmarkEntity)
+
+    @Query("DELETE FROM bible_bookmarks WHERE bookId = :bookId AND chapter = :chapter AND verse = :verse")
+    suspend fun deleteBookmark(bookId: Int, chapter: Int, verse: Int)
+
+    @Query("DELETE FROM bible_bookmarks WHERE id = :id")
+    suspend fun deleteBookmarkById(id: Long)
+
+    // Highlights
+    @Query("SELECT * FROM bible_highlights WHERE bookId = :bookId AND chapter = :chapter")
+    fun getHighlightsForChapter(bookId: Int, chapter: Int): Flow<List<BibleHighlightEntity>>
+
+    @Query("SELECT * FROM bible_highlights ORDER BY timestamp DESC")
+    fun getAllHighlights(): Flow<List<BibleHighlightEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun setHighlight(highlight: BibleHighlightEntity)
+
+    @Query("DELETE FROM bible_highlights WHERE bookId = :bookId AND chapter = :chapter AND verse = :verse")
+    suspend fun removeHighlight(bookId: Int, chapter: Int, verse: Int)
+
+    // Notes
+    @Query("SELECT * FROM bible_notes WHERE bookId = :bookId AND chapter = :chapter")
+    fun getNotesForChapter(bookId: Int, chapter: Int): Flow<List<BibleNoteEntity>>
+
+    @Query("SELECT * FROM bible_notes ORDER BY timestamp DESC")
+    fun getAllNotes(): Flow<List<BibleNoteEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveNote(note: BibleNoteEntity)
+
+    @Query("DELETE FROM bible_notes WHERE bookId = :bookId AND chapter = :chapter AND verse = :verse")
+    suspend fun deleteNote(bookId: Int, chapter: Int, verse: Int)
+
+    // Reading Position
+    @Query("SELECT * FROM reading_position WHERE id = 1 LIMIT 1")
+    fun getReadingPosition(): Flow<ReadingPositionEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveReadingPosition(position: ReadingPositionEntity)
+}

@@ -1,0 +1,331 @@
+package com.example.ui.screens
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.example.data.model.appStrings
+import com.example.ui.viewmodel.MainViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MoreScreen(
+    viewModel: MainViewModel,
+    onUpcomingEventsClick: () -> Unit,
+    onEventCalendarClick: () -> Unit,
+    onSavedClick: () -> Unit,
+    onRecentlyViewedClick: () -> Unit,
+    onCustomizeHomeClick: () -> Unit,
+    onBibleClick: () -> Unit,
+    onSearchClick: () -> Unit,
+    onCategoriesClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onAboutClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val strings = appStrings()
+    val settings by viewModel.settings.collectAsState()
+    val upcomingEvents by viewModel.upcomingEvents.collectAsState()
+    val savedItems by viewModel.savedItems.collectAsState()
+
+    val openUrl = { url: String ->
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(strings.moreTitle, fontWeight = FontWeight.Bold) }
+            )
+        },
+        modifier = modifier.fillMaxSize()
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            // Events & Personal Saved
+            item {
+                Text(
+                    text = strings.secEventsSaved,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        SettingsClickableRow(
+                            title = "${strings.upcomingEvents} (${upcomingEvents.size})",
+                            subtitle = strings.upcomingEventsSub,
+                            icon = Icons.Default.EventAvailable,
+                            onClick = onUpcomingEventsClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.eventCalendar,
+                            subtitle = strings.eventCalendarSub,
+                            icon = Icons.Default.CalendarMonth,
+                            onClick = onEventCalendarClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = "${strings.savedForLater} (${savedItems.size})",
+                            subtitle = strings.savedForLaterSub,
+                            icon = Icons.Default.Bookmarks,
+                            onClick = onSavedClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.recentlyViewed,
+                            subtitle = strings.recentlyViewedSub,
+                            icon = Icons.Default.History,
+                            onClick = onRecentlyViewedClick
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = strings.secBibleSearch,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        SettingsClickableRow(
+                            title = strings.holyBible,
+                            subtitle = strings.holyBibleSub,
+                            icon = Icons.Default.MenuBook,
+                            onClick = onBibleClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.globalSearch,
+                            subtitle = strings.globalSearchSub,
+                            icon = Icons.Default.Search,
+                            onClick = onSearchClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.dynamicLabels,
+                            subtitle = strings.dynamicLabelsSub,
+                            icon = Icons.Default.Label,
+                            onClick = onCategoriesClick
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = strings.secCustomizationApp,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        SettingsClickableRow(
+                            title = strings.customizeHome,
+                            subtitle = strings.customizeHomeSub,
+                            icon = Icons.Default.Tune,
+                            onClick = onCustomizeHomeClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.settings,
+                            subtitle = strings.settingsSub,
+                            icon = Icons.Default.Settings,
+                            onClick = onSettingsClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.aboutVinay,
+                            subtitle = strings.aboutVinaySub,
+                            icon = Icons.Default.Info,
+                            onClick = onAboutClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.shareApp,
+                            subtitle = strings.shareAppSub,
+                            icon = Icons.Default.Share,
+                            onClick = {
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(
+                                        Intent.EXTRA_TEXT,
+                                        "Check out Vinay Kumar AVJ App for Fellowship Events, Preaching, Photos & Holy Bible!\nhttps://vinaykumaravj.blogspot.com/"
+                                    )
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, strings.shareApp))
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Quick links to official channels
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = strings.secOfficialChannels,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        SettingsClickableRow(
+                            title = strings.worshipChannel,
+                            subtitle = strings.worshipChannelSub,
+                            icon = Icons.Default.Subscriptions,
+                            onClick = { openUrl("https://www.youtube.com/@vinaykumaravjworship") }
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.mainChannel,
+                            subtitle = strings.mainChannelSub,
+                            icon = Icons.Default.Subscriptions,
+                            onClick = { openUrl("https://www.youtube.com/@vinaykumaravj") }
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = strings.fellowshipBlog,
+                            subtitle = strings.fellowshipBlogSub,
+                            icon = Icons.Default.Language,
+                            onClick = { openUrl("https://vinaykumaravj.blogspot.com/") }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsClickableRow(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.SemiBold
+                )
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}

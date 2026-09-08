@@ -1,0 +1,6 @@
+{
+  "name": "Vinay Kumar AVJ",
+  "description": "Fellowship Events • Videos • Photos • Memories - Central hub for fellowship events, sermons, videos, and photo gallery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
