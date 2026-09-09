@@ -28,9 +28,9 @@ class BibleRemoteDataSource(
         chapter: Int
     ): List<BibleVerseEntity>? = withContext(Dispatchers.IO) {
         val bollsTranslation = when (translationId) {
-            BibleTranslation.HINDI_IRV.id -> "HIN"
+            BibleTranslation.HINDI_IRV.id -> "HIOV"
             BibleTranslation.ENGLISH_WEB.id -> "WEB"
-            else -> "HIN"
+            else -> "HIOV"
         }
 
         val url = "https://bolls.life/get-chapter/$bollsTranslation/$bookId/$chapter/"
@@ -51,25 +51,28 @@ class BibleRemoteDataSource(
                     val obj = jsonArray.getJSONObject(i)
                     val verseNum = obj.optInt("verse", i + 1)
                     val rawText = obj.optString("text", "")
-                    // Clean any basic html tags if present
-                    val cleanText = android.text.Html.fromHtml(rawText, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim()
+                    
+                    val finalText = com.example.data.bible.local.BibleLocalDataSource.decodeAndSanitizeVerseText(rawText)
 
-                    if (cleanText.isNotEmpty()) {
+                    if (finalText.isNotEmpty()) {
                         results.add(
                             BibleVerseEntity(
                                 translationId = translationId,
                                 bookId = bookId,
                                 chapter = chapter,
                                 verse = verseNum,
-                                text = cleanText
+                                text = finalText
                             )
                         )
                     }
                 }
-                if (results.isNotEmpty()) results else null
+                if (results.isNotEmpty()) {
+                    results.sortBy { it.verse }
+                    results
+                } else null
             }
         } catch (e: Exception) {
-            Log.d("BibleRemoteDataSource", "Online fetch unavailable: ${e.message}")
+            Log.e("BibleRemoteDataSource", "Online fetch error for $translationId $bookId:$chapter", e)
             null
         }
     }

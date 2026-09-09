@@ -1,0 +1,706 @@
+[
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 1,
+    "c": 1,
+    "v": 1,
+    "h": "The Creation"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 1,
+    "c": 1,
+    "v": 3,
+    "h": "The First Day"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 1,
+    "c": 1,
+    "v": 6,
+    "h": "The Second Day"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 1,
+    "c": 1,
+    "v": 9,
+    "h": "The Third Day"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 1,
+    "c": 1,
+    "v": 14,
+    "h": "The Fourth Day"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 1,
+    "c": 1,
+    "v": 20,
+    "h": "The Fifth Day"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 1,
+    "c": 1,
+    "v": 24,
+    "h": "The Sixth Day"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 19,
+    "c": 23,
+    "v": 1,
+    "h": "A Psalm of David."
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 19,
+    "c": 91,
+    "v": 1,
+    "h": "You Are My Refuge and My Fortress"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 19,
+    "c": 121,
+    "v": 1,
+    "h": "A song of ascents."
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 1,
+    "v": 1,
+    "h": "The Genealogy of Jesus"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 1,
+    "v": 18,
+    "h": "The Birth of Jesus"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 1,
+    "h": "The Sermon on the Mount"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 3,
+    "h": "The Beatitudes"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 13,
+    "h": "Salt and Light"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 17,
+    "h": "The Fulfillment of the Law"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 21,
+    "h": "Anger and Reconciliation"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 27,
+    "h": "Adultery"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 31,
+    "h": "Divorce"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 33,
+    "h": "Oaths and Vows"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 40,
+    "c": 5,
+    "v": 38,
+    "h": "Love Your Enemies"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 41,
+    "c": 6,
+    "v": 1,
+    "h": "The Rejection at Nazareth"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 41,
+    "c": 6,
+    "v": 7,
+    "h": "The Ministry of the Twelve"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 41,
+    "c": 6,
+    "v": 14,
+    "h": "The Beheading of John"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 41,
+    "c": 6,
+    "v": 30,
+    "h": "The Feeding of the Five Thousand"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 41,
+    "c": 6,
+    "v": 45,
+    "h": "Jesus Walks on Water"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 41,
+    "c": 6,
+    "v": 53,
+    "h": "Jesus Heals at Gennesaret"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 1,
+    "v": 1,
+    "h": "The Beginning"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 1,
+    "v": 6,
+    "h": "The Witness of John"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 1,
+    "v": 14,
+    "h": "The Word Became Flesh"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 1,
+    "v": 19,
+    "h": "The Mission of John the Baptist"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 1,
+    "v": 29,
+    "h": "Jesus the Lamb of God"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 1,
+    "v": 35,
+    "h": "The First Disciples"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 1,
+    "v": 43,
+    "h": "Jesus Calls Philip and Nathanael"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 2,
+    "v": 1,
+    "h": "The Wedding at Cana"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 2,
+    "v": 12,
+    "h": "Jesus Cleanses the Temple"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 3,
+    "v": 1,
+    "h": "Jesus and Nicodemus"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 3,
+    "v": 22,
+    "h": "John’s Testimony about Jesus"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 14,
+    "v": 1,
+    "h": "In My Father’s House Are Many Rooms"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 14,
+    "v": 5,
+    "h": "The Way, the Truth, and the Life"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 14,
+    "v": 15,
+    "h": "Jesus Promises the Holy Spirit"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 43,
+    "c": 14,
+    "v": 27,
+    "h": "Peace I Leave with You"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 45,
+    "c": 8,
+    "v": 1,
+    "h": "Walking by the Spirit"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 45,
+    "c": 8,
+    "v": 12,
+    "h": "Heirs with Christ"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 45,
+    "c": 8,
+    "v": 18,
+    "h": "Future Glory"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 45,
+    "c": 8,
+    "v": 28,
+    "h": "God Works in All Things"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 45,
+    "c": 8,
+    "v": 35,
+    "h": "More than Conquerors"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 46,
+    "c": 13,
+    "v": 1,
+    "h": "Love"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 57,
+    "c": 1,
+    "v": 1,
+    "h": "Greetings from Paul and Timothy"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 57,
+    "c": 1,
+    "v": 4,
+    "h": "Philemon’s Faith and Love"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 57,
+    "c": 1,
+    "v": 8,
+    "h": "Paul’s Appeal for Onesimus"
+  },
+  {
+    "t": "ENG_WEB",
+    "lang": "en",
+    "b": 57,
+    "c": 1,
+    "v": 23,
+    "h": "Additional Greetings"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 1,
+    "c": 1,
+    "v": 1,
+    "h": "सृष्टि का इतिहास"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 1,
+    "c": 1,
+    "v": 3,
+    "h": "पहला दिन—उजियाला"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 1,
+    "c": 1,
+    "v": 6,
+    "h": "दूसरा दिन—आकाश"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 1,
+    "c": 1,
+    "v": 9,
+    "h": "तीसरा दिन—सूखी धरती और पेड़-पौधे"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 1,
+    "c": 1,
+    "v": 14,
+    "h": "चौथा दिन—सूरज, चाँद और तारे"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 1,
+    "c": 1,
+    "v": 20,
+    "h": "पाँचवाँ दिन—मछलियाँ और पक्षी"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 1,
+    "c": 1,
+    "v": 24,
+    "h": "छठवाँ दिन—भूमि के जीवजन्तु और मनुष्य"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 19,
+    "c": 23,
+    "v": 1,
+    "h": "परमेश्वर अपने लोगों का चरवाहा"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 19,
+    "c": 91,
+    "v": 1,
+    "h": "परमेश्वर हमारा रक्षक"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 19,
+    "c": 121,
+    "v": 1,
+    "h": "परमेश्वर हमारा रक्षक"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 1,
+    "v": 1,
+    "h": "यीशु मसीह की वंशावली"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 1,
+    "v": 18,
+    "h": "यीशु मसीह का जन्म"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 1,
+    "h": "यीशु मसीह का पहाड़ी उपदेश"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 3,
+    "h": "धन्य वचन"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 13,
+    "h": "नमक और ज्योति से तुलना"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 17,
+    "h": "व्यवस्था का पूरा होना"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 21,
+    "h": "हत्या और क्रोध का दण्ड"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 27,
+    "h": "व्यभिचार के विषय में शिक्षा"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 31,
+    "h": "तलाक के विषय में शिक्षा"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 33,
+    "h": "शपथ न खाना"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 40,
+    "c": 5,
+    "v": 38,
+    "h": "प्रतिशोध ना लेना"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 41,
+    "c": 6,
+    "v": 1,
+    "h": "नासरत में यीशु का अनादर"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 43,
+    "c": 1,
+    "v": 1,
+    "h": "आदि में वचन था"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 43,
+    "c": 2,
+    "v": 1,
+    "h": "काना में शादी"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 43,
+    "c": 3,
+    "v": 1,
+    "h": "यीशु और नीकुदेमुस"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 43,
+    "c": 14,
+    "v": 1,
+    "h": "यीशु का अपने चेलों को सांत्वना देना"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 45,
+    "c": 8,
+    "v": 1,
+    "h": "पवित्र आत्मा के द्वारा जीवन"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 45,
+    "c": 8,
+    "v": 12,
+    "h": "आत्मा के द्वारा मसीह के वारिस"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 45,
+    "c": 8,
+    "v": 18,
+    "h": "कष्ट से महिमा तक"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 45,
+    "c": 8,
+    "v": 31,
+    "h": "परमेश्वर का अनन्त प्रेम"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 46,
+    "c": 13,
+    "v": 1,
+    "h": "प्रेम महान है"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 57,
+    "c": 1,
+    "v": 1,
+    "h": "शुभकामनाएँ"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 57,
+    "c": 1,
+    "v": 4,
+    "h": "धन्यवाद और प्रार्थना"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 57,
+    "c": 1,
+    "v": 8,
+    "h": "उनेसिमुस के लिये विनती"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 57,
+    "c": 1,
+    "v": 17,
+    "h": "फिलेमोन की आज्ञाकारिता से उत्साहित"
+  },
+  {
+    "t": "HIN_IRV",
+    "lang": "hi",
+    "b": 57,
+    "c": 1,
+    "v": 23,
+    "h": "अन्तिम शुभकामनाएँ"
+  }
+]

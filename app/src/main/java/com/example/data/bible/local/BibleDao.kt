@@ -22,16 +22,46 @@ interface BibleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVerses(verses: List<BibleVerseEntity>)
 
+    @Query("DELETE FROM bible_verses WHERE translationId = :translationId AND bookId = :bookId AND chapter = :chapter")
+    suspend fun deleteChapterVerses(translationId: String, bookId: Int, chapter: Int)
+
+    @Transaction
+    suspend fun replaceChapterVerses(translationId: String, bookId: Int, chapter: Int, verses: List<BibleVerseEntity>) {
+        deleteChapterVerses(translationId, bookId, chapter)
+        insertVerses(verses)
+    }
+
     @Query("""
         SELECT * FROM bible_verses 
         WHERE translationId = :translationId AND text LIKE '%' || :query || '%' 
         ORDER BY bookId ASC, chapter ASC, verse ASC 
-        LIMIT 100
+        LIMIT 300
     """)
     fun searchVerses(translationId: String, query: String): Flow<List<BibleVerseEntity>>
 
     @Query("SELECT COUNT(*) FROM bible_verses WHERE translationId = :translationId")
     suspend fun getVerseCount(translationId: String): Int
+
+    // Headings
+    @Query("""
+        SELECT * FROM bible_headings 
+        WHERE translationId = :translationId AND bookId = :bookId AND chapter = :chapter 
+        ORDER BY beforeVerse ASC
+    """)
+    fun getHeadingsForChapter(translationId: String, bookId: Int, chapter: Int): Flow<List<BibleHeadingEntity>>
+
+    @Query("""
+        SELECT * FROM bible_headings 
+        WHERE translationId = :translationId AND bookId = :bookId AND chapter = :chapter 
+        ORDER BY beforeVerse ASC
+    """)
+    suspend fun getHeadingsForChapterSync(translationId: String, bookId: Int, chapter: Int): List<BibleHeadingEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHeadings(headings: List<BibleHeadingEntity>)
+
+    @Query("SELECT COUNT(*) FROM bible_headings WHERE translationId = :translationId")
+    suspend fun getHeadingCount(translationId: String): Int
 
     // Bookmarks
     @Query("SELECT * FROM bible_bookmarks ORDER BY timestamp DESC")

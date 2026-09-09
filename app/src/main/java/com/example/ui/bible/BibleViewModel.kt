@@ -58,6 +58,66 @@ class BibleViewModel(
         repository.getChapterVerses(translation.id, book.id, chapter, viewModelScope)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val chapterHeadings: StateFlow<List<BibleSectionHeading>> = combine(
+        _selectedTranslation,
+        _currentBook,
+        _currentChapter
+    ) { translation, book, chapter ->
+        Triple(translation, book, chapter)
+    }.flatMapLatest { (translation, book, chapter) ->
+        repository.getChapterHeadings(translation.id, book.id, chapter)
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    // Verses partitioned into sections with their canonical section headings
+    val chapterSections: StateFlow<List<ChapterSection>> = combine(
+        verses,
+        chapterHeadings
+    ) { verseList, headingList ->
+        if (verseList.isEmpty()) {
+            emptyList()
+        } else if (headingList.isEmpty()) {
+            listOf(ChapterSection(heading = null, verses = verseList))
+        } else {
+            val sortedVerses = verseList.sortedBy { it.verseNumber }
+            val sortedHeadings = headingList.sortedBy { it.beforeVerse }
+            val result = mutableListOf<ChapterSection>()
+
+            // Any verses before the first section heading
+            val firstHeadingVerse = sortedHeadings.first().beforeVerse
+            val preHeadingVerses = sortedVerses.filter { it.verseNumber < firstHeadingVerse }
+            if (preHeadingVerses.isNotEmpty()) {
+                result.add(ChapterSection(heading = null, verses = preHeadingVerses))
+            }
+
+            for (i in sortedHeadings.indices) {
+                val currentHeading = sortedHeadings[i]
+                val nextHeadingVerse = if (i + 1 < sortedHeadings.size) sortedHeadings[i + 1].beforeVerse else Int.MAX_VALUE
+                val sectionVerses = sortedVerses.filter { it.verseNumber >= currentHeading.beforeVerse && it.verseNumber < nextHeadingVerse }
+                result.add(ChapterSection(heading = currentHeading, verses = sectionVerses))
+            }
+            result
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    // Validation state: true if chapter has gaps or missing verses
+    val isChapterIncomplete: StateFlow<Boolean> = verses.map { list ->
+        if (list.isEmpty()) false
+        else {
+            val sorted = list.sortedBy { it.verseNumber }
+            if (sorted.first().verseNumber != 1) true
+            else {
+                var gap = false
+                for (i in 0 until sorted.size - 1) {
+                    if (sorted[i + 1].verseNumber != sorted[i].verseNumber + 1) {
+                        gap = true
+                        break
+                    }
+                }
+                gap
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, false)
+
     // Search query & results
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()

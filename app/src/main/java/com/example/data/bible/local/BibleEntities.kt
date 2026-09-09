@@ -6,19 +6,32 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "bible_verses",
+    primaryKeys = ["translationId", "bookId", "chapter", "verse"],
     indices = [
-        Index(value = ["translationId", "bookId", "chapter", "verse"], unique = true),
         Index(value = ["translationId", "bookId", "chapter"])
     ]
 )
 data class BibleVerseEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
     val translationId: String,
     val bookId: Int,
     val chapter: Int,
     val verse: Int,
     val text: String
+)
+
+@Entity(
+    tableName = "bible_headings",
+    primaryKeys = ["translationId", "bookId", "chapter", "beforeVerse"],
+    indices = [
+        Index(value = ["translationId", "bookId", "chapter"])
+    ]
+)
+data class BibleHeadingEntity(
+    val translationId: String,
+    val bookId: Int,
+    val chapter: Int,
+    val beforeVerse: Int,
+    val headingText: String
 )
 
 @Entity(

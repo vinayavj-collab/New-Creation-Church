@@ -7,6 +7,7 @@ import com.example.data.bible.local.BibleBookmarkEntity
 import com.example.data.bible.local.BibleHighlightEntity
 import com.example.data.bible.local.BibleLocalDataSource
 import com.example.data.bible.local.BibleNoteEntity
+import com.example.data.bible.local.BibleVerseEntity
 import com.example.data.bible.local.ReadingPositionEntity
 import com.example.data.bible.model.BibleBookDefinitions
 import com.example.data.bible.model.BibleVerse
@@ -41,7 +42,23 @@ class BibleRepository(
     }
 
     /**
+     * Validates whether a chapter's verses start at 1 and proceed sequentially without missing verses.
+     */
+    fun isVerseSequenceComplete(verses: List<BibleVerseEntity>): Boolean {
+        if (verses.isEmpty()) return false
+        val sorted = verses.sortedBy { it.verse }
+        if (sorted.first().verse != 1) return false
+        for (i in 0 until sorted.size - 1) {
+            if (sorted[i + 1].verse != sorted[i].verse + 1) {
+                return false // Discontinuity found!
+            }
+        }
+        return true
+    }
+
+    /**
      * Offline-first chapter verses with bookmarks, highlights, and notes merged.
+     * Automatically verifies sequence completeness and re-fetches if verses are missing.
      */
     fun getChapterVerses(
         translationId: String,
@@ -49,13 +66,14 @@ class BibleRepository(
         chapter: Int,
         coroutineScope: CoroutineScope
     ): Flow<List<BibleVerse>> {
-        // Trigger background fetch if local chapter is not present yet
+        // Trigger background fetch if local chapter is missing OR has missing/incomplete verses
         coroutineScope.launch(Dispatchers.IO) {
             val localVerses = localDataSource.getVersesForChapterSync(translationId, bookId, chapter)
-            if (localVerses.isEmpty()) {
+            val isComplete = isVerseSequenceComplete(localVerses)
+            if (!isComplete) {
                 val remoteVerses = remoteDataSource.fetchChapterVerses(translationId, bookId, chapter)
                 if (!remoteVerses.isNullOrEmpty()) {
-                    localDataSource.saveVerses(remoteVerses)
+                    localDataSource.replaceChapterVerses(translationId, bookId, chapter, remoteVerses)
                 }
             }
         }
@@ -73,7 +91,7 @@ class BibleRepository(
             val highlightMap = highlights.associate { it.verse to it.colorHex }
             val noteMap = notes.associate { it.verse to it.noteText }
 
-            verses.map { verse ->
+            verses.sortedBy { it.verseNumber }.map { verse ->
                 verse.copy(
                     isBookmarked = bookmarkedSet.contains(verse.verseNumber),
                     highlightColor = highlightMap[verse.verseNumber],
@@ -83,10 +101,21 @@ class BibleRepository(
         }
     }
 
-    suspend fun refreshChapter(translationId: String, bookId: Int, chapter: Int) = withContext(Dispatchers.IO) {
+    fun getChapterHeadings(
+        translationId: String,
+        bookId: Int,
+        chapter: Int
+    ): Flow<List<com.example.data.bible.model.BibleSectionHeading>> {
+        return localDataSource.getHeadingsForChapter(translationId, bookId, chapter)
+    }
+
+    suspend fun refreshChapter(translationId: String, bookId: Int, chapter: Int): Boolean = withContext(Dispatchers.IO) {
         val remoteVerses = remoteDataSource.fetchChapterVerses(translationId, bookId, chapter)
         if (!remoteVerses.isNullOrEmpty()) {
-            localDataSource.saveVerses(remoteVerses)
+            localDataSource.replaceChapterVerses(translationId, bookId, chapter, remoteVerses)
+            true
+        } else {
+            false
         }
     }
 

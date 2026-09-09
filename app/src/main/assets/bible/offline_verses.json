@@ -1,143 +1,5742 @@
 [
-  {"t": "HIN_IRV", "b": 1, "c": 1, "v": 1, "text": "आदि में परमेश्वर ने आकाश और पृथ्वी की सृष्टि की।"},
-  {"t": "HIN_IRV", "b": 1, "c": 1, "v": 2, "text": "और पृथ्वी बेडौल और सुनसान पड़ी थी, और गहरे जल के ऊपर अंधियारा था; और परमेश्वर की आत्मा जल की सतह पर मंडराती थी।"},
-  {"t": "HIN_IRV", "b": 1, "c": 1, "v": 3, "text": "तब परमेश्वर ने कहा, \"उजियाला हो,\" तो उजियाला हो गया।"},
-  {"t": "HIN_IRV", "b": 1, "c": 1, "v": 4, "text": "और परमेश्वर ने उजियाले को देखा कि अच्छा है; और परमेश्वर ने उजियाले को अंधियारे से अलग किया।"},
-  {"t": "HIN_IRV", "b": 1, "c": 1, "v": 5, "text": "और परमेश्वर ने उजियाले को दिन और अंधियारे को रात कहा। तथा सांझ हुई फिर भोर हुआ; इस प्रकार पहला दिन हो गया।"},
-  {"t": "HIN_IRV", "b": 1, "c": 1, "v": 27, "text": "तब परमेश्वर ने मनुष्य को अपने स्वरूप के अनुसार रचा, परमेश्वर के ही स्वरूप के अनुसार उसने उसे रचा; नर और नारी करके उसने उनकी सृष्टि की।"},
-  {"t": "HIN_IRV", "b": 1, "c": 1, "v": 31, "text": "तब परमेश्वर ने जो कुछ बनाया था, सब को देखा, और वह बहुत ही अच्छा था। तथा सांझ हुई फिर भोर हुआ; इस प्रकार छठा दिन हो गया।"},
-  {"t": "ENG_WEB", "b": 1, "c": 1, "v": 1, "text": "In the beginning, God created the heavens and the earth."},
-  {"t": "ENG_WEB", "b": 1, "c": 1, "v": 2, "text": "The earth was formless and empty. Darkness was on the surface of the deep and God’s Spirit was hovering over the surface of the waters."},
-  {"t": "ENG_WEB", "b": 1, "c": 1, "v": 3, "text": "God said, \"Let there be light,\" and there was light."},
-  {"t": "ENG_WEB", "b": 1, "c": 1, "v": 4, "text": "God saw the light, and saw that it was good. God divided the light from the darkness."},
-  {"t": "ENG_WEB", "b": 1, "c": 1, "v": 5, "text": "God called the light \"day\", and the darkness he called \"night\". There was evening and there was morning, the first day."},
-  {"t": "ENG_WEB", "b": 1, "c": 1, "v": 27, "text": "God created man in his own image. In God’s image he created him; male and female he created them."},
-  {"t": "ENG_WEB", "b": 1, "c": 1, "v": 31, "text": "God saw everything that he had made, and, behold, it was very good. There was evening and there was morning, the sixth day."},
-  {"t": "HIN_IRV", "b": 19, "c": 23, "v": 1, "text": "यहोवा मेरा चरवाहा है, मुझे कोई घटी न होगी।"},
-  {"t": "HIN_IRV", "b": 19, "c": 23, "v": 2, "text": "वह मुझे हरी-हरी चराइयों में बैठाता है; वह मुझे सुखदाई जल के झरने के पास ले चलता है;"},
-  {"t": "HIN_IRV", "b": 19, "c": 23, "v": 3, "text": "वह मेरे जी में जी ले आता है। धर्म के मार्गों में वह अपने नाम के निमित्त मेरी अगुवाई करता है।"},
-  {"t": "HIN_IRV", "b": 19, "c": 23, "v": 4, "text": "चाहे मैं घोर अंधकार से भरी हुई तराई में होकर चलूँ, तो भी हानि से न डरूँगा, क्योंकि तू मेरे साथ रहता है; तेरे लट्ठे और तेरी सोंटी से मुझे शान्ति मिलती है।"},
-  {"t": "HIN_IRV", "b": 19, "c": 23, "v": 5, "text": "तू मेरे शत्रुओं के सामने मेरे लिये मेज बिछाता है; तूने मेरे सिर पर तेल मला है, मेरा कटोरा उमड़ रहा है।"},
-  {"t": "HIN_IRV", "b": 19, "c": 23, "v": 6, "text": "निश्चय भलाई और करुणा जीवन भर मेरे साथ-साथ बनी रहेंगी; और मैं यहोवा के धाम में सर्वदा वास करूँगा।"},
-  {"t": "ENG_WEB", "b": 19, "c": 23, "v": 1, "text": "The LORD is my shepherd: I shall not want."},
-  {"t": "ENG_WEB", "b": 19, "c": 23, "v": 2, "text": "He makes me lie down in green pastures. He leads me beside still waters."},
-  {"t": "ENG_WEB", "b": 19, "c": 23, "v": 3, "text": "He restores my soul. He guides me in the paths of righteousness for his name’s sake."},
-  {"t": "ENG_WEB", "b": 19, "c": 23, "v": 4, "text": "Even though I walk through the valley of the shadow of death, I will fear no evil, for you are with me. Your rod and your staff, they comfort me."},
-  {"t": "ENG_WEB", "b": 19, "c": 23, "v": 5, "text": "You prepare a table before me in the presence of my enemies. You anoint my head with oil. My cup runs over."},
-  {"t": "ENG_WEB", "b": 19, "c": 23, "v": 6, "text": "Surely goodness and loving kindness shall follow me all the days of my life, and I will dwell in the LORD’s house forever."},
-  {"t": "HIN_IRV", "b": 19, "c": 91, "v": 1, "text": "जो परमप्रधान के गुप्त स्थान में बैठा रहे, वह सर्वशक्तिमान की छाया में ठिकाना पाएगा।"},
-  {"t": "HIN_IRV", "b": 19, "c": 91, "v": 2, "text": "मैं यहोवा के विषय कहूँगा, \"वह मेरा शरणस्थान और मेरा गढ़ है; वह मेरा परमेश्वर है, मैं उस पर भरोसा रखूँगा।\""},
-  {"t": "HIN_IRV", "b": 19, "c": 91, "v": 3, "text": "वह तो तुझे बहेलिये के जाल से, और महामारी से बचाएगा;"},
-  {"t": "HIN_IRV", "b": 19, "c": 91, "v": 4, "text": "वह तुझे अपने पंखों की आड़ में ले लेगा, और तू उसके परों के नीचे शरण पाएगा; उसकी सच्चाई तेरे लिये ढाल और झिलम ठहरेगी।"},
-  {"t": "HIN_IRV", "b": 19, "c": 91, "v": 11, "text": "क्योंकि वह अपने दूतों को तेरे निमित्त आज्ञा देगा, कि जहाँ कहीं तू जाए वे तेरी रक्षा करें।"},
-  {"t": "ENG_WEB", "b": 19, "c": 91, "v": 1, "text": "He who dwells in the secret place of the Most High will rest in the shadow of the Almighty."},
-  {"t": "ENG_WEB", "b": 19, "c": 91, "v": 2, "text": "I will say of the LORD, \"He is my refuge and my fortress; my God, in whom I trust.\""},
-  {"t": "ENG_WEB", "b": 19, "c": 91, "v": 4, "text": "He will cover you with his feathers. Under his wings you will take refuge. His faithfulness is your shield and rampart."},
-  {"t": "ENG_WEB", "b": 19, "c": 91, "v": 11, "text": "For he will put his angels in charge of you, to guard you in all your ways."},
-  {"t": "HIN_IRV", "b": 19, "c": 121, "v": 1, "text": "मैं अपनी आँखें पर्वतों की ओर उठाऊँगा। मुझे सहायता कहाँ से मिलेगी?"},
-  {"t": "HIN_IRV", "b": 19, "c": 121, "v": 2, "text": "मुझे सहायता यहोवा की ओर से मिलती है, जो आकाश और पृथ्वी का कर्ता है।"},
-  {"t": "HIN_IRV", "b": 19, "c": 121, "v": 8, "text": "यहोवा तेरे आने और जाने में तेरी रक्षा अब से लेकर सर्वदा तक करता रहेगा।"},
-  {"t": "ENG_WEB", "b": 19, "c": 121, "v": 1, "text": "I will lift up my eyes to the hills. Where does my help come from?"},
-  {"t": "ENG_WEB", "b": 19, "c": 121, "v": 2, "text": "My help comes from the LORD, who made heaven and earth."},
-  {"t": "ENG_WEB", "b": 19, "c": 121, "v": 8, "text": "The LORD will keep your going out and your coming in, from this time forth, and forevermore."},
-  {"t": "HIN_IRV", "b": 20, "c": 3, "v": 5, "text": "तू अपनी समझ का सहारा न लेना, वरन सम्पूर्ण मन से यहोवा पर भरोसा रखना।"},
-  {"t": "HIN_IRV", "b": 20, "c": 3, "v": 6, "text": "उसी को अपने सब मार्गों में स्मरण रखना, तब वह तेरे लिये सीधा मार्ग निकालेगा।"},
-  {"t": "ENG_WEB", "b": 20, "c": 3, "v": 5, "text": "Trust in the LORD with all your heart, and don’t lean on your own understanding."},
-  {"t": "ENG_WEB", "b": 20, "c": 3, "v": 6, "text": "In all your ways acknowledge him, and he will make your paths straight."},
-  {"t": "HIN_IRV", "b": 23, "c": 40, "v": 29, "text": "वह थके हुए को बल देता है और शक्तिहीन को बहुत सामर्थ्य देता है।"},
-  {"t": "HIN_IRV", "b": 23, "c": 40, "v": 31, "text": "परन्तु जो यहोवा की बाट जोहते हैं, वे नया बल प्राप्त करते जाएँगे, वे उकाबों के समान उड़ेंगे, वे दौड़ेंगे और थकित न होंगे, चलेंगे और शिथिल न होंगे।"},
-  {"t": "ENG_WEB", "b": 23, "c": 40, "v": 29, "text": "He gives power to the faint; and to him who has no might he increases strength."},
-  {"t": "ENG_WEB", "b": 23, "c": 40, "v": 31, "text": "Those who wait for the LORD will renew their strength. They will mount up with wings like eagles. They will run, and not be weary. They will walk, and not faint."},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 3, "text": "\"धन्य हैं वे, जो मन के दीन हैं, क्योंकि स्वर्ग का राज्य उन्हीं का है।"},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 4, "text": "धन्य हैं वे, जो शोक करते हैं, क्योंकि वे शान्ति पाएँगे।"},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 5, "text": "धन्य हैं वे, जो नम्र हैं, क्योंकि वे पृथ्वी के अधिकारी होंगे।"},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 6, "text": "धन्य हैं वे, जो धार्मिकता के भूखे और प्यासे हैं, क्योंकि वे तृप्त किए जाएँगे।"},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 7, "text": "धन्य हैं वे, जो दयावन्त हैं, क्योंकि उन पर दया की जाएगी।"},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 8, "text": "धन्य हैं वे, जिनके मन शुद्ध हैं, क्योंकि वे परमेश्वर को देखेंगे।"},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 9, "text": "धन्य हैं वे, जो मेल करवाने वाले हैं, क्योंकि वे परमेश्वर के पुत्र कहलाएँगे।"},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 14, "text": "तुम जगत की ज्योति हो। जो नगर पहाड़ पर बसा हुआ है वह छिप नहीं सकता।"},
-  {"t": "HIN_IRV", "b": 40, "c": 5, "v": 16, "text": "उसी प्रकार तुम्हारा उजियाला मनुष्यों के सामने चमके कि वे तुम्हारे भले कामों को देखकर तुम्हारे पिता की, जो स्वर्ग में हैं, बड़ाई करें।"},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 3, "text": "\"Blessed are the poor in spirit, for theirs is the Kingdom of Heaven."},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 4, "text": "Blessed are those who mourn, for they shall be comforted."},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 5, "text": "Blessed are the gentle, for they shall inherit the earth."},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 6, "text": "Blessed are those who hunger and thirst for righteousness, for they shall be filled."},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 7, "text": "Blessed are the merciful, for they shall obtain mercy."},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 8, "text": "Blessed are the pure in heart, for they shall see God."},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 9, "text": "Blessed are the peacemakers, for they shall be called children of God."},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 14, "text": "You are the light of the world. A city located on a hill can’t be hidden."},
-  {"t": "ENG_WEB", "b": 40, "c": 5, "v": 16, "text": "Even so, let your light shine before men, that they may see your good works and glorify your Father who is in heaven."},
-  {"t": "HIN_IRV", "b": 40, "c": 6, "v": 9, "text": "\"अतः तुम इस रीति से प्रार्थना किया करो: 'हे हमारे पिता, तू जो स्वर्ग में है; तेरा नाम पवित्र माना जाए।"},
-  {"t": "HIN_IRV", "b": 40, "c": 6, "v": 10, "text": "तेरा राज्य आए। तेरी इच्छा जैसी स्वर्ग में पूरी होती है, वैसे पृथ्वी पर भी हो।"},
-  {"t": "HIN_IRV", "b": 40, "c": 6, "v": 11, "text": "हमारी दिन भर की रोटी आज हमें दे।"},
-  {"t": "HIN_IRV", "b": 40, "c": 6, "v": 12, "text": "और जिस प्रकार हमने अपने अपराधियों को क्षमा किया है, वैसे ही तू भी हमारे अपराधों को क्षमा कर।"},
-  {"t": "HIN_IRV", "b": 40, "c": 6, "v": 13, "text": "और हमें परीक्षा में न ला, परन्तु बुराई से बचा; क्योंकि राज्य और सामर्थ्य और महिमा सदा तेरे ही हैं।' आमीन।"},
-  {"t": "HIN_IRV", "b": 40, "c": 6, "v": 33, "text": "इसलिए पहले तुम परमेश्वर के राज्य और उसके धर्म की खोज करो तो ये सब वस्तुएँ भी तुम्हें मिल जाएँगी।"},
-  {"t": "ENG_WEB", "b": 40, "c": 6, "v": 9, "text": "\"Pray like this: 'Our Father in heaven, may your name be kept holy."},
-  {"t": "ENG_WEB", "b": 40, "c": 6, "v": 10, "text": "Let your Kingdom come. Let your will be done on earth as it is in heaven."},
-  {"t": "ENG_WEB", "b": 40, "c": 6, "v": 11, "text": "Give us today our daily bread."},
-  {"t": "ENG_WEB", "b": 40, "c": 6, "v": 12, "text": "Forgive us our debts, as we also forgive our debtors."},
-  {"t": "ENG_WEB", "b": 40, "c": 6, "v": 13, "text": "Bring us not into temptation, but deliver us from the evil one. For yours is the Kingdom, the power, and the glory forever. Amen.'"},
-  {"t": "ENG_WEB", "b": 40, "c": 6, "v": 33, "text": "But seek first God’s Kingdom and his righteousness; and all these things will be given to you as well."},
-  {"t": "HIN_IRV", "b": 43, "c": 1, "v": 1, "text": "आदि में वचन था, और वचन परमेश्वर के साथ था, और वचन परमेश्वर था।"},
-  {"t": "HIN_IRV", "b": 43, "c": 1, "v": 2, "text": "यही आदि में परमेश्वर के साथ था।"},
-  {"t": "HIN_IRV", "b": 43, "c": 1, "v": 3, "text": "सब कुछ उसी के द्वारा उत्पन्न हुआ और जो कुछ उत्पन्न हुआ है, उसमें से कोई भी वस्तु उसके बिना उत्पन्न नहीं हुई।"},
-  {"t": "HIN_IRV", "b": 43, "c": 1, "v": 4, "text": "उसमें जीवन था और वह जीवन मनुष्यों की ज्योति था।"},
-  {"t": "HIN_IRV", "b": 43, "c": 1, "v": 5, "text": "और ज्योति अंधकार में चमकती है, और अंधकार ने उसे ग्रहण न किया।"},
-  {"t": "HIN_IRV", "b": 43, "c": 1, "v": 12, "text": "परन्तु जितनों ने उसे ग्रहण किया, उसने उन्हें परमेश्वर की सन्तान होने का अधिकार दिया, अर्थात् उन्हें जो उसके नाम पर विश्वास रखते हैं।"},
-  {"t": "HIN_IRV", "b": 43, "c": 1, "v": 14, "text": "और वचन देहधारी हुआ; और अनुग्रह और सच्चाई से परिपूर्ण होकर हमारे बीच में डेरा किया, और हमने उसकी ऐसी महिमा देखी, जैसी पिता के एकलौते की महिमा।"},
-  {"t": "ENG_WEB", "b": 43, "c": 1, "v": 1, "text": "In the beginning was the Word, and the Word was with God, and the Word was God."},
-  {"t": "ENG_WEB", "b": 43, "c": 1, "v": 2, "text": "The same was in the beginning with God."},
-  {"t": "ENG_WEB", "b": 43, "c": 1, "v": 3, "text": "All things were made through him. Without him was not anything made that has been made."},
-  {"t": "ENG_WEB", "b": 43, "c": 1, "v": 4, "text": "In him was life, and the life was the light of men."},
-  {"t": "ENG_WEB", "b": 43, "c": 1, "v": 5, "text": "The light shines in the darkness, and the darkness hasn’t overcome it."},
-  {"t": "ENG_WEB", "b": 43, "c": 1, "v": 12, "text": "But as many as received him, to them he gave the right to become God’s children, to those who believe in his name."},
-  {"t": "ENG_WEB", "b": 43, "c": 1, "v": 14, "text": "The Word became flesh, and lived among us. We saw his glory, such glory as of the one and only Son of the Father, full of grace and truth."},
-  {"t": "HIN_IRV", "b": 43, "c": 3, "v": 1, "text": "फरीसियों में से नीकुदेमुस नाम एक मनुष्य था, जो यहूदियों का एक सरदार था।"},
-  {"t": "HIN_IRV", "b": 43, "c": 3, "v": 2, "text": "उसने रात को यीशु के पास आकर उससे कहा, \"हे रब्बी, हम जानते हैं कि तू परमेश्वर की ओर से गुरु होकर आया है; क्योंकि कोई इन चिन्हों को जो तू दिखाता है, यदि परमेश्वर उसके साथ न हो तो नहीं दिखा सकता।\""},
-  {"t": "HIN_IRV", "b": 43, "c": 3, "v": 3, "text": "यीशु ने उसको उत्तर दिया, \"मैं तुझ से सच-सच कहता हूँ, यदि कोई नये सिरे से न जन्मे तो परमेश्वर का राज्य देख नहीं सकता।\""},
-  {"t": "HIN_IRV", "b": 43, "c": 3, "v": 16, "text": "क्योंकि परमेश्वर ने जगत से ऐसा प्रेम रखा कि उसने अपना एकलौता पुत्र दे दिया, ताकि जो कोई उस पर विश्वास करे वह नष्ट न हो, परन्तु अनन्त जीवन पाए।"},
-  {"t": "HIN_IRV", "b": 43, "c": 3, "v": 17, "text": "क्योंकि परमेश्वर ने अपने पुत्र को जगत में इसलिये नहीं भेजा कि जगत पर दण्ड की आज्ञा दे, परन्तु इसलिये कि जगत उसके द्वारा उद्धार पाए।"},
-  {"t": "ENG_WEB", "b": 43, "c": 3, "v": 1, "text": "Now there was a man of the Pharisees named Nicodemus, a ruler of the Jews."},
-  {"t": "ENG_WEB", "b": 43, "c": 3, "v": 2, "text": "The same came to him by night, and said to him, \"Rabbi, we know that you are a teacher come from God, for no one can do these signs that you do, unless God is with him.\""},
-  {"t": "ENG_WEB", "b": 43, "c": 3, "v": 3, "text": "Jesus answered him, \"Most certainly, I tell you, unless one is born anew, he can’t see God’s Kingdom.\""},
-  {"t": "ENG_WEB", "b": 43, "c": 3, "v": 16, "text": "For God so loved the world, that he gave his one and only Son, that whoever believes in him should not perish, but have eternal life."},
-  {"t": "ENG_WEB", "b": 43, "c": 3, "v": 17, "text": "For God didn’t send his Son into the world to judge the world, but that the world should be saved through him."},
-  {"t": "HIN_IRV", "b": 43, "c": 14, "v": 1, "text": "\"तुम्हारा मन व्याकुल न हो; तुम परमेश्वर पर विश्वास रखते हो तो मुझ पर भी विश्वास रखो।"},
-  {"t": "HIN_IRV", "b": 43, "c": 14, "v": 2, "text": "मेरे पिता के घर में बहुत से रहने के स्थान हैं; यदि न होते, तो मैं तुमसे कह देता; क्योंकि मैं तुम्हारे लिये जगह तैयार करने जाता हूँ।"},
-  {"t": "HIN_IRV", "b": 43, "c": 14, "v": 6, "text": "यीशु ने उससे कहा, \"मार्ग और सच्चाई और जीवन मैं ही हूँ; बिना मेरे द्वारा कोई पिता के पास नहीं पहुँच सकता।"},
-  {"t": "HIN_IRV", "b": 43, "c": 14, "v": 27, "text": "मैं तुम्हें शान्ति दिए जाता हूँ; अपनी शान्ति तुम्हें देता हूँ; जैसे संसार देता है, मैं तुम्हें वैसे नहीं देता। तुम्हारा मन व्याकुल न हो और न डरे।"},
-  {"t": "ENG_WEB", "b": 43, "c": 14, "v": 1, "text": "\"Don’t let your heart be troubled. Believe in God. Believe also in me."},
-  {"t": "ENG_WEB", "b": 43, "c": 14, "v": 2, "text": "In my Father’s house are many homes. If it weren’t so, I would have told you. I am going to prepare a place for you."},
-  {"t": "ENG_WEB", "b": 43, "c": 14, "v": 6, "text": "Jesus said to him, \"I am the way, the truth, and the life. No one comes to the Father, except through me."},
-  {"t": "ENG_WEB", "b": 43, "c": 14, "v": 27, "text": "Peace I leave with you. My peace I give to you; not as the world gives, give I to you. Don’t let your heart be troubled, neither let it be fearful."},
-  {"t": "HIN_IRV", "b": 45, "c": 8, "v": 1, "text": "अतः अब जो मसीह यीशु में हैं, उन पर दण्ड की आज्ञा नहीं।"},
-  {"t": "HIN_IRV", "b": 45, "c": 8, "v": 28, "text": "और हम जानते हैं कि जो लोग परमेश्वर से प्रेम रखते हैं, उनके लिये सब बातें मिलकर भलाई ही को उत्पन्न करती हैं; अर्थात् उन्हीं के लिये जो उसकी इच्छा के अनुसार बुलाए हुए हैं।"},
-  {"t": "HIN_IRV", "b": 45, "c": 8, "v": 31, "text": "अतः हम इन बातों के विषय में क्या कहें? यदि परमेश्वर हमारी ओर है, तो हमारा विरोधी कौन हो सकता है?"},
-  {"t": "HIN_IRV", "b": 45, "c": 8, "v": 38, "text": "क्योंकि मैं निश्चय जानता हूँ कि न मृत्यु, न जीवन, न स्वर्गदूत, न प्रधानताएँ, न वर्तमान, न भविष्य, न सामर्थ्य,"},
-  {"t": "HIN_IRV", "b": 45, "c": 8, "v": 39, "text": "न ऊँचाई, न गहराई, और न कोई और सृष्टि, हमें परमेश्वर के प्रेम से, जो हमारे प्रभु मसीह यीशु में है, अलग कर सकेगी।"},
-  {"t": "ENG_WEB", "b": 45, "c": 8, "v": 1, "text": "There is therefore now no condemnation to those who are in Christ Jesus, who don’t walk according to the flesh, but according to the Spirit."},
-  {"t": "ENG_WEB", "b": 45, "c": 8, "v": 28, "text": "We know that all things work together for good for those who love God, to those who are called according to his purpose."},
-  {"t": "ENG_WEB", "b": 45, "c": 8, "v": 31, "text": "What then shall we say about these things? If God is for us, who can be against us?"},
-  {"t": "ENG_WEB", "b": 45, "c": 8, "v": 38, "text": "For I am persuaded that neither death, nor life, nor angels, nor principalities, nor things present, nor things to come, nor powers,"},
-  {"t": "ENG_WEB", "b": 45, "c": 8, "v": 39, "text": "nor height, nor depth, nor any other created thing, will be able to separate us from the love of God, which is in Christ Jesus our Lord."},
-  {"t": "HIN_IRV", "b": 46, "c": 13, "v": 4, "text": "प्रेम धीरजवन्त है, और कृपालु है; प्रेम डाह नहीं करता; प्रेम अपनी बड़ाई नहीं करता, और फूलता नहीं।"},
-  {"t": "HIN_IRV", "b": 46, "c": 13, "v": 7, "text": "वह सब बातें सह लेता है, सब बातों की प्रतीति करता है, सब बातों की आशा रखता है, सब बातों में धीरज धरता है।"},
-  {"t": "HIN_IRV", "b": 46, "c": 13, "v": 8, "text": "प्रेम कभी टलता नहीं; भविष्यद्वाणियाँ हों तो समाप्त हो जाएँगी, भाषाएँ हों तो जाती रहेंगी, ज्ञान हो तो मिट जाएगा।"},
-  {"t": "HIN_IRV", "b": 46, "c": 13, "v": 13, "text": "परन्तु अब विश्वास, आशा, प्रेम ये तीनों बने हैं, पर इनमें सबसे बड़ा प्रेम है।"},
-  {"t": "ENG_WEB", "b": 46, "c": 13, "v": 4, "text": "Love is patient and is kind; love doesn’t envy. Love doesn’t brag, is not proud,"},
-  {"t": "ENG_WEB", "b": 46, "c": 13, "v": 7, "text": "bears all things, believes all things, hopes all things, endures all things."},
-  {"t": "ENG_WEB", "b": 46, "c": 13, "v": 8, "text": "Love never fails. But where there are prophecies, they will be done away with. Where there are various languages, they will cease. Where there is knowledge, it will be done away with."},
-  {"t": "ENG_WEB", "b": 46, "c": 13, "v": 13, "text": "But now faith, hope, and love remain—these three. The greatest of these is love."},
-  {"t": "HIN_IRV", "b": 50, "c": 4, "v": 4, "text": "प्रभु में सदा आनन्दित रहो; मैं फिर कहता हूँ, आनन्दित रहो!"},
-  {"t": "HIN_IRV", "b": 50, "c": 4, "v": 6, "text": "किसी भी बात की चिन्ता मत करो; परन्तु हर एक बात में तुम्हारे निवेदन, प्रार्थना और विनती के द्वारा धन्यवाद के साथ परमेश्वर के सम्मुख उपस्थित किए जाएँ।"},
-  {"t": "HIN_IRV", "b": 50, "c": 4, "v": 7, "text": "तब परमेश्वर की शान्ति, जो समझ से परे है, तुम्हारे हृदय और तुम्हारे विचारों को मसीह यीशु में सुरक्षित रखेगी।"},
-  {"t": "HIN_IRV", "b": 50, "c": 4, "v": 13, "text": "जो मुझे सामर्थ्य देता है उसमें मैं सब कुछ कर सकता हूँ।"},
-  {"t": "ENG_WEB", "b": 50, "c": 4, "v": 4, "text": "Rejoice in the Lord always! Again I will say, Rejoice!"},
-  {"t": "ENG_WEB", "b": 50, "c": 4, "v": 6, "text": "In nothing be anxious, but in everything, by prayer and petition with thanksgiving, let your requests be made known to God."},
-  {"t": "ENG_WEB", "b": 50, "c": 4, "v": 7, "text": "And the peace of God, which surpasses all understanding, will guard your hearts and your thoughts in Christ Jesus."},
-  {"t": "ENG_WEB", "b": 50, "c": 4, "v": 13, "text": "I can do all things through Christ, who strengthens me."},
-  {"t": "HIN_IRV", "b": 66, "c": 21, "v": 3, "text": "फिर मैंने सिंहासन में से किसी को ऊँचे शब्द से यह कहते सुना, \"देख, परमेश्वर का डेरा मनुष्यों के बीच में है। वह उनके साथ डेरा करेगा, और वे उसके लोग होंगे, और परमेश्वर आप उनके साथ रहेगा; और उनका परमेश्वर होगा।"},
-  {"t": "HIN_IRV", "b": 66, "c": 21, "v": 4, "text": "और वह उनकी आँखों से सब आँसू पोंछ डालेगा; और इसके बाद मृत्यु न रहेगी, और न शोक, न विलाप, न पीड़ा रहेगी; पहली बातें जाती रहीं।\""},
-  {"t": "ENG_WEB", "b": 66, "c": 21, "v": 3, "text": "I heard a loud voice out of heaven saying, \"Behold, God’s dwelling is with people, and he will dwell with them, and they will be his people, and God himself will be with them as their God."},
-  {"t": "ENG_WEB", "b": 66, "c": 21, "v": 4, "text": "He will wipe away every tear from their eyes. Death will be no more; neither will there be mourning, nor crying, nor pain, any more. The first things have passed away.\""}
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 1,
+    "text": "In the beginning, God created the heavens and the earth."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 2,
+    "text": "The earth was formless and empty. Darkness was on the surface of the deep and God’s Spirit was hovering over the surface of the waters."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 3,
+    "text": "God said, “Let there be light,” and there was light."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 4,
+    "text": "God saw the light, and saw that it was good. God divided the light from the darkness."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 5,
+    "text": "God called the light “day”, and the darkness he called “night”. There was evening and there was morning, the first day."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 6,
+    "text": "God said, “Let there be an expanse in the middle of the waters, and let it divide the waters from the waters.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 7,
+    "text": "God made the expanse, and divided the waters which were under the expanse from the waters which were above the expanse; and it was so."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 8,
+    "text": "God called the expanse “sky”. There was evening and there was morning, a second day."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 9,
+    "text": "God said, “Let the waters under the sky be gathered together to one place, and let the dry land appear”; and it was so."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 10,
+    "text": "God called the dry land “earth”, and the gathering together of the waters he called “seas”. God saw that it was good."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 11,
+    "text": "God said, “Let the earth yield grass, herbs yielding seeds, and fruit trees bearing fruit after their kind, with their seeds in it, on the earth”; and it was so."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 12,
+    "text": "The earth yielded grass, herbs yielding seed after their kind, and trees bearing fruit, with their seeds in it, after their kind; and God saw that it was good."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 13,
+    "text": "There was evening and there was morning, a third day."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 14,
+    "text": "God said, “Let there be lights in the expanse of the sky to divide the day from the night; and let them be for signs to mark seasons, days, and years;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 15,
+    "text": "and let them be for lights in the expanse of the sky to give light on the earth”; and it was so."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 16,
+    "text": "God made the two great lights: the greater light to rule the day, and the lesser light to rule the night. He also made the stars."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 17,
+    "text": "God set them in the expanse of the sky to give light to the earth,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 18,
+    "text": "and to rule over the day and over the night, and to divide the light from the darkness. God saw that it was good."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 19,
+    "text": "There was evening and there was morning, a fourth day."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 20,
+    "text": "God said, “Let the waters abound with living creatures, and let birds fly above the earth in the open expanse of the sky.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 21,
+    "text": "God created the large sea creatures and every living creature that moves, with which the waters swarmed, after their kind, and every winged bird after its kind. God saw that it was good."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 22,
+    "text": "God blessed them, saying, “Be fruitful, and multiply, and fill the waters in the seas, and let birds multiply on the earth.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 23,
+    "text": "There was evening and there was morning, a fifth day."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 24,
+    "text": "God said, “Let the earth produce living creatures after their kind, livestock, creeping things, and animals of the earth after their kind”; and it was so."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 25,
+    "text": "God made the animals of the earth after their kind, and the livestock after their kind, and everything that creeps on the ground after its kind. God saw that it was good."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 26,
+    "text": "God said, “Let us make man in our image, after our likeness: and let them have dominion over the fish of the sea, and over the birds of the sky, and over the livestock, and over all the earth, and over every creeping thing that creeps on the earth.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 27,
+    "text": "God created man in his own image. In God’s image he created him; male and female he created them."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 28,
+    "text": "God blessed them. God said to them, “Be fruitful, multiply, fill the earth, and subdue it. Have dominion over the fish of the sea, over the birds of the sky, and over every living thing that moves on the earth.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 29,
+    "text": "God said, “Behold, I have given you every herb yielding seed, which is on the surface of all the earth, and every tree, which bears fruit yielding seed. It will be your food."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 30,
+    "text": "To every animal of the earth, and to every bird of the sky, and to everything that creeps on the earth, in which there is life, I have given every green herb for food;” and it was so."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 1,
+    "c": 1,
+    "v": 31,
+    "text": "God saw everything that he had made, and, behold, it was very good. There was evening and there was morning, a sixth day."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 23,
+    "v": 1,
+    "text": "A Psalm by David. Yahweh is my shepherd: I shall lack nothing."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 23,
+    "v": 2,
+    "text": "He makes me lie down in green pastures. He leads me beside still waters."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 23,
+    "v": 3,
+    "text": "He restores my soul. He guides me in the paths of righteousness for his name’s sake."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 23,
+    "v": 4,
+    "text": "Even though I walk through the valley of the shadow of death, I will fear no evil, for you are with me. Your rod and your staff, they comfort me."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 23,
+    "v": 5,
+    "text": "You prepare a table before me in the presence of my enemies. You anoint my head with oil. My cup runs over."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 23,
+    "v": 6,
+    "text": "Surely goodness and loving kindness shall follow me all the days of my life, and I will dwell in Yahweh’s house forever."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 1,
+    "text": "He who dwells in the secret place of the Most High will rest in the shadow of the Almighty."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 2,
+    "text": "I will say of Yahweh, “He is my refuge and my fortress; my God, in whom I trust.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 3,
+    "text": "For he will deliver you from the snare of the fowler, and from the deadly pestilence."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 4,
+    "text": "He will cover you with his feathers. Under his wings you will take refuge. His faithfulness is your shield and rampart."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 5,
+    "text": "You shall not be afraid of the terror by night, nor of the arrow that flies by day;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 6,
+    "text": "nor of the pestilence that walks in darkness, nor of the destruction that wastes at noonday."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 7,
+    "text": "A thousand may fall at your side, and ten thousand at your right hand; but it will not come near you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 8,
+    "text": "You will only look with your eyes, and see the recompense of the wicked."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 9,
+    "text": "Because you have made Yahweh your refuge, and the Most High your dwelling place,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 10,
+    "text": "no evil shall happen to you, neither shall any plague come near your dwelling."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 11,
+    "text": "For he will put his angels in charge of you, to guard you in all your ways."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 12,
+    "text": "They will bear you up in their hands, so that you won’t dash your foot against a stone."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 13,
+    "text": "You will tread on the lion and cobra. You will trample the young lion and the serpent underfoot."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 14,
+    "text": "“Because he has set his love on me, therefore I will deliver him. I will set him on high, because he has known my name."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 15,
+    "text": "He will call on me, and I will answer him. I will be with him in trouble. I will deliver him, and honor him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 91,
+    "v": 16,
+    "text": "I will satisfy him with long life, and show him my salvation.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 121,
+    "v": 1,
+    "text": "A Song of Ascents. I will lift up my eyes to the hills. Where does my help come from?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 121,
+    "v": 2,
+    "text": "My help comes from Yahweh, who made heaven and earth."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 121,
+    "v": 3,
+    "text": "He will not allow your foot to be moved. He who keeps you will not slumber."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 121,
+    "v": 4,
+    "text": "Behold, he who keeps Israel will neither slumber nor sleep."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 121,
+    "v": 5,
+    "text": "Yahweh is your keeper. Yahweh is your shade on your right hand."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 121,
+    "v": 6,
+    "text": "The sun will not harm you by day, nor the moon by night."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 121,
+    "v": 7,
+    "text": "Yahweh will keep you from all evil. He will keep your soul."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 19,
+    "c": 121,
+    "v": 8,
+    "text": "Yahweh will keep your going out and your coming in, from this time forward, and forever more."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 1,
+    "text": "The book of the genealogy of Jesus Christ, the son of David, the son of Abraham."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 2,
+    "text": "Abraham became the father of Isaac. Isaac became the father of Jacob. Jacob became the father of Judah and his brothers."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 3,
+    "text": "Judah became the father of Perez and Zerah by Tamar. Perez became the father of Hezron. Hezron became the father of Ram."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 4,
+    "text": "Ram became the father of Amminadab. Amminadab became the father of Nahshon. Nahshon became the father of Salmon."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 5,
+    "text": "Salmon became the father of Boaz by Rahab. Boaz became the father of Obed by Ruth. Obed became the father of Jesse."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 6,
+    "text": "Jesse became the father of King David. David became the father of Solomon by her who had been Uriah’s wife."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 7,
+    "text": "Solomon became the father of Rehoboam. Rehoboam became the father of Abijah. Abijah became the father of Asa."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 8,
+    "text": "Asa became the father of Jehoshaphat. Jehoshaphat became the father of Joram. Joram became the father of Uzziah."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 9,
+    "text": "Uzziah became the father of Jotham. Jotham became the father of Ahaz. Ahaz became the father of Hezekiah."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 10,
+    "text": "Hezekiah became the father of Manasseh. Manasseh became the father of Amon. Amon became the father of Josiah."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 11,
+    "text": "Josiah became the father of Jechoniah and his brothers, at the time of the exile to Babylon."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 12,
+    "text": "After the exile to Babylon, Jechoniah became the father of Shealtiel. Shealtiel became the father of Zerubbabel."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 13,
+    "text": "Zerubbabel became the father of Abiud. Abiud became the father of Eliakim. Eliakim became the father of Azor."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 14,
+    "text": "Azor became the father of Zadok. Zadok became the father of Achim. Achim became the father of Eliud."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 15,
+    "text": "Eliud became the father of Eleazar. Eleazar became the father of Matthan. Matthan became the father of Jacob."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 16,
+    "text": "Jacob became the father of Joseph, the husband of Mary, from whom was born Jesus, who is called Christ."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 17,
+    "text": "So all the generations from Abraham to David are fourteen generations; from David to the exile to Babylon fourteen generations; and from the carrying away to Babylon to the Christ, fourteen generations."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 18,
+    "text": "Now the birth of Jesus Christ was like this; for after his mother, Mary, was engaged to Joseph, before they came together, she was found pregnant by the Holy Spirit."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 19,
+    "text": "Joseph, her husband, being a righteous man, and not willing to make her a public example, intended to put her away secretly."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 20,
+    "text": "But when he thought about these things, behold, an angel of the Lord appeared to him in a dream, saying, “Joseph, son of David, don’t be afraid to take to yourself Mary, your wife, for that which is conceived in her is of the Holy Spirit."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 21,
+    "text": "She shall give birth to a son. You shall call his name Jesus, for it is he who shall save his people from their sins.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 22,
+    "text": "Now all this has happened, that it might be fulfilled which was spoken by the Lord through the prophet, saying,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 23,
+    "text": "“Behold, the virgin shall be with child, and shall give birth to a son. They shall call his name Immanuel”; which is, being interpreted, “God with us.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 24,
+    "text": "Joseph arose from his sleep, and did as the angel of the Lord commanded him, and took his wife to himself;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 1,
+    "v": 25,
+    "text": "and didn’t know her sexually until she had given birth to her firstborn son. He named him Jesus."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 1,
+    "text": "Seeing the multitudes, he went up onto the mountain. When he had sat down, his disciples came to him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 2,
+    "text": "He opened his mouth and taught them, saying,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 3,
+    "text": "“Blessed are the poor in spirit, for theirs is the Kingdom of Heaven."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 4,
+    "text": "Blessed are those who mourn, for they shall be comforted."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 5,
+    "text": "Blessed are the gentle, for they shall inherit the earth."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 6,
+    "text": "Blessed are those who hunger and thirst after righteousness, for they shall be filled."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 7,
+    "text": "Blessed are the merciful, for they shall obtain mercy."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 8,
+    "text": "Blessed are the pure in heart, for they shall see God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 9,
+    "text": "Blessed are the peacemakers, for they shall be called children of God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 10,
+    "text": "Blessed are those who have been persecuted for righteousness’ sake, for theirs is the Kingdom of Heaven."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 11,
+    "text": "“Blessed are you when people reproach you, persecute you, and say all kinds of evil against you falsely, for my sake."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 12,
+    "text": "Rejoice, and be exceedingly glad, for great is your reward in heaven. For that is how they persecuted the prophets who were before you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 13,
+    "text": "“You are the salt of the earth, but if the salt has lost its flavor, with what will it be salted? It is then good for nothing, but to be cast out and trodden under the feet of men."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 14,
+    "text": "You are the light of the world. A city located on a hill can’t be hidden."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 15,
+    "text": "Neither do you light a lamp, and put it under a measuring basket, but on a stand; and it shines to all who are in the house."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 16,
+    "text": "Even so, let your light shine before men; that they may see your good works, and glorify your Father who is in heaven."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 17,
+    "text": "“Don’t think that I came to destroy the law or the prophets. I didn’t come to destroy, but to fulfill."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 18,
+    "text": "For most certainly, I tell you, until heaven and earth pass away, not even one smallest letter or one tiny pen stroke shall in any way pass away from the law, until all things are accomplished."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 19,
+    "text": "Whoever, therefore, shall break one of these least commandments, and teach others to do so, shall be called least in the Kingdom of Heaven; but whoever shall do and teach them shall be called great in the Kingdom of Heaven."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 20,
+    "text": "For I tell you that unless your righteousness exceeds that of the scribes and Pharisees, there is no way you will enter into the Kingdom of Heaven."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 21,
+    "text": "“You have heard that it was said to the ancient ones, ‘You shall not murder;’ and ‘Whoever murders will be in danger of the judgment.’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 22,
+    "text": "But I tell you, that everyone who is angry with his brother without a cause will be in danger of the judgment; and whoever says to his brother, ‘Raca!’ will be in danger of the council; and whoever says, ‘You fool!’ will be in danger of the fire of Gehenna."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 23,
+    "text": "“If therefore you are offering your gift at the altar, and there remember that your brother has anything against you,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 24,
+    "text": "leave your gift there before the altar, and go your way. First be reconciled to your brother, and then come and offer your gift."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 25,
+    "text": "Agree with your adversary quickly, while you are with him on the way; lest perhaps the prosecutor deliver you to the judge, and the judge deliver you to the officer, and you be cast into prison."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 26,
+    "text": "Most certainly I tell you, you shall by no means get out of there, until you have paid the last penny."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 27,
+    "text": "“You have heard that it was said, ‘You shall not commit adultery;’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 28,
+    "text": "but I tell you that everyone who gazes at a woman to lust after her has committed adultery with her already in his heart."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 29,
+    "text": "If your right eye causes you to stumble, pluck it out and throw it away from you. For it is more profitable for you that one of your members should perish, than for your whole body to be cast into Gehenna."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 30,
+    "text": "If your right hand causes you to stumble, cut it off, and throw it away from you. For it is more profitable for you that one of your members should perish, than for your whole body to be cast into Gehenna."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 31,
+    "text": "“It was also said, ‘Whoever shall put away his wife, let him give her a writing of divorce,’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 32,
+    "text": "but I tell you that whoever puts away his wife, except for the cause of sexual immorality, makes her an adulteress; and whoever marries her when she is put away commits adultery."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 33,
+    "text": "“Again you have heard that it was said to them of old time, ‘You shall not make false vows, but shall perform to the Lord your vows,’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 34,
+    "text": "but I tell you, don’t swear at all: neither by heaven, for it is the throne of God;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 35,
+    "text": "nor by the earth, for it is the footstool of his feet; nor by Jerusalem, for it is the city of the great King."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 36,
+    "text": "Neither shall you swear by your head, for you can’t make one hair white or black."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 37,
+    "text": "But let your ‘Yes’ be ‘Yes’ and your ‘No’ be ‘No.’ Whatever is more than these is of the evil one."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 38,
+    "text": "“You have heard that it was said, ‘An eye for an eye, and a tooth for a tooth.’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 39,
+    "text": "But I tell you, don’t resist him who is evil; but whoever strikes you on your right cheek, turn to him the other also."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 40,
+    "text": "If anyone sues you to take away your coat, let him have your cloak also."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 41,
+    "text": "Whoever compels you to go one mile, go with him two."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 42,
+    "text": "Give to him who asks you, and don’t turn away him who desires to borrow from you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 43,
+    "text": "“You have heard that it was said, ‘You shall love your neighbor and hate your enemy.’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 44,
+    "text": "But I tell you, love your enemies, bless those who curse you, do good to those who hate you, and pray for those who mistreat you and persecute you,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 45,
+    "text": "that you may be children of your Father who is in heaven. For he makes his sun to rise on the evil and the good, and sends rain on the just and the unjust."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 46,
+    "text": "For if you love those who love you, what reward do you have? Don’t even the tax collectors do the same?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 47,
+    "text": "If you only greet your friends, what more do you do than others? Don’t even the tax collectors do the same?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 40,
+    "c": 5,
+    "v": 48,
+    "text": "Therefore you shall be perfect, just as your Father in heaven is perfect."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 1,
+    "text": "He went out from there. He came into his own country, and his disciples followed him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 2,
+    "text": "When the Sabbath had come, he began to teach in the synagogue, and many hearing him were astonished, saying, “Where did this man get these things?” and, “What is the wisdom that is given to this man, that such mighty works come about by his hands?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 3,
+    "text": "Isn’t this the carpenter, the son of Mary, and brother of James, Joses, Judah, and Simon? Aren’t his sisters here with us?” They were offended at him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 4,
+    "text": "Jesus said to them, “A prophet is not without honor, except in his own country, and among his own relatives, and in his own house.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 5,
+    "text": "He could do no mighty work there, except that he laid his hands on a few sick people, and healed them."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 6,
+    "text": "He marveled because of their unbelief. He went around the villages teaching."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 7,
+    "text": "He called to himself the twelve, and began to send them out two by two; and he gave them authority over the unclean spirits."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 8,
+    "text": "He commanded them that they should take nothing for their journey, except a staff only: no bread, no wallet, no money in their purse,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 9,
+    "text": "but to wear sandals, and not put on two tunics."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 10,
+    "text": "He said to them, “Wherever you enter into a house, stay there until you depart from there."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 11,
+    "text": "Whoever will not receive you nor hear you, as you depart from there, shake off the dust that is under your feet for a testimony against them. Assuredly, I tell you, it will be more tolerable for Sodom and Gomorrah in the day of judgment than for that city!”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 12,
+    "text": "They went out and preached that people should repent."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 13,
+    "text": "They cast out many demons, and anointed many with oil who were sick, and healed them."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 14,
+    "text": "King Herod heard this, for his name had become known, and he said, “John the Baptizer has risen from the dead, and therefore these powers are at work in him.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 15,
+    "text": "But others said, “He is Elijah.” Others said, “He is a prophet, or like one of the prophets.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 16,
+    "text": "But Herod, when he heard this, said, “This is John, whom I beheaded. He has risen from the dead.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 17,
+    "text": "For Herod himself had sent out and arrested John, and bound him in prison for the sake of Herodias, his brother Philip’s wife, for he had married her."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 18,
+    "text": "For John said to Herod, “It is not lawful for you to have your brother’s wife.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 19,
+    "text": "Herodias set herself against him, and desired to kill him, but she couldn’t,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 20,
+    "text": "for Herod feared John, knowing that he was a righteous and holy man, and kept him safe. When he heard him, he did many things, and he heard him gladly."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 21,
+    "text": "Then a convenient day came, that Herod on his birthday made a supper for his nobles, the high officers, and the chief men of Galilee."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 22,
+    "text": "When the daughter of Herodias herself came in and danced, she pleased Herod and those sitting with him. The king said to the young lady, “Ask me whatever you want, and I will give it to you.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 23,
+    "text": "He swore to her, “Whatever you shall ask of me, I will give you, up to half of my kingdom.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 24,
+    "text": "She went out, and said to her mother, “What shall I ask?” She said, “The head of John the Baptizer.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 25,
+    "text": "She came in immediately with haste to the king, and asked, “I want you to give me right now the head of John the Baptizer on a platter.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 26,
+    "text": "The king was exceedingly sorry, but for the sake of his oaths, and of his dinner guests, he didn’t wish to refuse her."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 27,
+    "text": "Immediately the king sent out a soldier of his guard, and commanded to bring John’s head, and he went and beheaded him in the prison,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 28,
+    "text": "and brought his head on a platter, and gave it to the young lady; and the young lady gave it to her mother."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 29,
+    "text": "When his disciples heard this, they came and took up his corpse, and laid it in a tomb."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 30,
+    "text": "The apostles gathered themselves together to Jesus, and they told him all things, whatever they had done, and whatever they had taught."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 31,
+    "text": "He said to them, “You come apart into a deserted place, and rest awhile.” For there were many coming and going, and they had no leisure so much as to eat."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 32,
+    "text": "They went away in the boat to a deserted place by themselves."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 33,
+    "text": "They saw them going, and many recognized him and ran there on foot from all the cities. They arrived before them and came together to him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 34,
+    "text": "Jesus came out, saw a great multitude, and he had compassion on them, because they were like sheep without a shepherd, and he began to teach them many things."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 35,
+    "text": "When it was late in the day, his disciples came to him, and said, “This place is deserted, and it is late in the day."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 36,
+    "text": "Send them away, that they may go into the surrounding country and villages, and buy themselves bread, for they have nothing to eat.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 37,
+    "text": "But he answered them, “You give them something to eat.” They asked him, “Shall we go and buy two hundred denarii worth of bread, and give them something to eat?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 38,
+    "text": "He said to them, “How many loaves do you have? Go see.” When they knew, they said, “Five, and two fish.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 39,
+    "text": "He commanded them that everyone should sit down in groups on the green grass."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 40,
+    "text": "They sat down in ranks, by hundreds and by fifties."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 41,
+    "text": "He took the five loaves and the two fish, and looking up to heaven, he blessed and broke the loaves, and he gave to his disciples to set before them, and he divided the two fish among them all."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 42,
+    "text": "They all ate, and were filled."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 43,
+    "text": "They took up twelve baskets full of broken pieces and also of the fish."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 44,
+    "text": "Those who ate the loaves were five thousand men."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 45,
+    "text": "Immediately he made his disciples get into the boat, and to go ahead to the other side, to Bethsaida, while he himself sent the multitude away."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 46,
+    "text": "After he had taken leave of them, he went up the mountain to pray."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 47,
+    "text": "When evening had come, the boat was in the middle of the sea, and he was alone on the land."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 48,
+    "text": "Seeing them distressed in rowing, for the wind was contrary to them, about the fourth watch of the night he came to them, walking on the sea, and he would have passed by them,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 49,
+    "text": "but they, when they saw him walking on the sea, supposed that it was a ghost, and cried out;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 50,
+    "text": "for they all saw him, and were troubled. But he immediately spoke with them, and said to them, “Cheer up! It is I! Don’t be afraid.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 51,
+    "text": "He got into the boat with them; and the wind ceased, and they were very amazed among themselves, and marveled;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 52,
+    "text": "for they hadn’t understood about the loaves, but their hearts were hardened."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 53,
+    "text": "When they had crossed over, they came to land at Gennesaret, and moored to the shore."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 54,
+    "text": "When they had come out of the boat, immediately the people recognized him,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 55,
+    "text": "and ran around that whole region, and began to bring those who were sick, on their mats, to where they heard he was."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 41,
+    "c": 6,
+    "v": 56,
+    "text": "Wherever he entered, into villages, or into cities, or into the country, they laid the sick in the marketplaces, and begged him that they might touch just the fringe of his garment; and as many as touched him were made well."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 1,
+    "text": "In the beginning was the Word, and the Word was with God, and the Word was God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 2,
+    "text": "The same was in the beginning with God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 3,
+    "text": "All things were made through him. Without him was not anything made that has been made."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 4,
+    "text": "In him was life, and the life was the light of men."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 5,
+    "text": "The light shines in the darkness, and the darkness hasn’t overcome it."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 6,
+    "text": "There came a man, sent from God, whose name was John."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 7,
+    "text": "The same came as a witness, that he might testify about the light, that all might believe through him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 8,
+    "text": "He was not the light, but was sent that he might testify about the light."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 9,
+    "text": "The true light that enlightens everyone was coming into the world."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 10,
+    "text": "He was in the world, and the world was made through him, and the world didn’t recognize him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 11,
+    "text": "He came to his own, and those who were his own didn’t receive him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 12,
+    "text": "But as many as received him, to them he gave the right to become God’s children, to those who believe in his name:"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 13,
+    "text": "who were born not of blood, nor of the will of the flesh, nor of the will of man, but of God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 14,
+    "text": "The Word became flesh, and lived among us. We saw his glory, such glory as of the one and only Son of the Father, full of grace and truth."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 15,
+    "text": "John testified about him. He cried out, saying, “This was he of whom I said, ‘He who comes after me has surpassed me, for he was before me.’”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 16,
+    "text": "From his fullness we all received grace upon grace."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 17,
+    "text": "For the law was given through Moses. Grace and truth were realized through Jesus Christ."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 18,
+    "text": "No one has seen God at any time. The one and only Son, who is in the bosom of the Father, he has declared him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 19,
+    "text": "This is John’s testimony, when the Jews sent priests and Levites from Jerusalem to ask him, “Who are you?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 20,
+    "text": "He declared, and didn’t deny, but he declared, “I am not the Christ.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 21,
+    "text": "They asked him, “What then? Are you Elijah?” He said, “I am not.” “Are you the prophet?” He answered, “No.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 22,
+    "text": "They said therefore to him, “Who are you? Give us an answer to take back to those who sent us. What do you say about yourself?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 23,
+    "text": "He said, “I am the voice of one crying in the wilderness, ‘Make straight the way of the Lord,’ as Isaiah the prophet said.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 24,
+    "text": "The ones who had been sent were from the Pharisees."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 25,
+    "text": "They asked him, “Why then do you baptize, if you are not the Christ, nor Elijah, nor the prophet?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 26,
+    "text": "John answered them, “I baptize in water, but among you stands one whom you don’t know."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 27,
+    "text": "He is the one who comes after me, who is preferred before me, whose sandal strap I’m not worthy to loosen.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 28,
+    "text": "These things were done in Bethany beyond the Jordan, where John was baptizing."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 29,
+    "text": "The next day, he saw Jesus coming to him, and said, “Behold, the Lamb of God, who takes away the sin of the world!"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 30,
+    "text": "This is he of whom I said, ‘After me comes a man who is preferred before me, for he was before me.’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 31,
+    "text": "I didn’t know him, but for this reason I came baptizing in water: that he would be revealed to Israel.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 32,
+    "text": "John testified, saying, “I have seen the Spirit descending like a dove out of heaven, and it remained on him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 33,
+    "text": "I didn’t recognize him, but he who sent me to baptize in water, he said to me, ‘On whomever you will see the Spirit descending, and remaining on him, the same is he who baptizes in the Holy Spirit.’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 34,
+    "text": "I have seen, and have testified that this is the Son of God.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 35,
+    "text": "Again, the next day, John was standing with two of his disciples,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 36,
+    "text": "and he looked at Jesus as he walked, and said, “Behold, the Lamb of God!”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 37,
+    "text": "The two disciples heard him speak, and they followed Jesus."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 38,
+    "text": "Jesus turned, and saw them following, and said to them, “What are you looking for?” They said to him, “Rabbi” (which is to say, being interpreted, Teacher), “where are you staying?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 39,
+    "text": "He said to them, “Come, and see.” They came and saw where he was staying, and they stayed with him that day. It was about the tenth hour."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 40,
+    "text": "One of the two who heard John, and followed him, was Andrew, Simon Peter’s brother."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 41,
+    "text": "He first found his own brother, Simon, and said to him, “We have found the Messiah!” (which is, being interpreted, Christ )."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 42,
+    "text": "He brought him to Jesus. Jesus looked at him, and said, “You are Simon the son of Jonah. You shall be called Cephas” (which is by interpretation, Peter)."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 43,
+    "text": "On the next day, he was determined to go out into Galilee, and he found Philip. Jesus said to him, “Follow me.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 44,
+    "text": "Now Philip was from Bethsaida, of the city of Andrew and Peter."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 45,
+    "text": "Philip found Nathanael, and said to him, “We have found him, of whom Moses in the law, and the prophets, wrote: Jesus of Nazareth, the son of Joseph.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 46,
+    "text": "Nathanael said to him, “Can any good thing come out of Nazareth?” Philip said to him, “Come and see.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 47,
+    "text": "Jesus saw Nathanael coming to him, and said about him, “Behold, an Israelite indeed, in whom is no deceit!”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 48,
+    "text": "Nathanael said to him, “How do you know me?” Jesus answered him, “Before Philip called you, when you were under the fig tree, I saw you.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 49,
+    "text": "Nathanael answered him, “Rabbi, you are the Son of God! You are King of Israel!”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 50,
+    "text": "Jesus answered him, “Because I told you, ‘I saw you underneath the fig tree,’ do you believe? You will see greater things than these!”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 1,
+    "v": 51,
+    "text": "He said to him, “Most certainly, I tell you, hereafter you will see heaven opened, and the angels of God ascending and descending on the Son of Man.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 1,
+    "text": "The third day, there was a marriage in Cana of Galilee. Jesus’ mother was there."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 2,
+    "text": "Jesus also was invited, with his disciples, to the marriage."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 3,
+    "text": "When the wine ran out, Jesus’ mother said to him, “They have no wine.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 4,
+    "text": "Jesus said to her, “Woman, what does that have to do with you and me? My hour has not yet come.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 5,
+    "text": "His mother said to the servants, “Whatever he says to you, do it.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 6,
+    "text": "Now there were six water pots of stone set there after the Jews’ way of purifying, containing two or three metretes apiece."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 7,
+    "text": "Jesus said to them, “Fill the water pots with water.” They filled them up to the brim."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 8,
+    "text": "He said to them, “Now draw some out, and take it to the ruler of the feast.” So they took it."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 9,
+    "text": "When the ruler of the feast tasted the water now become wine, and didn’t know where it came from (but the servants who had drawn the water knew), the ruler of the feast called the bridegroom,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 10,
+    "text": "and said to him, “Everyone serves the good wine first, and when the guests have drunk freely, then that which is worse. You have kept the good wine until now!”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 11,
+    "text": "This beginning of his signs Jesus did in Cana of Galilee, and revealed his glory; and his disciples believed in him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 12,
+    "text": "After this, he went down to Capernaum, he, and his mother, his brothers, and his disciples; and they stayed there a few days."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 13,
+    "text": "The Passover of the Jews was at hand, and Jesus went up to Jerusalem."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 14,
+    "text": "He found in the temple those who sold oxen, sheep, and doves, and the changers of money sitting."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 15,
+    "text": "He made a whip of cords, and threw all out of the temple, both the sheep and the oxen; and he poured out the changers’ money, and overthrew their tables."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 16,
+    "text": "To those who sold the doves, he said, “Take these things out of here! Don’t make my Father’s house a marketplace!”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 17,
+    "text": "His disciples remembered that it was written, “Zeal for your house will eat me up.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 18,
+    "text": "The Jews therefore answered him, “What sign do you show us, seeing that you do these things?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 19,
+    "text": "Jesus answered them, “Destroy this temple, and in three days I will raise it up.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 20,
+    "text": "The Jews therefore said, “It took forty-six years to build this temple! Will you raise it up in three days?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 21,
+    "text": "But he spoke of the temple of his body."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 22,
+    "text": "When therefore he was raised from the dead, his disciples remembered that he said this, and they believed the Scripture, and the word which Jesus had said."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 23,
+    "text": "Now when he was in Jerusalem at the Passover, during the feast, many believed in his name, observing his signs which he did."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 24,
+    "text": "But Jesus didn’t trust himself to them, because he knew everyone,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 2,
+    "v": 25,
+    "text": "and because he didn’t need for anyone to testify concerning man; for he himself knew what was in man."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 1,
+    "text": "Now there was a man of the Pharisees named Nicodemus, a ruler of the Jews."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 2,
+    "text": "The same came to him by night, and said to him, “Rabbi, we know that you are a teacher come from God, for no one can do these signs that you do, unless God is with him.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 3,
+    "text": "Jesus answered him, “Most certainly, I tell you, unless one is born anew, he can’t see God’s Kingdom.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 4,
+    "text": "Nicodemus said to him, “How can a man be born when he is old? Can he enter a second time into his mother’s womb, and be born?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 5,
+    "text": "Jesus answered, “Most certainly I tell you, unless one is born of water and spirit, he can’t enter into God’s Kingdom."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 6,
+    "text": "That which is born of the flesh is flesh. That which is born of the Spirit is spirit."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 7,
+    "text": "Don’t marvel that I said to you, ‘You must be born anew.’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 8,
+    "text": "The wind blows where it wants to, and you hear its sound, but don’t know where it comes from and where it is going. So is everyone who is born of the Spirit.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 9,
+    "text": "Nicodemus answered him, “How can these things be?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 10,
+    "text": "Jesus answered him, “Are you the teacher of Israel, and don’t understand these things?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 11,
+    "text": "Most certainly I tell you, we speak that which we know, and testify of that which we have seen, and you don’t receive our witness."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 12,
+    "text": "If I told you earthly things and you don’t believe, how will you believe if I tell you heavenly things?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 13,
+    "text": "No one has ascended into heaven, but he who descended out of heaven, the Son of Man, who is in heaven."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 14,
+    "text": "As Moses lifted up the serpent in the wilderness, even so must the Son of Man be lifted up,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 15,
+    "text": "that whoever believes in him should not perish, but have eternal life."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 16,
+    "text": "For God so loved the world, that he gave his one and only Son, that whoever believes in him should not perish, but have eternal life."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 17,
+    "text": "For God didn’t send his Son into the world to judge the world, but that the world should be saved through him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 18,
+    "text": "He who believes in him is not judged. He who doesn’t believe has been judged already, because he has not believed in the name of the one and only Son of God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 19,
+    "text": "This is the judgment, that the light has come into the world, and men loved the darkness rather than the light; for their works were evil."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 20,
+    "text": "For everyone who does evil hates the light, and doesn’t come to the light, lest his works would be exposed."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 21,
+    "text": "But he who does the truth comes to the light, that his works may be revealed, that they have been done in God.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 22,
+    "text": "After these things, Jesus came with his disciples into the land of Judea. He stayed there with them, and baptized."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 23,
+    "text": "John also was baptizing in Enon near Salim, because there was much water there. They came, and were baptized."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 24,
+    "text": "For John was not yet thrown into prison."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 25,
+    "text": "There arose therefore a questioning on the part of John’s disciples with some Jews about purification."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 26,
+    "text": "They came to John, and said to him, “Rabbi, he who was with you beyond the Jordan, to whom you have testified, behold, the same baptizes, and everyone is coming to him.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 27,
+    "text": "John answered, “A man can receive nothing, unless it has been given him from heaven."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 28,
+    "text": "You yourselves testify that I said, ‘I am not the Christ,’ but, ‘I have been sent before him.’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 29,
+    "text": "He who has the bride is the bridegroom; but the friend of the bridegroom, who stands and hears him, rejoices greatly because of the bridegroom’s voice. This, my joy, therefore is made full."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 30,
+    "text": "He must increase, but I must decrease."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 31,
+    "text": "He who comes from above is above all. He who is from the earth belongs to the earth, and speaks of the earth. He who comes from heaven is above all."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 32,
+    "text": "What he has seen and heard, of that he testifies; and no one receives his witness."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 33,
+    "text": "He who has received his witness has set his seal to this, that God is true."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 34,
+    "text": "For he whom God has sent speaks the words of God; for God gives the Spirit without measure."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 35,
+    "text": "The Father loves the Son, and has given all things into his hand."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 3,
+    "v": 36,
+    "text": "One who believes in the Son has eternal life, but one who disobeys the Son won’t see life, but the wrath of God remains on him.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 1,
+    "text": "“Don’t let your heart be troubled. Believe in God. Believe also in me."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 2,
+    "text": "In my Father’s house are many homes. If it weren’t so, I would have told you. I am going to prepare a place for you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 3,
+    "text": "If I go and prepare a place for you, I will come again, and will receive you to myself; that where I am, you may be there also."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 4,
+    "text": "Where I go, you know, and you know the way.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 5,
+    "text": "Thomas said to him, “Lord, we don’t know where you are going. How can we know the way?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 6,
+    "text": "Jesus said to him, “I am the way, the truth, and the life. No one comes to the Father, except through me."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 7,
+    "text": "If you had known me, you would have known my Father also. From now on, you know him, and have seen him.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 8,
+    "text": "Philip said to him, “Lord, show us the Father, and that will be enough for us.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 9,
+    "text": "Jesus said to him, “Have I been with you such a long time, and do you not know me, Philip? He who has seen me has seen the Father. How do you say, ‘Show us the Father?’"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 10,
+    "text": "Don’t you believe that I am in the Father, and the Father in me? The words that I tell you, I speak not from myself; but the Father who lives in me does his works."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 11,
+    "text": "Believe me that I am in the Father, and the Father in me; or else believe me for the very works’ sake."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 12,
+    "text": "Most certainly I tell you, he who believes in me, the works that I do, he will do also; and he will do greater works than these, because I am going to my Father."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 13,
+    "text": "Whatever you will ask in my name, that will I do, that the Father may be glorified in the Son."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 14,
+    "text": "If you will ask anything in my name, I will do it."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 15,
+    "text": "If you love me, keep my commandments."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 16,
+    "text": "I will pray to the Father, and he will give you another Counselor, that he may be with you forever, —"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 17,
+    "text": "the Spirit of truth, whom the world can’t receive; for it doesn’t see him, neither knows him. You know him, for he lives with you, and will be in you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 18,
+    "text": "I will not leave you orphans. I will come to you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 19,
+    "text": "Yet a little while, and the world will see me no more; but you will see me. Because I live, you will live also."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 20,
+    "text": "In that day you will know that I am in my Father, and you in me, and I in you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 21,
+    "text": "One who has my commandments, and keeps them, that person is one who loves me. One who loves me will be loved by my Father, and I will love him, and will reveal myself to him.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 22,
+    "text": "Judas (not Iscariot) said to him, “Lord, what has happened that you are about to reveal yourself to us, and not to the world?”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 23,
+    "text": "Jesus answered him, “If a man loves me, he will keep my word. My Father will love him, and we will come to him, and make our home with him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 24,
+    "text": "He who doesn’t love me doesn’t keep my words. The word which you hear isn’t mine, but the Father’s who sent me."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 25,
+    "text": "I have said these things to you, while still living with you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 26,
+    "text": "But the Counselor, the Holy Spirit, whom the Father will send in my name, he will teach you all things, and will remind you of all that I said to you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 27,
+    "text": "Peace I leave with you. My peace I give to you; not as the world gives, give I to you. Don’t let your heart be troubled, neither let it be fearful."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 28,
+    "text": "You heard how I told you, ‘I go away, and I come to you.’ If you loved me, you would have rejoiced, because I said ‘I am going to my Father;’ for the Father is greater than I."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 29,
+    "text": "Now I have told you before it happens so that, when it happens, you may believe."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 30,
+    "text": "I will no more speak much with you, for the prince of the world comes, and he has nothing in me."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 43,
+    "c": 14,
+    "v": 31,
+    "text": "But that the world may know that I love the Father, and as the Father commanded me, even so I do. Arise, let us go from here."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 1,
+    "text": "There is therefore now no condemnation to those who are in Christ Jesus, who don’t walk according to the flesh, but according to the Spirit."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 2,
+    "text": "For the law of the Spirit of life in Christ Jesus made me free from the law of sin and of death."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 3,
+    "text": "For what the law couldn’t do, in that it was weak through the flesh, God did, sending his own Son in the likeness of sinful flesh and for sin, he condemned sin in the flesh;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 4,
+    "text": "that the ordinance of the law might be fulfilled in us, who walk not after the flesh, but after the Spirit."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 5,
+    "text": "For those who live according to the flesh set their minds on the things of the flesh, but those who live according to the Spirit, the things of the Spirit."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 6,
+    "text": "For the mind of the flesh is death, but the mind of the Spirit is life and peace;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 7,
+    "text": "because the mind of the flesh is hostile towards God; for it is not subject to God’s law, neither indeed can it be."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 8,
+    "text": "Those who are in the flesh can’t please God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 9,
+    "text": "But you are not in the flesh but in the Spirit, if it is so that the Spirit of God dwells in you. But if any man doesn’t have the Spirit of Christ, he is not his."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 10,
+    "text": "If Christ is in you, the body is dead because of sin, but the spirit is alive because of righteousness."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 11,
+    "text": "But if the Spirit of him who raised up Jesus from the dead dwells in you, he who raised up Christ Jesus from the dead will also give life to your mortal bodies through his Spirit who dwells in you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 12,
+    "text": "So then, brothers, we are debtors, not to the flesh, to live after the flesh."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 13,
+    "text": "For if you live after the flesh, you must die; but if by the Spirit you put to death the deeds of the body, you will live."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 14,
+    "text": "For as many as are led by the Spirit of God, these are children of God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 15,
+    "text": "For you didn’t receive the spirit of bondage again to fear, but you received the Spirit of adoption, by whom we cry, “Abba! Father!”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 16,
+    "text": "The Spirit himself testifies with our spirit that we are children of God;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 17,
+    "text": "and if children, then heirs; heirs of God, and joint heirs with Christ; if indeed we suffer with him, that we may also be glorified with him."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 18,
+    "text": "For I consider that the sufferings of this present time are not worthy to be compared with the glory which will be revealed toward us."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 19,
+    "text": "For the creation waits with eager expectation for the children of God to be revealed."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 20,
+    "text": "For the creation was subjected to vanity, not of its own will, but because of him who subjected it, in hope"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 21,
+    "text": "that the creation itself also will be delivered from the bondage of decay into the liberty of the glory of the children of God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 22,
+    "text": "For we know that the whole creation groans and travails in pain together until now."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 23,
+    "text": "Not only so, but ourselves also, who have the first fruits of the Spirit, even we ourselves groan within ourselves, waiting for adoption, the redemption of our body."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 24,
+    "text": "For we were saved in hope, but hope that is seen is not hope. For who hopes for that which he sees?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 25,
+    "text": "But if we hope for that which we don’t see, we wait for it with patience."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 26,
+    "text": "In the same way, the Spirit also helps our weaknesses, for we don’t know how to pray as we ought. But the Spirit himself makes intercession for us with groanings which can’t be uttered."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 27,
+    "text": "He who searches the hearts knows what is on the Spirit’s mind, because he makes intercession for the saints according to God."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 28,
+    "text": "We know that all things work together for good for those who love God, to those who are called according to his purpose."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 29,
+    "text": "For whom he foreknew, he also predestined to be conformed to the image of his Son, that he might be the firstborn among many brothers."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 30,
+    "text": "Whom he predestined, those he also called. Whom he called, those he also justified. Whom he justified, those he also glorified."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 31,
+    "text": "What then shall we say about these things? If God is for us, who can be against us?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 32,
+    "text": "He who didn’t spare his own Son, but delivered him up for us all, how would he not also with him freely give us all things?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 33,
+    "text": "Who could bring a charge against God’s chosen ones? It is God who justifies."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 34,
+    "text": "Who is he who condemns? It is Christ who died, yes rather, who was raised from the dead, who is at the right hand of God, who also makes intercession for us."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 35,
+    "text": "Who shall separate us from the love of Christ? Could oppression, or anguish, or persecution, or famine, or nakedness, or peril, or sword?"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 36,
+    "text": "Even as it is written, “For your sake we are killed all day long. We were accounted as sheep for the slaughter.”"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 37,
+    "text": "No, in all these things, we are more than conquerors through him who loved us."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 38,
+    "text": "For I am persuaded that neither death, nor life, nor angels, nor principalities, nor things present, nor things to come, nor powers,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 45,
+    "c": 8,
+    "v": 39,
+    "text": "nor height, nor depth, nor any other created thing, will be able to separate us from God’s love, which is in Christ Jesus our Lord."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 1,
+    "text": "If I speak with the languages of men and of angels, but don’t have love, I have become sounding brass, or a clanging cymbal."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 2,
+    "text": "If I have the gift of prophecy, and know all mysteries and all knowledge; and if I have all faith, so as to remove mountains, but don’t have love, I am nothing."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 3,
+    "text": "If I dole out all my goods to feed the poor, and if I give my body to be burned, but don’t have love, it profits me nothing."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 4,
+    "text": "Love is patient and is kind; love doesn’t envy. Love doesn’t brag, is not proud,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 5,
+    "text": "doesn’t behave itself inappropriately, doesn’t seek its own way, is not provoked, takes no account of evil;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 6,
+    "text": "doesn’t rejoice in unrighteousness, but rejoices with the truth;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 7,
+    "text": "bears all things, believes all things, hopes all things, endures all things."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 8,
+    "text": "Love never fails. But where there are prophecies, they will be done away with. Where there are various languages, they will cease. Where there is knowledge, it will be done away with."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 9,
+    "text": "For we know in part, and we prophesy in part;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 10,
+    "text": "but when that which is complete has come, then that which is partial will be done away with."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 11,
+    "text": "When I was a child, I spoke as a child, I felt as a child, I thought as a child. Now that I have become a man, I have put away childish things."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 12,
+    "text": "For now we see in a mirror, dimly, but then face to face. Now I know in part, but then I will know fully, even as I was also fully known."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 46,
+    "c": 13,
+    "v": 13,
+    "text": "But now faith, hope, and love remain — these three. The greatest of these is love."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 1,
+    "text": "Paul, a prisoner of Christ Jesus, and Timothy our brother, to Philemon, our beloved fellow worker,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 2,
+    "text": "to the beloved Apphia, to Archippus, our fellow soldier, and to the assembly in your house:"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 3,
+    "text": "Grace to you and peace from God our Father and the Lord Jesus Christ."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 4,
+    "text": "I thank my God always, making mention of you in my prayers,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 5,
+    "text": "hearing of your love, and of the faith which you have toward the Lord Jesus, and toward all the saints;"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 6,
+    "text": "that the fellowship of your faith may become effective, in the knowledge of every good thing which is in us in Christ Jesus."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 7,
+    "text": "For we have much joy and comfort in your love, because the hearts of the saints have been refreshed through you, brother."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 8,
+    "text": "Therefore though I have all boldness in Christ to command you that which is appropriate,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 9,
+    "text": "yet for love’s sake I rather beg, being such a one as Paul, the aged, but also a prisoner of Jesus Christ."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 10,
+    "text": "I beg you for my child, whom I have become the father of in my chains, Onesimus,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 11,
+    "text": "who once was useless to you, but now is useful to you and to me."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 12,
+    "text": "I am sending him back. Therefore receive him, that is, my own heart,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 13,
+    "text": "whom I desired to keep with me, that on your behalf he might serve me in my chains for the Good News."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 14,
+    "text": "But I was willing to do nothing without your consent, that your goodness would not be as of necessity, but of free will."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 15,
+    "text": "For perhaps he was therefore separated from you for a while, that you would have him forever,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 16,
+    "text": "no longer as a slave, but more than a slave, a beloved brother, especially to me, but how much rather to you, both in the flesh and in the Lord."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 17,
+    "text": "If then you count me a partner, receive him as you would receive me."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 18,
+    "text": "But if he has wronged you at all, or owes you anything, put that to my account."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 19,
+    "text": "I, Paul, write this with my own hand: I will repay it (not to mention to you that you owe to me even your own self besides)."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 20,
+    "text": "Yes, brother, let me have joy from you in the Lord. Refresh my heart in the Lord."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 21,
+    "text": "Having confidence in your obedience, I write to you, knowing that you will do even beyond what I say."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 22,
+    "text": "Also, prepare a guest room for me, for I hope that through your prayers I will be restored to you."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 23,
+    "text": "Epaphras, my fellow prisoner in Christ Jesus, greets you,"
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 24,
+    "text": "as do Mark, Aristarchus, Demas, and Luke, my fellow workers."
+  },
+  {
+    "t": "ENG_WEB",
+    "b": 57,
+    "c": 1,
+    "v": 25,
+    "text": "The grace of our Lord Jesus Christ be with your spirit. Amen."
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 1,
+    "text": "आदि में परमेश्‍वर ने आकाश और पृथ्वी की सृष्‍टि की।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 2,
+    "text": "पृथ्वी बेडौल और सुनसान पड़ी थी, और गहरे जल के ऊपर अन्धियारा था; तथा परमेश्‍वर का आत्मा जल के ऊपर मण्डराता था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 3,
+    "text": "जब परमेश्‍वर ने कहा, “उजियाला हो,” तो उजियाला हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 4,
+    "text": "और परमेश्‍वर ने उजियाले को देखा कि अच्छा है; और परमेश्‍वर ने उजियाले को अन्धियारे से अलग किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 5,
+    "text": "और परमेश्‍वर ने उजियाले को दिन और अन्धियारे को रात कहा। तथा साँझ हुई फिर भोर हुआ। इस प्रकार पहला दिन हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 6,
+    "text": "फिर परमेश्‍वर ने कहा, “जल के बीच एक ऐसा अन्तर हो कि जल दो भाग हो जाए।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 7,
+    "text": "तब परमेश्‍वर ने एक अन्तर बनाकर उसके नीचे के जल और उसके ऊपर के जल को अलग अलग किया; और वैसा ही हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 8,
+    "text": "और परमेश्‍वर ने उस अन्तर को आकाश कहा। तथा साँझ हुई फिर भोर हुआ। इस प्रकार दूसरा दिन हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 9,
+    "text": "फिर परमेश्‍वर ने कहा, “आकाश के नीचे का जल एक स्थान में इकट्ठा हो जाए और सूखी भूमि दिखाई दे,” और वैसा ही हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 10,
+    "text": "परमेश्‍वर ने सूखी भूमि को पृथ्वी कहा, तथा जो जल इकट्ठा हुआ उसको उसने समुद्र कहा : और परमेश्‍वर ने देखा कि अच्छा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 11,
+    "text": "फिर परमेश्‍वर ने कहा, “पृथ्वी से हरी घास, तथा बीजवाले छोटे छोटे पेड़, और फलदाई वृक्ष भी जिनके बीज उन्हीं में एक एक की जाति के अनुसार हैं, पृथ्वी पर उगें,” और वैसा ही हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 12,
+    "text": "इस प्रकार पृथ्वी से हरी घास, और छोटे छोटे पेड़ जिनमें अपनी अपनी जाति के अनुसार बीज होता है, और फलदाई वृक्ष जिनके बीज एक एक की जाति के अनुसार उन्हीं में होते हैं उगे : और परमेश्‍वर ने देखा कि अच्छा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 13,
+    "text": "तथा साँझ हुई फिर भोर हुआ। इस प्रकार तीसरा दिन हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 14,
+    "text": "फिर परमेश्‍वर ने कहा, “दिन को रात से अलग करने के लिये आकाश के अन्तर में ज्योतियाँ हों; और वे चिह्नों, और नियत समयों और दिनों, और वर्षों के कारण हों;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 15,
+    "text": "और वे ज्योतियाँ आकाश के अन्तर में पृथ्वी पर प्रकाश देनेवाली भी ठहरें,” और वैसा ही हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 16,
+    "text": "तब परमेश्‍वर ने दो बड़ी ज्योतियाँ बनाईं; उन में से बड़ी ज्योति को दिन पर प्रभुता करने के लिये और छोटी ज्योति को रात पर प्रभुता करने के लिये बनाया; और तारागण को भी बनाया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 17,
+    "text": "परमेश्‍वर ने उनको आकाश के अन्तर में इसलिये रखा कि वे पृथ्वी पर प्रकाश दें,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 18,
+    "text": "तथा दिन और रात पर प्रभुता करें, और उजियाले को अन्धियारे से अलग करें : और परमेश्‍वर ने देखा कि अच्छा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 19,
+    "text": "तथा साँझ हुई फिर भोर हुआ। इस प्रकार चौथा दिन हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 20,
+    "text": "फिर परमेश्‍वर ने कहा, “जल जीवित प्राणियों से बहुत ही भर जाए, और पक्षी पृथ्वी के ऊपर आकाश के अन्तर में उड़ें।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 21,
+    "text": "इसलिये परमेश्‍वर ने जाति जाति के बड़े बड़े जल-जन्तुओं की, और उन सब जीवित प्राणियों की भी सृष्‍टि की जो चलते फिरते हैं जिन से जल बहुत ही भर गया, और एक एक जाति के उड़नेवाले पक्षियों की भी सृष्‍टि की : और परमेश्‍वर ने देखा कि अच्छा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 22,
+    "text": "और परमेश्‍वर ने यह कहके उनको आशीष दी, “फूलो-फलो, और समुद्र के जल में भर जाओ, और पक्षी पृथ्वी पर बढ़ें।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 23,
+    "text": "तथा साँझ हुई फिर भोर हुआ। इस प्रकार पाँचवाँ दिन हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 24,
+    "text": "फिर परमेश्‍वर ने कहा, “पृथ्वी से एक एक जाति के जीवित प्राणी, अर्थात् घरेलू पशु, और रेंगनेवाले जन्तु, और पृथ्वी के वनपशु, जाति जाति के अनुसार उत्पन्न हों,” और वैसा ही हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 25,
+    "text": "इस प्रकार परमेश्‍वर ने पृथ्वी के जाति जाति के वन-पशुओं को, और जाति जाति के घरेलू पशुओं को, और जाति जाति के भूमि पर सब रेंगनेवाले जन्तुओं को बनाया : और परमेश्‍वर ने देखा कि अच्छा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 26,
+    "text": "फिर परमेश्‍वर ने कहा, “हम मनुष्य को अपने स्वरूप के अनुसार अपनी समानता में बनाएँ; और वे समुद्र की मछलियों, और आकाश के पक्षियों, और घरेलू पशुओं, और सारी पृथ्वी पर, और सब रेंगनेवाले जन्तुओं पर जो पृथ्वी पर रेंगते हैं, अधिकार रखें।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 27,
+    "text": "तब परमेश्‍वर ने मनुष्य को अपने स्वरूप के अनुसार उत्पन्न किया, अपने ही स्वरूप के अनुसार परमेश्‍वर ने उसको उत्पन्न किया; नर और नारी करके उसने मनुष्यों की सृष्‍टि की।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 28,
+    "text": "और परमेश्‍वर ने उनको आशीष दी, और उनसे कहा, “फूलो-फलो, और पृथ्वी में भर जाओ, और उसको अपने वश में कर लो; और समुद्र की मछलियों, तथा आकाश के पक्षियों, और पृथ्वी पर रेंगनेवाले सब जन्तुओं पर अधिकार रखो।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 29,
+    "text": "फिर परमेश्‍वर ने उनसे कहा, “सुनो, जितने बीजवाले छोटे छोटे पेड़ सारी पृथ्वी के ऊपर हैं और जितने वृक्षों में बीजवाले फल होते हैं, वे सब मैं ने तुम को दिए हैं; वे तुम्हारे भोजन के लिये हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 30,
+    "text": "और जितने पृथ्वी के पशु, और आकाश के पक्षी, और पृथ्वी पर रेंगनेवाले जन्तु हैं, जिन में जीवन का प्राण है, उन सब के खाने के लिये मैं ने सब हरे हरे छोटे पेड़ दिए हैं,” और वैसा ही हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 1,
+    "c": 1,
+    "v": 31,
+    "text": "तब परमेश्‍वर ने जो कुछ बनाया था सब को देखा, तो क्या देखा, कि वह बहुत ही अच्छा है। तथा साँझ हुई फिर भोर हुआ। इस प्रकार छठवाँ दिन हो गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 23,
+    "v": 1,
+    "text": "दाऊद का भजन यहोवा मेरा चरवाहा है, मुझे कुछ घटी न होगी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 23,
+    "v": 2,
+    "text": "वह मुझे हरी हरी चराइयों में बैठाता है; वह मुझे सुखदाई जल के झरने के पास ले चलता है;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 23,
+    "v": 3,
+    "text": "वह मेरे जी में जी ले आता है। धर्म के मार्गों में वह अपने नाम के निमित्त मेरी अगुवाई करता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 23,
+    "v": 4,
+    "text": "चाहे मैं घोर अन्धकार से भरी हुई तराई में होकर चलूँ, तौभी हानि से न डरूँगा; क्योंकि तू मेरे साथ रहता है; तेरे सोंटे और तेरी लाठी से मुझे शान्ति मिलती है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 23,
+    "v": 5,
+    "text": "तू मेरे सतानेवालों के सामने मेरे लिये मेज़ बिछाता है; तू ने मेरे सिर पर तेल मला है, मेरा कटोरा उमड़ रहा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 23,
+    "v": 6,
+    "text": "निश्‍चय भलाई और करुणा जीवन भर मेरे साथ साथ बनी रहेंगी; और मैं यहोवा के धाम में सर्वदा वास करूँगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 1,
+    "text": "जो परमप्रधान के छाए हुए स्थान में बैठा रहे, वह सर्वशक्‍तिमान की छाया में ठिकाना पाएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 2,
+    "text": "मैं यहोवा के विषय कहूँगा, “वह मेरा शरणस्थान और गढ़ है; वह मेरा परमेश्‍वर है, मैं उस पर भरोसा रखूँगा।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 3,
+    "text": "वह तुझे बहेलिये के जाल से, और महामारी से बचाएगा;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 4,
+    "text": "वह तुझे अपने पंखों की आड़ में ले लेगा, और तू उसके परों के नीचे शरण पाएगा, उसकी सच्‍चाई तेरे लिये ढाल और झिलम ठहरेगी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 5,
+    "text": "तू न रात के भय से डरेगा, और न उस तीर से जो दिन को उड़ता है,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 6,
+    "text": "न उस मरी से जो अन्धेरे में फैलती है, और न उस महारोग से जो दिन-दुपहरी में उजाड़ता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 7,
+    "text": "तेरे निकट हज़ार, और तेरी दाहिनी ओर दस हज़ार गिरेंगे; परन्तु वह तेरे पास न आएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 8,
+    "text": "परन्तु तू अपनी आँखों से दृष्‍टि करेगा और दुष्‍टों के अन्त को देखेगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 9,
+    "text": "हे यहोवा, तू मेरा शरणस्थान ठहरा है। तू ने जो परमप्रधान को अपना धाम मान लिया है,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 10,
+    "text": "इसलिये कोई विपत्ति तुझ पर न पड़ेगी, न कोई दु:ख तेरे डेरे के निकट आएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 11,
+    "text": "क्योंकि वह अपने दूतों को तेरे निमित्त आज्ञा देगा, कि जहाँ कहीं तू जाए वे तेरी रक्षा करें।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 12,
+    "text": "वे तुझ को हाथों हाथ उठा लेंगे, ऐसा न हो कि तेरे पाँवों में पत्थर से ठेस लगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 13,
+    "text": "तू सिंह और नाग को कुचलेगा, तू जवान सिंह और अजगर को लताड़ेगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 14,
+    "text": "उसने जो मुझ से स्‍नेह किया है, इसलिये मैं उसको छुड़ाऊँगा, मैं उसको ऊँचे स्थान पर रखूँगा, क्योंकि उसने मेरे नाम को जान लिया है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 15,
+    "text": "जब वह मुझ को पुकारे, तब मैं उसकी सुनूँगा, संकट में मैं उसके संग रहूँगा, मैं उसको बचाकर उसकी महिमा बढ़ाऊँगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 91,
+    "v": 16,
+    "text": "मैं उसको दीर्घायु से तृप्‍त करूँगा, और अपने किए हुए उद्धार का दर्शन दिखाऊँगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 121,
+    "v": 1,
+    "text": "यात्रा का गीत मैं अपनी आँखें पर्वतों की ओर लगाऊँगा। मुझे सहायता कहाँ से मिलेगी?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 121,
+    "v": 2,
+    "text": "मुझे सहायता यहोवा की ओर से मिलती है, जो आकाश और पृथ्वी का कर्ता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 121,
+    "v": 3,
+    "text": "वह तेरे पाँव को टलने न देगा, तेरा रक्षक कभी न ऊँघेगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 121,
+    "v": 4,
+    "text": "सुन, इस्राएल का रक्षक, न ऊँघेगा और न सोएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 121,
+    "v": 5,
+    "text": "यहोवा तेरा रक्षक है; यहोवा तेरी दाहिनी ओर तेरी आड़ है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 121,
+    "v": 6,
+    "text": "न तो दिन को धूप से, और न रात को चाँदनी से तेरी कुछ हानि होगी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 121,
+    "v": 7,
+    "text": "यहोवा सारी विपत्ति से तेरी रक्षा करेगा; वह तेरे प्राण की रक्षा करेगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 19,
+    "c": 121,
+    "v": 8,
+    "text": "यहोवा तेरे आने जाने में तेरी रक्षा अब से लेकर सदा तक करता रहेगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 1,
+    "text": "अब्राहम की सन्तान, दाऊद की सन्तान , यीशु मसीह की वंशावली।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 2,
+    "text": "अब्राहम से इसहाक उत्पन्न हुआ, इसहाक से याकूब उत्पन्न हुआ, याकूब से यहूदा और उसके भाई उत्पन्न हुए,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 3,
+    "text": "यहूदा और तामार से फिरिस व जेरह उत्पन्न हुए , फिरिस से हिस्रोन उत्पन्न हुआ, और हिस्रोन से एराम उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 4,
+    "text": "एराम से अम्मीनादाब उत्पन्न हुआ, अम्मीनादाब से नहशोन, और नहशोन से सलमोन उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 5,
+    "text": "सलमोन और राहाब से बोअज उत्पन्न हुआ, बोअज और रूत से ओबेद उत्पन्न हुआ, और ओबेद से यिशै उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 6,
+    "text": "और यिशै से दाऊद राजा उत्पन्न हुआ। और दाऊद से सुलैमान उस स्त्री से उत्पन्न हुआ जो पहले उरिय्याह की पत्नी थी ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 7,
+    "text": "सुलैमान से रहबाम उत्पन्न हुआ, रहबाम से अबिय्याह उत्पन्न हुआ, और अबिय्याह से आसा उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 8,
+    "text": "आसा से यहोशाफात उत्पन्न हुआ, यहोशाफात से योराम उत्पन्न हुआ, और योराम से उज्जियाह उत्पन्न हुआ ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 9,
+    "text": "उज्जियाह से योताम उत्पन्न हुआ, योताम से आहाज उत्पन्न हुआ, और आहाज से हिजकिय्याह उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 10,
+    "text": "हिजकिय्याह से मनश्शिह उत्पन्न हुआ, मनश्शिह से आमोन उत्पन्न हुआ, और आमोन से योशिय्याह उत्पन्न हुआ;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 11,
+    "text": "और बंदी होकर बेबीलोन जाने के समय में योशिय्याह से यकुन्याह, और उस के भाई उत्पन्न हुए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 12,
+    "text": "बंदी होकर बेबीलोन पहुँचाए जाने के बाद यकुन्याह से शालतिएल उत्पन्न हुआ, और शालतिएल से जरुब्बाबिल उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 13,
+    "text": "जरुब्बाबिल से अबीहूद उत्पन्न हुआ, अबीहूद से इल्याकीम उत्पन्न हुआ, और इल्याकीम से अजोर उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 14,
+    "text": "अजोर से सदोक उत्पन्न हुआ, सदोक से अखीम उत्पन्न हुआ, और अखीम से इलीहूद उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 15,
+    "text": "इलीहूद से इलियाजार उत्पन्न हुआ, इलियाजार से मत्तान उत्पन्न हुआ, और मत्तान से याकूब उत्पन्न हुआ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 16,
+    "text": "याकूब से यूसुफ उत्पन्न हुआ, जो मरियम का पति था, और मरियम से यीशु जो मसीह कहलाता है, उत्पन्न हुआ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 17,
+    "text": "इस प्रकार अब्राहम से दाऊद तक चौदह पीढ़ी हुई, और दाऊद से बेबीलोन को बंदी होकर पहुँचाए जाने तक चौदह पीढ़ी, और बंदी होकर बेबीलोन को पहुँचाए जाने के समय से मसीह तक चौदह पीढ़ी हुई।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 18,
+    "text": "यीशु मसीह का जन्म इस प्रकार से हुआ, कि जब उसकी माता मरियम की मंगनी यूसुफ के साथ हो गई, तो उनके इकट्ठा होने से पहले ही वह पवित्र आत्मा की ओर से गर्भवती पाई गई।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 19,
+    "text": "अत: उसके पति यूसुफ ने जो धर्मी था और उसे बदनाम करना नहीं चाहता था, उसे चुपके से त्याग देने का विचार किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 20,
+    "text": "जब वह इन बातों के सोच ही में था तो प्रभु का स्वर्गदूत उसे स्वप्न में दिखाई देकर कहने लगा, “हे यूसुफ! दाऊद की संतान, तू अपनी पत्नी मरियम को अपने यहाँ ले आने से मत डर, क्योंकि जो उसके गर्भ में है, वह पवित्र आत्मा की ओर से है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 21,
+    "text": "वह पुत्र जनेगी और तू उसका नाम यीशु रखना, क्योंकि वह अपने लोगों का उनके पापों से उद्धार करेगा ।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 22,
+    "text": "यह सब इसलिए हुआ कि जो वचन प्रभु ने भविष्यद्वक्‍ता के द्वारा कहा था, वह पूरा हो :"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 23,
+    "text": "“देखो, एक कुँवारी गर्भवती होगी और एक पुत्र जनेगी, और उसका नाम इम्मानुएल रखा जाएगा,” जिसका अर्थ है — परमेश्‍वर हमारे साथ ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 24,
+    "text": "तब यूसुफ नींद से जागकर प्रभु के दूत की आज्ञा के अनुसार अपनी पत्नी को अपने यहाँ ले आया;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 1,
+    "v": 25,
+    "text": "और जब तक वह पुत्र न जनी तब तक वह उसके पास न गया: और उसने उसका नाम यीशु रखा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 1,
+    "text": "वह इस भीड़ को देखकर पहाड़ पर चढ़ गया, और जब बैठ गया तो उसके चेले उसके पास आए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 2,
+    "text": "और वह अपना मुँह खोलकर उन्हें यह उपदेश देने लगा :"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 3,
+    "text": "“धन्य हैं वे, जो मन के दीन हैं, क्योंकि स्वर्ग का राज्य उन्हीं का है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 4,
+    "text": "“धन्य हैं वे, जो शोक करते हैं, क्योंकि वे शांति पाएँगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 5,
+    "text": "“धन्य हैं वे, जो नम्र हैं, क्योंकि वे पृथ्वी के अधिकारी होंगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 6,
+    "text": "“धन्य हैं वे, जो धार्मिकता के भूखे और प्यासे हैं, क्योंकि वे तृप्‍त किए जाएँगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 7,
+    "text": "“धन्य हैं वे, जो दयावन्त हैं, क्योंकि उन पर दया की जाएगी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 8,
+    "text": "“धन्य हैं वे, जिन के मन शुद्ध हैं, क्योंकि वे परमेश्‍वर को देखेंगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 9,
+    "text": "“धन्य हैं वे, जो मेल करानेवाले हैं, क्योंकि वे परमेश्‍वर के पुत्र कहलाएँगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 10,
+    "text": "“ धन्य हैं वे, जो धार्मिकता के कारण सताए जाते हैं, क्योंकि स्वर्ग का राज्य उन्हीं का है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 11,
+    "text": "“धन्य हो तुम, जब मनुष्य मेरे कारण तुम्हारी निन्दा करें, और सताएँ और झूठ बोल बोलकर तुम्हारे विरोध में सब प्रकार की बुरी बात कहें।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 12,
+    "text": "तब आनन्दित और मगन होना, क्योंकि तुम्हारे लिये स्वर्ग में बड़ा फल है। इसलिये कि उन्होंने उन भविष्यद्वक्‍ताओं को जो तुम से पहले थे इसी रीति से सताया था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 13,
+    "text": "“तुम पृथ्वी के नमक हो; परन्तु यदि नमक का स्वाद बिगड़ जाए, तो वह फिर किस वस्तु से नमकीन किया जाएगा? फिर वह किसी काम का नहीं, केवल इसके कि बाहर फेंका जाए और मनुष्यों के पैरों तले रौंदा जाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 14,
+    "text": "तुम जगत की ज्योति हो। जो नगर पहाड़ पर बसा हुआ है वह छिप नहीं सकता।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 15,
+    "text": "और लोग दीया जलाकर पैमाने के नीचे नहीं परन्तु दीवट पर रखते हैं, तब उस से घर के सब लोगों को प्रकाश पहुँचता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 16,
+    "text": "उसी प्रकार तुम्हारा उजियाला मनुष्यों के सामने ऐसा चमके कि वे तुम्हारे भले कामों को देखकर तुम्हारे पिता की, जो स्वर्ग में है, बड़ाई करें।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 17,
+    "text": "“यह न समझो, कि मैं व्यवस्था या भविष्यद्वक्‍ताओं की पुस्तकों को लोप करने आया हूँ, लोप करने नहीं, परन्तु पूरा करने आया हूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 18,
+    "text": "क्योंकि मैं तुम से सच कहता हूँ, कि जब तक आकाश और पृथ्वी टल न जाएँ, तब तक व्यवस्था से एक मात्रा या एक बिन्दु भी बिना पूरा हुए नहीं टलेगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 19,
+    "text": "इसलिये जो कोई इन छोटी से छोटी आज्ञाओं में से किसी एक को तोड़े, और वैसा ही लोगों को सिखाए, वह स्वर्ग के राज्य में सबसे छोटा कहलाएगा; परन्तु जो कोई उन आज्ञाओं का पालन करेगा और उन्हें सिखाएगा, वही स्वर्ग के राज्य में महान् कहलाएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 20,
+    "text": "क्योंकि मैं तुम से कहता हूँ, कि यदि तुम्हारी धार्मिकता शास्त्रियों और फरीसियों की धार्मिकता से बढ़कर न हो, तो तुम स्वर्ग के राज्य में कभी प्रवेश करने न पाओगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 21,
+    "text": "“तुम सुन चुके हो, कि पूर्वकाल के लोगों से कहा गया था कि ‘हत्या न करना ’, और ‘जो कोई हत्या करेगा वह कचहरी में दण्ड के योग्य होगा।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 22,
+    "text": "परन्तु मैं तुम से यह कहता हूँ, कि जो कोई अपने भाई पर क्रोध करेगा, वह कचहरी में दण्ड के योग्य होगा, और जो कोई अपने भाई को निकम्मा कहेगा वह महासभा में दण्ड के योग्य होगा; और जो कोई कहे ‘अरे मूर्ख’ वह नरक की आग के दण्ड के योग्य होगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 23,
+    "text": "इसलिये यदि तू अपनी भेंट वेदी पर लाए, और वहाँ तू स्मरण करे, कि तेरे भाई के मन में तेरे लिये कुछ विरोध है,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 24,
+    "text": "तो अपनी भेंट वहीं वेदी के सामने छोड़ दे, और जाकर पहले अपने भाई से मेल मिलाप कर और तब आकर अपनी भेंट चढ़ा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 25,
+    "text": "जब तक तू अपने मुद्दई के साथ मार्ग ही में है, उस से झटपट मेल मिलाप कर ले कहीं ऐसा न हो कि मुद्दई तुझे हाकिम को सौंपे, और हाकिम तुझे सिपाही को सौंप दे, और तू बन्दीगृह में डाल दिया जाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 26,
+    "text": "मैं तुझ से सच कहता हूँ कि जब तक तू कौड़ी-कौड़ी भर न दे तब तक वहाँ से छूटने न पाएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 27,
+    "text": "“तुम सुन चुके हो कि कहा गया था, ‘व्यभिचार न करना।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 28,
+    "text": "परन्तु मैं तुम से यह कहता हूँ, कि जो कोई किसी स्त्री पर कुदृष्‍टि डाले वह अपने मन में उस से व्यभिचार कर चुका।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 29,
+    "text": "यदि तेरी दाहिनी आँख तुझे ठोकर खिलाए, तो उसे निकालकर फेंक दे; क्योंकि तेरे लिये यही भला है कि तेरे अंगों में से एक नष्‍ट हो जाए और तेरा सारा शरीर नरक में न डाला जाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 30,
+    "text": "यदि तेरा दाहिना हाथ तुझे ठोकर खिलाए, तो उस को काटकर फेंक दे; क्योंकि तेरे लिये यही भला है कि तेरे अंगों में से एक नष्‍ट हो जाए और तेरा सारा शरीर नरक में न डाला जाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 31,
+    "text": "“यह भी कहा गया था, ‘जो कोई अपनी पत्नी को तलाक देना चाहे, तो उसे त्यागपत्र दे।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 32,
+    "text": "परन्तु मैं तुम से यह कहता हूँ कि जो कोई अपनी पत्नी को व्यभिचार के सिवा किसी और कारण से तलाक दे, तो वह उससे व्यभिचार करवाता है; और जो कोई उस त्यागी हुई से विवाह करे, वह व्यभिचार करता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 33,
+    "text": "“फिर तुम सुन चुके हो कि पूर्वकाल के लोगों से कहा गया था, ‘झूठी शपथ न खाना, परन्तु प्रभु के लिये अपनी शपथ को पूरी करना।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 34,
+    "text": "परन्तु मैं तुम से यह कहता हूँ कि कभी शपथ न खाना; न तो स्वर्ग की, क्योंकि वह परमेश्‍वर का सिंहासन है;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 35,
+    "text": "न धरती की, क्योंकि वह उसके पाँवों की चौकी है; न यरूशलेम की, क्योंकि वह महाराजा का नगर है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 36,
+    "text": "अपने सिर की भी शपथ न खाना क्योंकि तू एक बाल को भी न उजला, न काला कर सकता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 37,
+    "text": "परन्तु तुम्हारी बात ‘हाँ’ की ‘हाँ,’ या ‘नहीं’ की ‘नहीं’ हो; क्योंकि जो कुछ इस से अधिक होता है वह बुराई से होता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 38,
+    "text": "“तुम सुन चुके हो कि कहा गया था, ‘आँख के बदले आँख, और दाँत के बदले दाँत।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 39,
+    "text": "परन्तु मैं तुम से यह कहता हूँ कि बुरे का सामना न करना; परन्तु जो कोई तेरे दाहिने गाल पर थप्पड़ मारे, उसकी ओर दूसरा भी फेर दे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 40,
+    "text": "यदि कोई तुझ पर नालिश करके तेरा कुरता लेना चाहे, तो उसे दोहर भी ले लेने दे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 41,
+    "text": "जो कोई तुझे कोस भर बेगार में ले जाए, तो उसके साथ दो कोस चला जा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 42,
+    "text": "जो कोई तुझ से माँगे, उसे दे; और जो तुझ से उधार लेना चाहे, उससे मुँह न मोड़।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 43,
+    "text": "“तुम सुन चुके हो कि कहा गया था, ‘अपने पड़ोसी से प्रेम रखना, और अपने बैरी से बैर।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 44,
+    "text": "परन्तु मैं तुमसे यह कहता हूँ कि अपने बैरियों से प्रेम रखो और अपने सतानेवालों के लिए प्रार्थना करो,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 45,
+    "text": "जिस से तुम अपने स्वर्गीय पिता की सन्तान ठहरोगे क्योंकि वह भले और बुरे दोनों पर अपना सूर्य उदय करता है, और धर्मी और अधर्मी दोनों पर मेंह बरसाता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 46,
+    "text": "क्योंकि यदि तुम अपने प्रेम रखनेवालों ही से प्रेम रखो, तो तुम्हारे लिये क्या फल होगा? क्या महसूल लेनेवाले भी ऐसा ही नहीं करते?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 47,
+    "text": "“यदि तुम केवल अपने भाइयों ही को नमस्कार करो, तो कौन सा बड़ा काम करते हो? क्या अन्यजाति भी ऐसा नहीं करते?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 40,
+    "c": 5,
+    "v": 48,
+    "text": "इसलिये चाहिये कि तुम सिद्ध बनो, जैसा तुम्हारा स्वर्गीय पिता सिद्ध है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 1,
+    "text": "वहाँ से निकल कर वह अपने देश में आया, और उसके चेले भी उसके पीछे गए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 2,
+    "text": "सब्त के दिन वह आराधनालय में उपदेश करने लगा, और बहुत से लोग सुनकर चकित हुए और कहने लगे, “इस को ये बातें कहाँ से आ गईं? यह कौन सा ज्ञान है जो उसको दिया गया है? कैसे सामर्थ्य के काम इसके हाथों से प्रगट होते हैं?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 3,
+    "text": "क्या यह वही बढ़ई नहीं, जो मरियम का पुत्र, और याकूब, योसेस, यहूदा, और शमौन का भाई है? क्या उसकी बहिनें यहाँ हमारे बीच में नहीं रहतीं?” इसलिये उन्होंने उसके विषय में ठोकर खाई।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 4,
+    "text": "यीशु ने उनसे कहा, “भविष्यद्वक्‍ता का अपने देश, और अपने कुटुम्ब, और अपने घर को छोड़ और कहीं भी निरादर नहीं होता।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 5,
+    "text": "वह वहाँ कोई सामर्थ्य का काम न कर सका, केवल थोड़े–से बीमारों पर हाथ रखकर उन्हें चंगा किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 6,
+    "text": "और उसे उनके अविश्‍वास पर आश्‍चर्य हुआ, और वह चारों ओर के गाँवों में उपदेश करता फिरा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 7,
+    "text": "उसने बारहों को अपने पास बुलाया और उन्हें दो दो करके भेजने लगा; और उन्हें अशुद्ध आत्माओं पर अधिकार दिया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 8,
+    "text": "उसने उन्हें आज्ञा दी, “मार्ग के लिये लाठी छोड़ और कुछ न लो; न तो रोटी, न झोली, न बटुए में पैसे,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 9,
+    "text": "परन्तु जूतियाँ पहिनो और दो दो कुरते न पहिनो।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 10,
+    "text": "और उसने उनसे कहा, “जहाँ कहीं तुम किसी घर में उतरो, तो जब तक वहाँ से विदा न हो तब तक उसी घर में ठहरे रहो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 11,
+    "text": "जिस स्थान के लोग तुम्हें ग्रहण न करें और तुम्हारी न सुनें, वहाँ से चलते ही अपने तलवों की धूल झाड़ डालो कि उन पर गवाही हो।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 12,
+    "text": "तब उन्होंने जाकर प्रचार किया कि मन फिराओ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 13,
+    "text": "और बहुत सी दुष्‍टात्माओं को निकाला, और बहुत से बीमारों पर तेल मलकर उन्हें चंगा किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 14,
+    "text": "हेरोदेस राजा ने भी उसकी चर्चा सुनी, क्योंकि उसका नाम फैल गया था, और उसने कहा, “यूहन्ना बपतिस्मा देनेवाला मरे हुओं में से जी उठा है, इसी लिये उससे ये सामर्थ्य के काम प्रगट होते हैं।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 15,
+    "text": "अन्य लोगों ने कहा, “यह एलिय्याह है।” परन्तु कुछ अन्य ने कहा, “भविष्यद्वक्‍ता या भविष्यद्वक्‍ताओं में से किसी एक के समान है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 16,
+    "text": "हेरोदेस ने यह सुन कर कहा, “जिस यूहन्ना का सिर मैं ने कटवाया था, वही जी उठा है!”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 17,
+    "text": "हेरोदेस ने अपने भाई फिलिप्पुस की पत्नी हेरोदियास के कारण, जिससे उसने विवाह कर लिया था, लोगों को भेजकर यूहन्ना को पकड़वाकर बन्दीगृह में डाल दिया था;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 18,
+    "text": "क्योंकि यूहन्ना ने हेरोदेस से कहा था, “अपने भाई की पत्नी को रखना तुझे उचित नहीं।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 19,
+    "text": "इसलिये हेरोदियास उससे बैर रखती थी और यह चाहती थी कि उसे मरवा डाले; परन्तु ऐसा न हो सका,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 20,
+    "text": "क्योंकि हेरोदेस यूहन्ना को धर्मी और पवित्र पुरुष जानकर उससे डरता था, और उसे बचाए रखता था, और उसकी बातें सुनकर बहुत घबराता था, पर आनन्द से सुनता था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 21,
+    "text": "ठीक अवसर आया जब हेरोदेस ने अपने जन्म दिन में अपने प्रधानों, और सेनापतियों, और गलील के बड़े लोगों के लिये भोज किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 22,
+    "text": "तो हेरोदियास की बेटी भीतर आई, और नाचकर हेरोदेस को और उसके साथ बैठनेवालों को प्रसन्न किया। तब राजा ने लड़की से कहा, “तू जो चाहे मुझ से माँग मैं तुझे दूँगा।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 23,
+    "text": "और उससे शपथ खाई, “मैं अपने आधे राज्य तक जो कुछ तू मुझ से माँगेगी मैं तुझे दूँगा।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 24,
+    "text": "उसने बाहर जाकर अपनी माता से पूछा, “मैं क्या माँगूँ?” वह बोली, “यूहन्ना बपतिस्मा देनेवाले का सिर।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 25,
+    "text": "वह तुरन्त राजा के पास भीतर आई और उससे विनती की, “मैं चाहती हूँ कि तू अभी यूहन्ना बपतिस्मा देनेवाले का सिर एक थाल में मुझे मँगवा दे।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 26,
+    "text": "तब राजा बहुत उदास हुआ, परन्तु अपनी शपथ के कारण और साथ बैठनेवालों के कारण उसे टालना न चाहा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 27,
+    "text": "अत: राजा ने तुरन्त एक सिपाही को आज्ञा देकर भेजा कि उसका सिर काट लाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 28,
+    "text": "उसने जेलखाने में जाकर उसका सिर काटा, और एक थाल में रखकर लाया और लड़की को दिया, और लड़की ने अपनी माँ को दिया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 29,
+    "text": "यह सुनकर यूहन्ना के चेले आए, और उसके शव को ले गए और कब्र में रखा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 30,
+    "text": "प्रेरितों ने यीशु के पास इकट्ठे होकर, जो कुछ उन्होंने किया और सिखाया था, सब उसको बताया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 31,
+    "text": "उसने उनसे कहा, “तुम आप अलग किसी एकान्त स्थान में चलकर थोड़ा विश्राम करो।” क्योंकि बहुत लोग आते जाते थे, और उन्हें खाने का अवसर भी नहीं मिलता था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 32,
+    "text": "इसलिये वे नाव पर चढ़कर, सुनसान जगह में अलग चले गए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 33,
+    "text": "बहुतों ने उन्हें जाते देखकर पहचान लिया, और सब नगरों से इकट्ठे होकर वहाँ पैदल दौड़े और उनसे पहले जा पहुँचे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 34,
+    "text": "उसने उतर कर बड़ी भीड़ देखी, और उन पर तरस खाया, क्योंकि वे उन भेड़ों के समान थे, जिनका कोई रखवाला न हो; और वह उन्हें बहुत सी बातें सिखाने लगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 35,
+    "text": "जब दिन बहुत ढल गया, तो उसके चेले उसके पास आकर कहने लगे, “यह सुनसान जगह है, और दिन बहुत ढल गया है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 36,
+    "text": "उन्हें विदा कर कि चारों ओर के गाँवों और बस्तियों में जाकर, अपने लिये कुछ खाने को मोल लें।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 37,
+    "text": "उस ने उत्तर दिया, “तुम ही उन्हें खाने को दो।” उन्होंने उससे कहा, “क्या हम सौ दीनार की रोटियाँ मोल लें, और उन्हें खिलाएँ?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 38,
+    "text": "उसने उनसे कहा, “जाकर देखो तुम्हारे पास कितनी रोटियाँ हैं?” उन्होंने मालूम करके कहा, “पाँच और दो मछली भी।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 39,
+    "text": "तब उसने उन्हें आज्ञा दी कि सब को हरी घास पर पाँति-पाँति से बैठा दो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 40,
+    "text": "वे सौ सौ और पचास पचास करके पाँति-पाँति बैठ गए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 41,
+    "text": "उसने उन पाँच रोटियों को और दो मछलियों को लिया, और स्वर्ग की ओर देखकर धन्यवाद किया, और रोटियाँ तोड़-तोड़ कर चेलों को देता गया कि वे लोगों को परोसें, और वे दो मछलियाँ भी उन सब में बाँट दीं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 42,
+    "text": "सब खाकर तृप्‍त हो गए,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 43,
+    "text": "और उन्होंने टुकड़ों से बारह टोकरियाँ भर कर उठाईं, और कुछ मछलियों से भी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 44,
+    "text": "जिन्होंने रोटियाँ खाईं, वे पाँच हज़ार पुरुष थे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 45,
+    "text": "तब उसने तुरन्त अपने चेलों को नाव पर चढ़ने के लिये विवश किया कि वे उससे पहले उस पार बैतसैदा को चले जाएँ, जब तक कि वह लोगों को विदा करे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 46,
+    "text": "उन्हें विदा करके वह पहाड़ पर प्रार्थना करने को गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 47,
+    "text": "जब साँझ हुई, तो नाव झील के बीच में थी, और वह अकेला भूमि पर था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 48,
+    "text": "जब उसने देखा कि वे खेते खेते घबरा गए हैं, क्योंकि हवा उनके विरुद्ध थी, तो रात के चौथे पहर के निकट वह झील पर चलते हुए उनके पास आया; और उनसे आगे निकल जाना चाहता था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 49,
+    "text": "परन्तु उन्होंने उसे झील पर चलते देखकर समझा कि भूत है, और चिल्‍ला उठे;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 50,
+    "text": "क्योंकि सब उसे देखकर घबरा गए थे। पर उसने तुरन्त उनसे बातें कीं और कहा, “ढाढ़स बाँधो : मैं हूँ; डरो मत!”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 51,
+    "text": "तब वह उनके पास नाव पर आया, और हवा थम गई : और वे बहुत ही आश्‍चर्य करने लगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 52,
+    "text": "वे उन रोटियों के विषय में न समझे थे, क्योंकि उनके मन कठोर हो गए थे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 53,
+    "text": "वे पार उतरकर गन्नेसरत में पहुँचे, और नाव घाट पर लगाई।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 54,
+    "text": "जब वे नाव पर से उतरे, तो लोग तुरन्त उसको पहचान कर,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 55,
+    "text": "आसपास के सारे देश में दौड़े, और बीमारों को खाटों पर डालकर, जहाँ-जहाँ समाचार पाया कि वह है, वहाँ-वहाँ लिये फिरे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 41,
+    "c": 6,
+    "v": 56,
+    "text": "और जहाँ कहीं वह गाँवों, नगरों, या बस्तियों में जाता था, लोग बीमारों को बाजारों में रखकर उससे विनती करते थे कि वह उन्हें अपने वस्त्र के आँचल ही को छू लेने दे : और जितने उसे छूते थे, सब चंगे हो जाते थे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 1,
+    "text": "आदि में वचन था, और वचन परमेश्‍वर के साथ था, और वचन परमेश्‍वर था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 2,
+    "text": "यही आदि में परमेश्‍वर के साथ था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 3,
+    "text": "सब कुछ उसी के द्वारा उत्पन्न हुआ, और जो कुछ उत्पन्न हुआ है उसमें से कोई भी वस्तु उसके बिना उत्पन्न नहीं हुई।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 4,
+    "text": "उसमें जीवन था और वह जीवन मनुष्यों की ज्योति था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 5,
+    "text": "ज्योति अन्धकार में चमकती है, और अन्धकार ने उसे ग्रहण न किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 6,
+    "text": "एक मनुष्य परमेश्‍वर की ओर से आ उपस्थित हुआ जिसका नाम यूहन्ना था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 7,
+    "text": "वह गवाही देने आया कि ज्योति की गवाही दे, ताकि सब उसके द्वारा विश्‍वास लाएँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 8,
+    "text": "वह आप तो वह ज्योति न था, परन्तु उस ज्योति की गवाही देने के लिये आया था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 9,
+    "text": "सच्‍ची ज्योति जो हर एक मनुष्य को प्रकाशित करती है, जगत में आनेवाली थी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 10,
+    "text": "वह जगत में था, और जगत उसके द्वारा उत्पन्न हुआ, और जगत ने उसे नहीं पहिचाना।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 11,
+    "text": "वह अपने घर आया और उसके अपनों ने उसे ग्रहण नहीं किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 12,
+    "text": "परन्तु जितनों ने उसे ग्रहण किया, उसने उन्हें परमेश्‍वर की सन्तान होने का अधिकार दिया, अर्थात् उन्हें जो उसके नाम पर विश्‍वास रखते हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 13,
+    "text": "वे न तो लहू से, न शरीर की इच्छा से, न मनुष्य की इच्छा से, परन्तु परमेश्‍वर से उत्पन्न हुए हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 14,
+    "text": "और वचन देहधारी हुआ; और अनुग्रह और सच्‍चाई से परिपूर्ण होकर हमारे बीच में डेरा किया, और हम ने उसकी ऐसी महिमा देखी, जैसी पिता के एकलौते की महिमा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 15,
+    "text": "यूहन्ना ने उसके विषय में गवाही दी, और पुकारकर कहा, “यह वही है, जिसका मैं ने वर्णन किया कि जो मेरे बाद आ रहा है, वह मुझ से बढ़कर है क्योंकि वह मुझ से पहले था।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 16,
+    "text": "क्योंकि उसकी परिपूर्णता में से हम सब ने प्राप्‍त किया अर्थात् अनुग्रह पर अनुग्रह।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 17,
+    "text": "इसलिये कि व्यवस्था तो मूसा के द्वारा दी गई, परन्तु अनुग्रह और सच्‍चाई यीशु मसीह के द्वारा पहुँची।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 18,
+    "text": "परमेश्‍वर को किसी ने कभी नहीं देखा, एकलौता पुत्र जो पिता की गोद में है, उसी ने उसे प्रगट किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 19,
+    "text": "यूहन्ना की गवाही यह है, कि जब यहूदियों ने यरूशलेम से याजकों और लेवियों को उससे यह पूछने के लिये भेजा, “तू कौन है?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 20,
+    "text": "तो उसने यह मान लिया और इन्कार नहीं किया, परन्तु मान लिया, “मैं मसीह नहीं हूँ।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 21,
+    "text": "तब उन्होंने उससे पूछा, “तो फिर कौन है? क्या तू एलिय्याह है?” उसने कहा, “मैं नहीं हूँ।” “तो क्या तू वह भविष्यद्वक्‍ता है?” उसने उत्तर दिया, “नहीं।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 22,
+    "text": "तब उन्होंने उससे पूछा, “फिर तू है कौन? ताकि हम अपने भेजनेवालों को उत्तर दें। तू अपने विषय में क्या कहता है?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 23,
+    "text": "उसने कहा, “जैसा यशायाह भविष्यद्वक्‍ता ने कहा है : ‘मैं जंगल में एक पुकारनेवाले का शब्द हूँ कि तुम प्रभु का मार्ग सीधा करो’। ”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 24,
+    "text": "वे फरीसियों की ओर से भेजे गए थे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 25,
+    "text": "उन्होंने उससे यह प्रश्न पूछा, “यदि तू न मसीह है, और न एलिय्याह, और न वह भविष्यद्वक्‍ता है, तो फिर बपतिस्मा क्यों देता है?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 26,
+    "text": "यूहन्ना ने उनको उत्तर दिया, “मैं तो जल से बपतिस्मा देता हूँ, परन्तु तुम्हारे बीच में एक व्यक्‍ति खड़ा है जिसे तुम नहीं जानते।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 27,
+    "text": "अर्थात् मेरे बाद आनेवाला है, जिसकी जूती का बन्ध मैं खोलने के योग्य नहीं।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 28,
+    "text": "ये बातें यरदन के पार बैतनिय्याह में हुईं, जहाँ यूहन्ना बपतिस्मा देता था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 29,
+    "text": "दूसरे दिन उसने यीशु को अपनी ओर आते देखकर कहा, “देखो, यह परमेश्‍वर का मेम्ना है जो जगत का पाप उठा ले जाता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 30,
+    "text": "यह वही है जिसके विषय में मैं ने कहा था, ‘एक पुरुष मेरे पीछे आता है जो मुझ से श्रेष्‍ठ है, क्योंकि वह मुझ से पहले था।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 31,
+    "text": "मैं तो उसे पहिचानता न था, परन्तु इसलिये मैं जल से बपतिस्मा देता हुआ आया कि वह इस्राएल पर प्रगट हो जाए।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 32,
+    "text": "और यूहन्ना ने यह गवाही दी : “मैं ने आत्मा को कबूतर के समान आकाश से उतरते देखा है, और वह उस पर ठहर गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 33,
+    "text": "मैं तो उसे पहिचानता नहीं था, परन्तु जिस ने मुझे जल से बपतिस्मा देने को भेजा, उसी ने मुझ से कहा, ‘जिस पर तू आत्मा को उतरते और ठहरते देखे, वही पवित्र आत्मा से बपतिस्मा देनेवाला है।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 34,
+    "text": "और मैं ने देखा, और गवाही दी है कि यही परमेश्‍वर का पुत्र है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 35,
+    "text": "दूसरे दिन फिर यूहन्ना और उसके चेलों में से दो जन खड़े हुए थे,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 36,
+    "text": "और उसने यीशु पर जो जा रहा था, दृष्‍टि करके कहा, “देखो, यह परमेश्‍वर का मेम्ना है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 37,
+    "text": "तब वे दोनों चेले उसकी यह सुनकर यीशु के पीछे हो लिए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 38,
+    "text": "यीशु ने मुड़कर उनको पीछे आते देखा और उनसे कहा, “तुम किसकी खोज में हो?” उन्होंने उससे कहा, “हे रब्बी (अर्थात् हे गुरु), तू कहाँ रहता है?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 39,
+    "text": "उसने उनसे कहा, “चलो, तो देख लोगे।” तब उन्होंने जाकर उसके रहने का स्थान देखा, और उस दिन उसके साथ रहे। यह दसवें घंटे के लगभग था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 40,
+    "text": "उन दोनों में से, जो यूहन्ना की बात सुनकर यीशु के पीछे हो लिए थे, एक शमौन पतरस का भाई अन्द्रियास था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 41,
+    "text": "उसने पहले अपने सगे भाई शमौन से मिलकर उस से कहा, “हम को ख्रिस्त, अर्थात् मसीह, मिल गया।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 42,
+    "text": "वह उसे यीशु के पास लाया। यीशु ने उस पर दृष्‍टि करके कहा, “तू यूहन्ना का पुत्र शमौन है : तू कैफा* अर्थात् पतरस कहलाएगा।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 43,
+    "text": "दूसरे दिन यीशु ने गलील को जाना चाहा। वह फिलिप्पुस से मिला और कहा, “मेरे पीछे हो ले।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 44,
+    "text": "फिलिप्पुस, अन्द्रियास और पतरस के नगर बैतसैदा का निवासी था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 45,
+    "text": "फिलिप्पुस नतनएल से मिला और उस से कहा, “जिस का वर्णन मूसा ने व्यवस्था में और भविष्यद्वक्‍ताओं ने किया है, वह हम को मिल गया; वह यूसुफ का पुत्र, यीशु नासरी है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 46,
+    "text": "नतनएल ने उस से कहा, “क्या कोई अच्छी वस्तु भी नासरत से निकल सकती है?” फिलिप्पुस ने उस से कहा, “चलकर देख ले।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 47,
+    "text": "यीशु ने नतनएल को अपनी ओर आते देखकर उसके विषय में कहा, “देखो, यह सचमुच इस्राएली है : इसमें कपट नहीं।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 48,
+    "text": "नतनएल ने उस से कहा, “तू मुझे कैसे जानता है?” यीशु ने उसको उत्तर दिया, “इस से पहले कि फिलिप्पुस ने तुझे बुलाया, जब तू अंजीर के पेड़ के तले था, तब मैं ने तुझे देखा था।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 49,
+    "text": "नतनएल ने उसको उत्तर दिया, “हे रब्बी, तू परमेश्‍वर का पुत्र है; तू इस्राएल का महाराजा है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 50,
+    "text": "यीशु ने उसको उत्तर दिया, “मैं ने जो तुझ से कहा कि मैं ने तुझे अंजीर के पेड़ के तले देखा, क्या तू इसी लिये विश्‍वास करता है? तू इससे भी बड़े-बड़े काम देखेगा।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 1,
+    "v": 51,
+    "text": "फिर उस से कहा, “मैं तुम से सच सच कहता हूँ कि तुम स्वर्ग को खुला हुआ, और परमेश्‍वर के स्वर्गदूतों को मनुष्य के पुत्र के ऊपर उतरते और ऊपर जाते देखोगे।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 1,
+    "text": "फिर तीसरे दिन गलील के काना में किसी का विवाह था, और यीशु की माता भी वहाँ थी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 2,
+    "text": "यीशु और उसके चेले भी उस विवाह में निमन्त्रित थे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 3,
+    "text": "जब दाखरस घट गया, तो यीशु की माता ने उस से कहा, “उन के पास दाखरस नहीं रहा।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 4,
+    "text": "यीशु ने उससे कहा “हे महिला, मुझे तुझ से क्या काम? अभी मेरा समय नहीं आया।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 5,
+    "text": "उसकी माता ने सेवकों से कहा, “जो कुछ वह तुम से कहे, वही करना।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 6,
+    "text": "वहाँ यहूदियों के शुद्ध करने की रीति के अनुसार पत्थर के छ: मटके धरे थे, जिनमें दो-दो, तीन-तीन मन समाता था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 7,
+    "text": "यीशु ने उनसे कहा, “मटकों में पानी भर दो।” उन्होंने उन्हें मुँहामुँह भर दिया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 8,
+    "text": "तब उसने उनसे कहा, “अब निकालकर भोज के प्रधान के पास ले जाओ।” और वे ले गए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 9,
+    "text": "जब भोज के प्रधान ने वह पानी चखा, जो दाखरस बन गया था और नहीं जानता था कि वह कहाँ से आया है (परन्तु जिन सेवकों ने पानी निकाला था वे जानते थे), तो भोज के प्रधान ने दूल्हे को बुलाकर उससे कहा,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 10,
+    "text": "“हर एक मनुष्य पहले अच्छा दाखरस देता है, और जब लोग पीकर छक जाते हैं, तब मध्यम देता है; परन्तु तू ने अच्छा दाखरस अब तक रख छोड़ा है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 11,
+    "text": "यीशु ने गलील के काना में अपना यह पहला चिह्न दिखाकर अपनी महिमा प्रगट की और उसके चेलों ने उस पर विश्‍वास किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 12,
+    "text": "इसके बाद वह और उसकी माता और उसके भाई और उसके चेले कफरनहूम को गए और वहाँ कुछ दिन रहे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 13,
+    "text": "यहूदियों का फसह का पर्व निकट था, और यीशु यरूशलेम को गया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 14,
+    "text": "उसने मन्दिर में बैल, भेड़ और कबूतर के बेचनेवालों और सर्राफों को बैठे हुए पाया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 15,
+    "text": "तब उसने रस्सियों का कोड़ा बनाकर, सब भेड़ों और बैलों को मन्दिर से निकाल दिया, और सर्राफों के पैसे बिखेर दिये और पीढ़ों को उलट दिया,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 16,
+    "text": "और कबूतर बेचनेवालों से कहा, “इन्हें यहाँ से ले जाओ। मेरे पिता के घर को व्यापार का घर मत बनाओ।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 17,
+    "text": "तब उसके चेलों को स्मरण आया कि लिखा है, “तेरे घर की धुन मुझे खा जाएगी।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 18,
+    "text": "इस पर यहूदियों ने उस से कहा, “तू जो यह करता है तो हमें कौन सा चिह्न दिखाता है?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 19,
+    "text": "यीशु ने उनको उत्तर दिया, “इस मन्दिर को ढा दो, और मैं इसे तीन दिन में खड़ा कर दूँगा।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 20,
+    "text": "यहूदियों ने कहा, “इस मन्दिर के बनाने में छियालीस वर्ष लगे हैं, और क्या तू उसे तीन दिन में खड़ा कर देगा?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 21,
+    "text": "परन्तु उसने अपनी देह के मन्दिर के विषय में कहा था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 22,
+    "text": "अत: जब वह मुर्दों में से जी उठा तो उसके चेलों को स्मरण आया कि उसने यह कहा था; और उन्होंने पवित्रशास्त्र और उस वचन की जो यीशु ने कहा था, प्रतीति की।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 23,
+    "text": "जब वह यरूशलेम में फसह के समय पर्व में था, तो बहुतों ने उन चिह्नों को जो वह दिखाता था देखकर उसके नाम पर विश्‍वास किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 24,
+    "text": "परन्तु यीशु ने अपने आप को उनके भरोसे पर नहीं छोड़ा, क्योंकि वह सब को जानता था;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 2,
+    "v": 25,
+    "text": "और उसे आवश्यकता न थी कि मनुष्य के विषय में कोई गवाही दे, क्योंकि वह आप ही जानता था कि मनुष्य के मन में क्या है?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 1,
+    "text": "फरीसियों में नीकुदेमुस नाम का एक मनुष्य था, जो यहूदियों का सरदार था।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 2,
+    "text": "उसने रात को यीशु के पास आकर उससे कहा, “हे रब्बी, हम जानते हैं कि तू परमेश्‍वर की ओर से गुरु होकर आया है, क्योंकि कोई इन चिह्नों को जो तू दिखाता है, यदि परमेश्‍वर उसके साथ न हो तो नहीं दिखा सकता।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 3,
+    "text": "यीशु ने उसको उत्तर दिया, “मैं तुझ से सच सच कहता हूँ, यदि कोई नये सिरे से न जन्मे तो परमेश्‍वर का राज्य देख नहीं सकता।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 4,
+    "text": "नीकुदेमुस ने उस से कहा, “मनुष्य जब बूढ़ा हो गया, तो कैसे जन्म ले सकता है? क्या वह अपनी माता के गर्भ में दूसरी बार प्रवेश करके जन्म ले सकता है?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 5,
+    "text": "यीशु ने उत्तर दिया, “मैं तुझ से सच सच कहता हूँ, जब तक कोई मनुष्य जल और आत्मा से न जन्मे तो वह परमेश्‍वर के राज्य में प्रवेश नहीं कर सकता।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 6,
+    "text": "क्योंकि जो शरीर से जन्मा है, वह शरीर है; और जो आत्मा से जन्मा है, वह आत्मा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 7,
+    "text": "अचम्भा न कर कि मैं ने तुझ से कहा, ‘तुझे नये सिरे से जन्म लेना अवश्य है।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 8,
+    "text": "हवा जिधर चाहती है उधर चलती है और तू उसका शब्द सुनता है, परन्तु नहीं जानता कि वह कहाँ से आती और किधर को जाती है? जो कोई आत्मा से जन्मा है वह ऐसा ही है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 9,
+    "text": "नीकुदेमुस ने उसको उत्तर दिया, “ये बातें कैसे हो सकती हैं?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 10,
+    "text": "यह सुनकर यीशु ने उससे कहा, “तू इस्राएलियों का गुरु होकर भी क्या इन बातों को नहीं समझता?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 11,
+    "text": "मैं तुझ से सच सच कहता हूँ कि हम जो जानते हैं वह कहते हैं, और जिसे हम ने देखा है उसकी गवाही देते हैं, और तुम हमारी गवाही ग्रहण नहीं करते।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 12,
+    "text": "जब मैं ने तुम से पृथ्वी की बातें कहीं और तुम विश्‍वास नहीं करते, तो यदि मैं तुम से स्वर्ग की बातें कहूँ तो फिर कैसे विश्‍वास करोगे?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 13,
+    "text": "कोई स्वर्ग पर नहीं चढ़ा, केवल वही जो स्वर्ग से उतरा, अर्थात् मनुष्य का पुत्र जो स्वर्ग में है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 14,
+    "text": "और जिस रीति से मूसा ने जंगल में साँप को ऊँचे पर चढ़ाया, उसी रीति से अवश्य है कि मनुष्य का पुत्र भी ऊँचे पर चढ़ाया जाए;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 15,
+    "text": "ताकि जो कोई उस पर विश्‍वास करे वह अनन्त जीवन पाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 16,
+    "text": "“क्योंकि परमेश्‍वर ने जगत से ऐसा प्रेम रखा कि उसने अपना एकलौता पुत्र दे दिया, ताकि जो कोई उस पर विश्‍वास करे वह नष्‍ट न हो, परन्तु अनन्त जीवन पाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 17,
+    "text": "परमेश्‍वर ने अपने पुत्र को जगत में इसलिये नहीं भेजा कि जगत पर दण्ड की आज्ञा दे, परन्तु इसलिये कि जगत उसके द्वारा उद्धार पाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 18,
+    "text": "जो उस पर विश्‍वास करता है, उस पर दण्ड की आज्ञा नहीं होती, परन्तु जो उस पर विश्‍वास नहीं करता, वह दोषी ठहर चुका; इसलिये कि उसने परमेश्‍वर के एकलौते पुत्र के नाम पर विश्‍वास नहीं किया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 19,
+    "text": "और दण्ड की आज्ञा का कारण यह है कि ज्योति जगत में आई है, और मनुष्यों ने अन्धकार को ज्योति से अधिक प्रिय जाना क्योंकि उनके काम बुरे थे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 20,
+    "text": "क्योंकि जो कोई बुराई करता है, वह ज्योति से बैर रखता है, और ज्योति के निकट नहीं आता, ऐसा न हो कि उसके कामों पर दोष लगाया जाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 21,
+    "text": "परन्तु जो सत्य पर चलता है, वह ज्योति के निकट आता है, ताकि उसके काम प्रगट हों कि वह परमेश्‍वर की ओर से किए गए हैं।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 22,
+    "text": "इसके बाद यीशु और उसके चेले यहूदिया देश में आए; और वह वहाँ उन के साथ रहकर बपतिस्मा देने लगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 23,
+    "text": "यूहन्ना भी शालेम के निकट ऐनोन में बपतिस्मा देता था, क्योंकि वहाँ बहुत जल था, और लोग आकर बपतिस्मा लेते थे–"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 24,
+    "text": "यूहन्ना उस समय तक जेलखाने में नहीं डाला गया था -"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 25,
+    "text": "वहाँ यूहन्ना के चेलों का किसी यहूदी के साथ शुद्धि के विषय में वाद-विवाद हुआ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 26,
+    "text": "और उन्होंने यूहन्ना के पास आकर उससे कहा, “हे रब्बी, जो व्यक्‍ति यरदन के पार तेरे साथ था, और जिसकी तू ने गवाही दी है; देख, वह बपतिस्मा देता है, और सब उसके पास आते हैं।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 27,
+    "text": "यूहन्ना ने उत्तर दिया, “जब तक मनुष्य को स्वर्ग से न दिया जाय, तब तक वह कुछ नहीं पा सकता।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 28,
+    "text": "तुम तो आप ही मेरे गवाह हो कि मैं ने कहा, ‘मैं मसीह नहीं, परन्तु उसके आगे भेजा गया हूँ।’"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 29,
+    "text": "जिसकी दुलहिन है, वही दूल्हा है; परन्तु दूल्हे का मित्र जो खड़ा हुआ उसकी सुनता है, दूल्हे के शब्द से बहुत हर्षित होता है : अब मेरा यह हर्ष पूरा हुआ है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 30,
+    "text": "अवश्य है कि वह बढ़े और मैं घटूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 31,
+    "text": "“जो ऊपर से आता है वह सर्वोत्तम है; जो पृथ्वी से आता है वह पृथ्वी का है, और पृथ्वी की ही बातें कहता है : जो स्वर्ग से आता है, वह सब के ऊपर है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 32,
+    "text": "जो कुछ उसने देखा और सुना है, उसी की गवाही देता है; और कोई उसकी गवाही ग्रहण नहीं करता।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 33,
+    "text": "जिसने उसकी गवाही ग्रहण कर ली उसने इस बात पर छाप लगा दी कि परमेश्‍वर सच्‍चा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 34,
+    "text": "क्योंकि जिसे परमेश्‍वर ने भेजा है, वह परमेश्‍वर की बातें कहता है; क्योंकि वह आत्मा नाप नापकर नहीं देता।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 35,
+    "text": "पिता पुत्र से प्रेम रखता है, और उसने सब वस्तुएँ उसके हाथ में दे दी हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 3,
+    "v": 36,
+    "text": "जो पुत्र पर विश्‍वास करता है, अनन्त जीवन उसका है; परन्तु जो पुत्र की नहीं मानता, वह जीवन को नहीं देखेगा, परन्तु परमेश्‍वर का क्रोध उस पर रहता है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 1,
+    "text": "“तुम्हारा मन व्याकुल न हो; परमेश्‍वर पर विश्‍वास रखो और मुझ पर भी विश्‍वास रखो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 2,
+    "text": "मेरे पिता के घर में बहुत से रहने के स्थान हैं, यदि न होते तो मैं तुम से कह देता; क्योंकि मैं तुम्हारे लिये जगह तैयार करने जाता हूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 3,
+    "text": "और यदि मैं जाकर तुम्हारे लिये जगह तैयार करूँ, तो फिर आकर तुम्हें अपने यहाँ ले जाऊँगा कि जहाँ मैं रहूँ वहाँ तुम भी रहो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 4,
+    "text": "जहाँ मैं जाता हूँ तुम वहाँ का मार्ग जानते हो।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 5,
+    "text": "थोमा ने उससे कहा, “हे प्रभु, हम नहीं जानते कि तू कहाँ जा रहा है; तो मार्ग कैसे जानें?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 6,
+    "text": "यीशु ने उससे कहा, “मार्ग और सत्य और जीवन मैं ही हूँ; बिना मेरे द्वारा कोई पिता के पास नहीं पहुँच सकता।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 7,
+    "text": "यदि तुम ने मुझे जाना होता, तो मेरे पिता को भी जानते; और अब उसे जानते हो, और उसे देखा भी है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 8,
+    "text": "फिलिप्पुस ने उससे कहा, “हे प्रभु, पिता को हमें दिखा दे, यही हमारे लिये बहुत है।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 9,
+    "text": "यीशु ने उससे कहा, “हे फिलिप्पुस, मैं इतने दिन से तुम्हारे साथ हूँ, और क्या तू मुझे नहीं जानता? जिसने मुझे देखा है उसने पिता को देखा है। तू क्यों कहता है कि पिता को हमें दिखा?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 10,
+    "text": "क्या तू विश्‍वास नहीं करता कि मैं पिता में हूँ और पिता मुझ में है? ये बातें जो मैं तुम से कहता हूँ, अपनी ओर से नहीं कहता, परन्तु पिता मुझ में रहकर अपने काम करता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 11,
+    "text": "मेरा विश्‍वास करो कि मैं पिता में हूँ और पिता मुझ में है; नहीं तो कामों ही के कारण मेरा विश्‍वास करो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 12,
+    "text": "“मैं तुम से सच सच कहता हूँ कि जो मुझ पर विश्‍वास रखता है, ये काम जो मैं करता हूँ वह भी करेगा, वरन् इनसे भी बड़े काम करेगा, क्योंकि मैं पिता के पास जाता हूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 13,
+    "text": "जो कुछ तुम मेरे नाम से माँगोगे, वही मैं करूँगा कि पुत्र के द्वारा पिता की महिमा हो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 14,
+    "text": "यदि तुम मुझ से मेरे नाम से कुछ माँगोगे, तो मैं उसे करूँगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 15,
+    "text": "“यदि तुम मुझ से प्रेम रखते हो, तो मेरी आज्ञाओं को मानोगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 16,
+    "text": "मैं पिता से विनती करूँगा, और वह तुम्हें एक और सहायक देगा कि वह सर्वदा तुम्हारे साथ रहे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 17,
+    "text": "अर्थात् सत्य का आत्मा, जिसे संसार ग्रहण नहीं कर सकता, क्योंकि वह न उसे देखता है और न उसे जानता है; तुम उसे जानते हो, क्योंकि वह तुम्हारे साथ रहता है, और वह तुम में होगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 18,
+    "text": "“मैं तुम्हें अनाथ नहीं छोड़ूँगा; मैं तुम्हारे पास आता हूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 19,
+    "text": "और थोड़ी देर रह गई है कि फिर संसार मुझे न देखेगा, परन्तु तुम मुझे देखोगे; इसलिये कि मैं जीवित हूँ, तुम भी जीवित रहोगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 20,
+    "text": "उस दिन तुम जानोगे कि मैं अपने पिता में हूँ, और तुम मुझ में, और मैं तुम में।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 21,
+    "text": "जिस के पास मेरी आज्ञाएँ हैं और वह उन्हें मानता है, वही मुझ से प्रेम रखता है; और जो मुझ से प्रेम रखता है उससे मेरा पिता प्रेम रखेगा, और मैं उससे प्रेम रखूँगा और अपने आप को उस पर प्रगट करूँगा।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 22,
+    "text": "उस यहूदा ने जो इस्करियोती न था, उससे कहा, “हे प्रभु, क्या हुआ कि तू अपने आप को हम पर प्रगट करना चाहता है और संसार पर नहीं?”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 23,
+    "text": "यीशु ने उसको उत्तर दिया, “यदि कोई मुझ से प्रेम रखेगा तो वह मेरे वचन को मानेगा, और मेरा पिता उससे प्रेम रखेगा, और हम उसके पास आएँगे और उसके साथ वास करेंगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 24,
+    "text": "जो मुझ से प्रेम नहीं रखता, वह मेरे वचन नहीं मानता; और जो वचन तुम सुनते हो वह मेरा नहीं वरन् पिता का है, जिसने मुझे भेजा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 25,
+    "text": "“ये बातें मैं ने तुम्हारे साथ रहते हुए तुम से कहीं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 26,
+    "text": "परन्तु सहायक अर्थात् पवित्र आत्मा जिसे पिता मेरे नाम से भेजेगा, वह तुम्हें सब बातें सिखाएगा, और जो कुछ मैं ने तुम से कहा है, वह सब तुम्हें स्मरण कराएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 27,
+    "text": "मैं तुम्हें शान्ति दिए जाता हूँ, अपनी शान्ति तुम्हें देता हूँ; जैसे संसार देता है, मैं तुम्हें नहीं देता : तुम्हारा मन व्याकुल न हो और न डरे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 28,
+    "text": "तुम ने सुना कि मैं ने तुम से कहा, ‘मैं जाता हूँ, और तुम्हारे पास फिर आऊँगा।’ यदि तुम मुझ से प्रेम रखते, तो इस बात से आनन्दित होते कि मैं पिता के पास जाता हूँ, क्योंकि पिता मुझ से बड़ा है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 29,
+    "text": "और मैं ने अब इसके होने से पहले तुम से कह दिया है, कि जब वह हो जाए, तो तुम विश्‍वास करो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 30,
+    "text": "मैं अब तुम्हारे साथ और बहुत बातें न करूँगा, क्योंकि इस संसार का सरदार आता है। मुझ पर उसका कोई अधिकार नहीं;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 43,
+    "c": 14,
+    "v": 31,
+    "text": "परन्तु यह इसलिये होता है कि संसार जाने कि मैं पिता से प्रेम रखता हूँ, और जैसे पिता ने मुझे आज्ञा दी मैं वैसे ही करता हूँ। उठो, यहाँ से चलें।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 1,
+    "text": "अत: अब जो मसीह यीशु में हैं, उन पर दण्ड की आज्ञा नहीं। [क्योंकि वे शरीर के अनुसार नहीं वरन् आत्मा के अनुसार चलते हैं।]"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 2,
+    "text": "क्योंकि जीवन की आत्मा की व्यवस्था ने मसीह यीशु में मुझे पाप की और मृत्यु की व्यवस्था से स्वतंत्र कर दिया।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 3,
+    "text": "क्योंकि जो काम व्यवस्था शरीर के कारण दुर्बल होकर न कर सकी, उस को परमेश्‍वर ने किया, अर्थात् अपने ही पुत्र को पापमय शरीर की समानता में और पापबलि होने के लिये भेजकर, शरीर में पाप पर दण्ड की आज्ञा दी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 4,
+    "text": "इसलिये कि व्यवस्था की विधि हममें जो शरीर के अनुसार नहीं वरन् आत्मा के अनुसार चलते हैं, पूरी की जाए।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 5,
+    "text": "क्योंकि शारीरिक व्यक्‍ति शरीर की बातों पर मन लगाते हैं; परन्तु आध्यात्मिक आत्मा की बातों पर मन लगाते हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 6,
+    "text": "शरीर पर मन लगाना तो मृत्यु है, परन्तु आत्मा पर मन लगाना जीवन और शान्ति है;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 7,
+    "text": "क्योंकि शरीर पर मन लगाना तो परमेश्‍वर से बैर रखना है, क्योंकि न तो परमेश्‍वर की व्यवस्था के अधीन है और न हो सकता है;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 8,
+    "text": "और जो शारीरिक दशा में हैं, वे परमेश्‍वर को प्रसन्न नहीं कर सकते।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 9,
+    "text": "परन्तु जब कि परमेश्‍वर का आत्मा तुम में बसता है, तो तुम शारीरिक दशा में नहीं परन्तु आत्मिक दशा में हो। यदि किसी में मसीह का आत्मा नहीं तो वह उसका जन नहीं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 10,
+    "text": "यदि मसीह तुम में है, तो देह पाप के कारण मरी हुई है; परन्तु आत्मा धर्म के कारण जीवित है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 11,
+    "text": "यदि उसी का आत्मा जिसने यीशु को मरे हुओं में से जिलाया, तुम में बसा हुआ है; तो जिसने मसीह को मरे हुओं में से जिलाया, वह तुम्हारी नश्‍वर देहों को भी अपने आत्मा के द्वारा जो तुम में बसा हुआ है, जिलाएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 12,
+    "text": "इसलिये हे भाइयो, हम शरीर के कर्जदार नहीं कि शरीर के अनुसार दिन काटें,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 13,
+    "text": "क्योंकि यदि तुम शरीर के अनुसार दिन काटोगे तो मरोगे, यदि आत्मा से देह की क्रियाओं को मारोगे तो जीवित रहोगे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 14,
+    "text": "इसलिये कि जितने लोग परमेश्‍वर के आत्मा के चलाए चलते हैं, वे ही परमेश्‍वर के पुत्र हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 15,
+    "text": "क्योंकि तुम को दासत्व की आत्मा नहीं मिली कि फिर भयभीत हो, परन्तु लेपालकपन की आत्मा मिली है, जिससे हम हे अब्बा, हे पिता कहकर पुकारते हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 16,
+    "text": "आत्मा आप ही हमारी आत्मा के साथ गवाही देता है, कि हम परमेश्‍वर की सन्तान हैं;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 17,
+    "text": "और यदि सन्तान हैं तो वारिस भी, वरन् परमेश्‍वर के वारिस और मसीह के संगी वारिस हैं, कि जब हम उसके साथ दु:ख उठाएँ तो उसके साथ महिमा भी पाएँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 18,
+    "text": "क्योंकि मैं समझता हूँ कि इस समय के दु:ख और क्लेश उस महिमा के सामने, जो हम पर प्रगट होनेवाली है, कुछ भी नहीं हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 19,
+    "text": "क्योंकि सृष्‍टि बड़ी आशाभरी दृष्‍टि से परमेश्‍वर के पुत्रों के प्रगट होने की बाट जोह रही है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 20,
+    "text": "क्योंकि सृष्‍टि अपनी इच्छा से नहीं पर अधीन करनेवाले की ओर से, व्यर्थता के अधीन इस आशा से की गई"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 21,
+    "text": "कि सृष्‍टि भी आप ही विनाश के दासत्व से छुटकारा पाकर, परमेश्‍वर की सन्तानों की महिमा की स्वतंत्रता प्राप्‍त करेगी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 22,
+    "text": "क्योंकि हम जानते हैं कि सारी सृष्‍टि अब तक मिलकर कराहती और पीड़ाओं में पड़ी तड़पती है;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 23,
+    "text": "और केवल वही नहीं पर हम भी जिनके पास आत्मा का पहला फल है, आप ही अपने में कराहते हैं; और लेपालक होने की, अर्थात् अपनी देह के छुटकारे की बाट जोहते हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 24,
+    "text": "इस आशा के द्वारा हमारा उद्धार हुआ है; परन्तु जिस वस्तु की आशा की जाती है, जब वह देखने में आए तो फिर आशा कहाँ रही? क्योंकि जिस वस्तु को कोई देख रहा है उसकी आशा क्या करेगा?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 25,
+    "text": "परन्तु जिस वस्तु को हम नहीं देखते, यदि उसकी आशा रखते हैं, तो धीरज से उसकी बाट जोहते भी हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 26,
+    "text": "इसी रीति से आत्मा भी हमारी दुर्बलता में सहायता करता है : क्योंकि हम नहीं जानते कि प्रार्थना किस रीति से करना चाहिए, परन्तु आत्मा आप ही ऐसी आहें भर भरकर, जो बयान से बाहर हैं, हमारे लिये विनती करता है;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 27,
+    "text": "और मनों का जाँचनेवाला जानता है कि आत्मा की मनसा क्या है? क्योंकि वह पवित्र लोगों के लिये परमेश्‍वर की इच्छा के अनुसार विनती करता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 28,
+    "text": "हम जानते हैं कि जो लोग परमेश्‍वर से प्रेम रखते हैं, उनके लिये सब बातें मिलकर भलाई ही को उत्पन्न करती हैं; अर्थात् उन्हीं के लिये जो उसकी इच्छा के अनुसार बुलाए हुए हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 29,
+    "text": "क्योंकि जिन्हें उसने पहले से जान लिया है उन्हें पहले से ठहराया भी है कि उसके पुत्र के स्वरूप में हों, ताकि वह बहुत भाइयों में पहिलौठा ठहरे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 30,
+    "text": "फिर जिन्हें उसने पहले से ठहराया, उन्हें बुलाया भी; और जिन्हें बुलाया, उन्हें धर्मी भी ठहराया है; और जिन्हें धर्मी ठहराया, उन्हें महिमा भी दी है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 31,
+    "text": "अत: हम इन बातों के विषय में क्या कहें? यदि परमेश्‍वर हमारी ओर है, तो हमारा विरोधी कौन हो सकता है?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 32,
+    "text": "जिसने अपने निज पुत्र को भी न रख छोड़ा, परन्तु उसे हम सब के लिये दे दिया, वह उसके साथ हमें और सब कुछ क्यों न देगा?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 33,
+    "text": "परमेश्‍वर के चुने हुओं पर दोष कौन लगाएगा? परमेश्‍वर ही है जो उनको धर्मी ठहरानेवाला है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 34,
+    "text": "फिर कौन है जो दण्ड की आज्ञा देगा? मसीह ही है जो मर गया वरन् मुर्दों में से जी भी उठा, और परमेश्‍वर के दाहिनी ओर है, और हमारे लिये निवेदन भी करता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 35,
+    "text": "कौन हम को मसीह के प्रेम से अलग करेगा? क्या क्लेश, या संकट, या उपद्रव, या अकाल, या नंगाई, या जोखिम, या तलवार?"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 36,
+    "text": "जैसा लिखा है, “तेरे लिये हम दिन भर घात किए जाते हैं; हम वध होनेवाली भेड़ों के समान गिने गए हैं।”"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 37,
+    "text": "परन्तु इन सब बातों में हम उसके द्वारा जिसने हम से प्रेम किया है, जयवन्त से भी बढ़कर हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 38,
+    "text": "क्योंकि मैं निश्‍चय जानता हूँ कि न मृत्यु, न जीवन, न स्वर्गदूत, न प्रधानताएँ, न वर्तमान, न भविष्य, न सामर्थ्य, न ऊँचाई,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 45,
+    "c": 8,
+    "v": 39,
+    "text": "न गहराई, और न कोई और सृष्‍टि हमें परमेश्‍वर के प्रेम से जो हमारे प्रभु मसीह यीशु में है, अलग कर सकेगी।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 1,
+    "text": "यदि मैं मनुष्यों और स्वर्गदूतों की बोलियाँ बोलूँ और प्रेम न रखूँ, तो मैं ठनठनाता हुआ पीतल, और झंझनाती हुई झाँझ हूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 2,
+    "text": "और यदि मैं भविष्यद्वाणी कर सकूँ, और सब भेदों और सब प्रकार के ज्ञान को समझूँ, और मुझे यहाँ तक पूरा विश्‍वास हो कि मैं पहाड़ों को हटा दूँ, परन्तु प्रेम न रखूँ, तो मैं कुछ भी नहीं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 3,
+    "text": "यदि मैं अपनी सम्पूर्ण संपत्ति कंगालों को खिला दूँ, या अपनी देह जलाने के लिये दे दूँ, और प्रेम न रखूँ, तो मुझे कुछ भी लाभ नहीं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 4,
+    "text": "प्रेम धीरजवन्त है, और कृपालु है; प्रेम डाह नहीं करता; प्रेम अपनी बड़ाई नहीं करता, और फूलता नहीं,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 5,
+    "text": "वह अनरीति नहीं चलता, वह अपनी भलाई नहीं चाहता, झुँझलाता नहीं, बुरा नहीं मानता।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 6,
+    "text": "कुकर्म से आनन्दित नहीं होता, परन्तु सत्य से आनन्दित होता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 7,
+    "text": "वह सब बातें सह लेता है, सब बातों की प्रतीति करता है, सब बातों की आशा रखता है, सब बातों में धीरज धरता है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 8,
+    "text": "प्रेम कभी टलता नहीं; भविष्यद्वाणियाँ हों, तो समाप्‍त हो जाएँगी; भाषाएँ हों, तो जाती रहेंगी; ज्ञान हो, तो मिट जाएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 9,
+    "text": "क्योंकि हमारा ज्ञान अधूरा है, और हमारी भविष्यद्वाणी अधूरी;"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 10,
+    "text": "परन्तु जब सर्वसिद्ध आएगा, तो अधूरा मिट जाएगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 11,
+    "text": "जब मैं बालक था, तो मैं बालकों के समान बोलता था, बालकों का सा मन था, बालकों की सी समझ थी; परन्तु जब सियाना हो गया तो बालकों की बातें छोड़ दीं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 12,
+    "text": "अभी हमें दर्पण में धुँधला सा दिखाई देता है, परन्तु उस समय आमने-सामने देखेंगे; इस समय मेरा ज्ञान अधूरा है, परन्तु उस समय ऐसी पूरी रीति से पहिचानूँगा, जैसा मैं पहिचाना गया हूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 46,
+    "c": 13,
+    "v": 13,
+    "text": "पर अब विश्‍वास, आशा, प्रेम ये तीनों स्थायी हैं, पर इन में सबसे बड़ा प्रेम है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 1,
+    "text": "पौलुस की ओर से जो मसीह यीशु का कैदी है, और भाई तीमुथियुस की ओर से हमारे प्रिय सहकर्मी फिलेमोन,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 2,
+    "text": "और बहिन अफफिया, और हमारे साथी योद्धा अरखिप्पुस और फिलेमोन के घर की कलीसिया के नाम :"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 3,
+    "text": "हमारे पिता परमेश्‍वर और प्रभु यीशु मसीह की ओर से अनुग्रह और शान्ति तुम्हें मिलती रहे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 4,
+    "text": "मैं सदा परमेश्‍वर का धन्यवाद करता हूँ, और अपनी प्रार्थनाओं में भी तुझे स्मरण करता हूँ,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 5,
+    "text": "क्योंकि मैं तेरे उस प्रेम और विश्‍वास की चर्चा सुनता हूँ, जो सब पवित्र लोगों के साथ और प्रभु यीशु पर है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 6,
+    "text": "मैं प्रार्थना करता हूँ कि विश्‍वास में तेरा सहभागी होना, तुम्हारी सारी भलाई की पहिचान में, मसीह के लिये प्रभावशाली हो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 7,
+    "text": "क्योंकि हे भाई, मुझे तेरे प्रेम से बहुत आनन्द और शान्ति मिली है, इसलिये कि तेरे द्वारा पवित्र लोगों के मन हरे-भरे हो गए हैं।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 8,
+    "text": "इसलिये यद्यपि मुझे मसीह में बड़ा साहस है कि जो बात ठीक है, उसकी आज्ञा तुझे दूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 9,
+    "text": "तौभी मुझ बूढ़े पौलुस को जो अब मसीह यीशु के लिये कैदी है, यह और भी भला जान पड़ा कि प्रेम से विनती करूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 10,
+    "text": "मैं अपने बच्‍चे उनेसिमुस के लिये, जो मुझ से मेरी कैद में जन्मा है, तुझ से विनती करता हूँ।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 11,
+    "text": "वह तो पहले तेरे कुछ काम का न था, पर अब तेरे और मेरे दोनों के बड़े काम का है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 12,
+    "text": "उसी को अर्थात् जो मेरे हृदय का टुकड़ा है, मैं ने तेरे पास लौटा दिया है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 13,
+    "text": "उसे मैं अपने ही पास रखना चाहता था कि वह तेरी ओर से इस कैद में जो सुसमाचार के कारण है, मेरी सेवा करे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 14,
+    "text": "पर मैं ने तेरी इच्छा बिना कुछ भी करना न चाहा, कि तेरी यह कृपा दबाव से नहीं पर आनन्द से हो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 15,
+    "text": "क्योंकि क्या जाने वह तुझ से कुछ दिन तक के लिये इसी कारण अलग हुआ कि सदैव तेरे निकट रहे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 16,
+    "text": "परन्तु अब से दास की तरह नहीं वरन् दास से भी उत्तम, अर्थात् भाई के समान रहे, जो मेरा तो विशेष प्रिय है ही, पर अब शरीर में और प्रभु में भी, तेरा भी विशेष प्रिय हो।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 17,
+    "text": "अत: यदि तू मुझे अपना सहभागी समझता है, तो उसे इस प्रकार ग्रहण कर जैसे मुझे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 18,
+    "text": "यदि उसने तेरी कुछ हानि की है, या उस पर तेरा कुछ आता है, तो मेरे नाम पर लिख ले।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 19,
+    "text": "मैं पौलुस अपने हाथ से लिखता हूँ कि मैं आप भर दूँगा; और इस के कहने की कुछ आवश्यकता नहीं कि मेरा कर्ज जो तुझ पर है वह तू ही है।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 20,
+    "text": "हे भाई, यह आनन्द मुझे प्रभु में तेरी ओर से मिले। मसीह में मेरे जी को हरा-भरा कर दे।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 21,
+    "text": "मैं तेरे आज्ञाकारी होने का भरोसा रखकर तुझे लिखता हूँ, और यह जानता हूँ कि जो कुछ मैं कहता हूँ, तू उस से कहीं बढ़कर करेगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 22,
+    "text": "और यह भी कि मेरे लिये ठहरने की जगह तैयार रख। मुझे आशा है कि तुम्हारी प्रार्थनाओं के द्वारा मैं तुम्हें दे दिया जाऊँगा।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 23,
+    "text": "इपफ्रास, जो मसीह यीशु में मेरे साथ कैदी है,"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 24,
+    "text": "और मर और अरिस्तर्खुस और देमास और लूका जो मेरे सहकर्मी हैं, इनका तुझे नमस्कार।"
+  },
+  {
+    "t": "HIN_IRV",
+    "b": 57,
+    "c": 1,
+    "v": 25,
+    "text": "हमारे प्रभु यीशु मसीह का अनुग्रह तुम्हारी आत्मा पर होता रहे। आमीन।"
+  }
 ]
