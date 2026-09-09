@@ -12,9 +12,12 @@ import androidx.room.RoomDatabase
         BibleBookmarkEntity::class,
         BibleHighlightEntity::class,
         BibleNoteEntity::class,
-        ReadingPositionEntity::class
+        ReadingPositionEntity::class,
+        ReadingPlanProgressEntity::class,
+        DedicatedNoteEntity::class,
+        ChristianSongEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class BibleDatabase : RoomDatabase() {

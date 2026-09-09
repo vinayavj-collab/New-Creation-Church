@@ -2,10 +2,7 @@ package com.example.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.data.model.AppLanguage
-import com.example.data.model.HomeSectionType
-import com.example.data.model.ThemeMode
-import com.example.data.model.UserSettings
+import com.example.data.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +22,27 @@ class PreferencesManager(context: Context) {
             ThemeMode.SYSTEM
         }
 
+        val vlogModeStr = prefs.getString("personal_vlog_mode", PersonalVlogMode.HIDDEN.name) ?: PersonalVlogMode.HIDDEN.name
+        val personalVlogMode = try {
+            PersonalVlogMode.valueOf(vlogModeStr)
+        } catch (e: Exception) {
+            PersonalVlogMode.HIDDEN
+        }
+
+        val ytTabStr = prefs.getString("youtube_default_tab", YouTubeDefaultTab.AVJ_WORSHIP.name) ?: YouTubeDefaultTab.AVJ_WORSHIP.name
+        val youtubeDefaultTab = try {
+            YouTubeDefaultTab.valueOf(ytTabStr)
+        } catch (e: Exception) {
+            YouTubeDefaultTab.AVJ_WORSHIP
+        }
+
+        val bibleStyleStr = prefs.getString("bible_reading_style", BibleReadingStyle.PRINTED_BIBLE.name) ?: BibleReadingStyle.PRINTED_BIBLE.name
+        val bibleReadingStyle = try {
+            BibleReadingStyle.valueOf(bibleStyleStr)
+        } catch (e: Exception) {
+            BibleReadingStyle.PRINTED_BIBLE
+        }
+
         val langStr = prefs.getString("app_language", AppLanguage.SYSTEM.name) ?: AppLanguage.SYSTEM.name
         val appLanguage = try {
             AppLanguage.valueOf(langStr)
@@ -34,15 +52,15 @@ class PreferencesManager(context: Context) {
 
         val favCats = prefs.getStringSet("favorite_categories", emptySet()) ?: emptySet()
 
-        // Home sections enabled
+        // Home sections enabled (Today's Scripture at top)
         val defaultEnabled = setOf(
-            HomeSectionType.FELLOWSHIP_EVENTS.id,
+            HomeSectionType.TODAYS_VERSE.id,
             HomeSectionType.UPCOMING_EVENTS.id,
-            HomeSectionType.LATEST_EVENTS.id,
+            HomeSectionType.FELLOWSHIP_EVENTS.id,
             HomeSectionType.LATEST_VIDEOS.id,
             HomeSectionType.PLAYLISTS.id,
             HomeSectionType.PHOTOS.id,
-            HomeSectionType.TODAYS_VERSE.id
+            HomeSectionType.LATEST_EVENTS.id
         )
         val enabledStrings = prefs.getStringSet("enabled_home_sections", defaultEnabled) ?: defaultEnabled
         val enabledHomeSections = enabledStrings.mapNotNull { id ->
@@ -52,7 +70,16 @@ class PreferencesManager(context: Context) {
         // Order
         val orderStr = prefs.getString("home_sections_order", null)
         val homeSectionsOrder = if (orderStr.isNullOrBlank()) {
-            HomeSectionType.entries.toList()
+            listOf(
+                HomeSectionType.TODAYS_VERSE,
+                HomeSectionType.UPCOMING_EVENTS,
+                HomeSectionType.FELLOWSHIP_EVENTS,
+                HomeSectionType.LATEST_VIDEOS,
+                HomeSectionType.PLAYLISTS,
+                HomeSectionType.PHOTOS,
+                HomeSectionType.LATEST_EVENTS,
+                HomeSectionType.PERSONAL_VLOG
+            )
         } else {
             val list = orderStr.split(",").mapNotNull { id ->
                 HomeSectionType.entries.find { it.id == id }
@@ -62,12 +89,20 @@ class PreferencesManager(context: Context) {
             list
         }
 
+        val showVlog = personalVlogMode != PersonalVlogMode.HIDDEN
+
         return UserSettings(
             themeMode = themeMode,
             showFellowshipEvents = prefs.getBoolean("show_fellowship_events", true),
-            showPersonalVlog = prefs.getBoolean("show_personal_vlog", false), // DEFAULT: OFF
+            personalVlogMode = personalVlogMode,
+            showPersonalVlog = showVlog,
             showYouTube = prefs.getBoolean("show_youtube", true),
             showShorts = prefs.getBoolean("show_shorts", true),
+            youtubeDefaultTab = youtubeDefaultTab,
+            bibleReadingStyle = bibleReadingStyle,
+            dataSaverEnabled = prefs.getBoolean("data_saver_enabled", false),
+            notifyTodaysScripture = prefs.getBoolean("notify_todays_scripture", true),
+            notifyReadingPlan = prefs.getBoolean("notify_reading_plan", true),
             notifyFellowshipEvents = prefs.getBoolean("notify_fellowship_events", true),
             notifyYouTube = prefs.getBoolean("notify_youtube", true),
             notifyPersonalVlog = prefs.getBoolean("notify_personal_vlog", false),
@@ -83,6 +118,31 @@ class PreferencesManager(context: Context) {
     fun updateThemeMode(mode: ThemeMode) {
         prefs.edit().putString("theme_mode", mode.name).apply()
         _settings.value = _settings.value.copy(themeMode = mode)
+    }
+
+    fun updatePersonalVlogMode(mode: PersonalVlogMode) {
+        prefs.edit().putString("personal_vlog_mode", mode.name).apply()
+        val showVlog = mode != PersonalVlogMode.HIDDEN
+        prefs.edit().putBoolean("show_personal_vlog", showVlog).apply()
+        _settings.value = _settings.value.copy(
+            personalVlogMode = mode,
+            showPersonalVlog = showVlog
+        )
+    }
+
+    fun updateYouTubeDefaultTab(tab: YouTubeDefaultTab) {
+        prefs.edit().putString("youtube_default_tab", tab.name).apply()
+        _settings.value = _settings.value.copy(youtubeDefaultTab = tab)
+    }
+
+    fun updateBibleReadingStyle(style: BibleReadingStyle) {
+        prefs.edit().putString("bible_reading_style", style.name).apply()
+        _settings.value = _settings.value.copy(bibleReadingStyle = style)
+    }
+
+    fun updateDataSaverEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("data_saver_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(dataSaverEnabled = enabled)
     }
 
     fun updateAppLanguage(lang: AppLanguage) {
@@ -101,8 +161,8 @@ class PreferencesManager(context: Context) {
     }
 
     fun updateShowPersonalVlog(enabled: Boolean) {
-        prefs.edit().putBoolean("show_personal_vlog", enabled).apply()
-        _settings.value = _settings.value.copy(showPersonalVlog = enabled)
+        val mode = if (enabled) PersonalVlogMode.SECONDARY else PersonalVlogMode.HIDDEN
+        updatePersonalVlogMode(mode)
     }
 
     fun updateShowYouTube(enabled: Boolean) {
@@ -113,6 +173,16 @@ class PreferencesManager(context: Context) {
     fun updateShowShorts(enabled: Boolean) {
         prefs.edit().putBoolean("show_shorts", enabled).apply()
         _settings.value = _settings.value.copy(showShorts = enabled)
+    }
+
+    fun updateNotifyTodaysScripture(enabled: Boolean) {
+        prefs.edit().putBoolean("notify_todays_scripture", enabled).apply()
+        _settings.value = _settings.value.copy(notifyTodaysScripture = enabled)
+    }
+
+    fun updateNotifyReadingPlan(enabled: Boolean) {
+        prefs.edit().putBoolean("notify_reading_plan", enabled).apply()
+        _settings.value = _settings.value.copy(notifyReadingPlan = enabled)
     }
 
     fun updateNotifyFellowshipEvents(enabled: Boolean) {
@@ -153,3 +223,4 @@ class PreferencesManager(context: Context) {
         _settings.value = _settings.value.copy(lastReadPostId = postId)
     }
 }
+

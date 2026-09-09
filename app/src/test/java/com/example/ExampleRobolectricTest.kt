@@ -89,27 +89,28 @@ class ExampleRobolectricTest {
     val jsonArray = org.json.JSONArray(jsonString)
     assertTrue("Should have verses", jsonArray.length() > 300)
 
-    val chapters = mutableMapOf<Pair<Int, Int>, MutableList<Int>>()
+    val chapters = mutableMapOf<Triple<String, Int, Int>, MutableList<Int>>()
     for (i in 0 until jsonArray.length()) {
       val obj = jsonArray.getJSONObject(i)
+      val t = obj.getString("t")
       val b = obj.getInt("b")
       val c = obj.getInt("c")
       val v = obj.getInt("v")
       val text = obj.getString("text")
 
-      assertFalse("Verse $b $c:$v contains base64: $text", text.startsWith("4KS"))
-      assertFalse("Verse $b $c:$v contains html tags: $text", text.contains("<sup>") || text.contains("</div>"))
-      assertTrue("Verse $b $c:$v must not be blank", text.isNotBlank())
+      assertFalse("Verse $t $b $c:$v contains base64: $text", text.startsWith("4KS"))
+      assertFalse("Verse $t $b $c:$v contains html tags: $text", text.contains("<sup>") || text.contains("</div>"))
+      assertTrue("Verse $t $b $c:$v must not be blank", text.isNotBlank())
 
-      chapters.getOrPut(Pair(b, c)) { mutableListOf() }.add(v)
+      chapters.getOrPut(Triple(t, b, c)) { mutableListOf() }.add(v)
     }
 
     for ((key, verses) in chapters) {
-      val (b, c) = key
+      val (t, b, c) = key
       val sorted = verses.sorted()
-      assertEquals("Chapter $b:$c must start at verse 1", 1, sorted.first())
+      assertEquals("Chapter $t $b:$c must start at verse 1", 1, sorted.first())
       for (v in 1..sorted.size) {
-        assertEquals("Chapter $b:$c missing sequential verse $v", v, sorted[v - 1])
+        assertEquals("Chapter $t $b:$c missing sequential verse $v", v, sorted[v - 1])
       }
     }
   }

@@ -24,23 +24,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.example.data.model.PredefinedPlaylists
 import com.example.data.model.YouTubeChannelInfo
 import com.example.data.model.YouTubePlaylist
 import com.example.data.model.YouTubeVideo
+import com.example.data.model.YouTubeDefaultTab
 import com.example.ui.components.PlaylistCard
 import com.example.ui.components.YouTubeVideoCard
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.viewmodel.MainViewModel
+
+enum class YouTubeTabFilter {
+    ALL,
+    AVJ_WORSHIP,
+    VINAY_KUMAR_AVJ
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,26 +57,35 @@ fun YouTubeScreen(
     val context = LocalContext.current
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val allVideos by viewModel.youtubeVideos.collectAsState()
-    val selectedChannel by viewModel.selectedChannel.collectAsState()
+    val settings by viewModel.settings.collectAsState()
 
-    val isWorshipSelected = selectedChannel.id == PredefinedPlaylists.channelWorship.id
-
-    val channelVideos = remember(allVideos, selectedChannel) {
-        val filtered = allVideos.filter { it.channelId == selectedChannel.id }
-        if (filtered.isEmpty()) allVideos else filtered
+    // Default tab comes from user settings (defaulting to AVJ Worship or ALL)
+    var selectedTab by remember {
+        mutableStateOf(
+            when (settings.youtubeDefaultTab) {
+                YouTubeDefaultTab.ALL -> YouTubeTabFilter.ALL
+                YouTubeDefaultTab.VINAY_KUMAR_AVJ -> YouTubeTabFilter.VINAY_KUMAR_AVJ
+                YouTubeDefaultTab.AVJ_WORSHIP -> YouTubeTabFilter.AVJ_WORSHIP
+            }
+        )
     }
 
-    val latestVideos = channelVideos.take(10)
-    val popularVideos = channelVideos.sortedByDescending { it.title.length }.take(6)
-    val shortsVideos = channelVideos.filter {
-        it.title.contains("#shorts", ignoreCase = true) || it.description.contains("#shorts", ignoreCase = true)
-    }.ifEmpty { channelVideos.takeLast(4) }
+    // Filtered & sorted videos: newest -> oldest
+    val displayVideos = remember(allVideos, selectedTab) {
+        val sortedAll = allVideos.sortedByDescending { it.publishedTimestamp }
+        when (selectedTab) {
+            YouTubeTabFilter.ALL -> sortedAll
+            YouTubeTabFilter.AVJ_WORSHIP -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelWorship.id }.ifEmpty { sortedAll }
+            YouTubeTabFilter.VINAY_KUMAR_AVJ -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelMain.id }.ifEmpty { sortedAll }
+        }
+    }
 
+    val latestVideos = displayVideos.take(12)
     val playlists = PredefinedPlaylists.items
 
-    val openChannelInYouTube = {
+    val openChannelInYouTube = { channelUrl: String ->
         try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(selectedChannel.channelUrl))
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(channelUrl))
             context.startActivity(intent)
         } catch (e: Exception) {
             // ignore
@@ -110,7 +123,7 @@ fun YouTubeScreen(
                 }
             }
 
-            // Channel Switcher Segmented Control (AVJ Worship FIRST, Vinay Kumar AVJ SECOND)
+            // Segmented Tab Filter: ALL | AVJ WORSHIP | VINAY KUMAR AVJ
             item {
                 Row(
                     modifier = Modifier
@@ -118,201 +131,243 @@ fun YouTubeScreen(
                         .padding(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // ALL Tab (First Tab)
                     FilterChip(
-                        selected = isWorshipSelected,
-                        onClick = { viewModel.setSelectedChannel(PredefinedPlaylists.channelWorship) },
+                        selected = selectedTab == YouTubeTabFilter.ALL,
+                        onClick = { selectedTab = YouTubeTabFilter.ALL },
                         label = {
                             Text(
-                                text = "AVJ Worship",
-                                fontWeight = if (isWorshipSelected) FontWeight.Bold else FontWeight.Normal
+                                text = "ALL",
+                                fontWeight = if (selectedTab == YouTubeTabFilter.ALL) FontWeight.Bold else FontWeight.Normal
                             )
                         },
-                        leadingIcon = if (isWorshipSelected) {
+                        leadingIcon = if (selectedTab == YouTubeTabFilter.ALL) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         } else null,
                         modifier = Modifier.weight(1f)
                     )
 
+                    // AVJ Worship Tab
                     FilterChip(
-                        selected = !isWorshipSelected,
-                        onClick = { viewModel.setSelectedChannel(PredefinedPlaylists.channelMain) },
+                        selected = selectedTab == YouTubeTabFilter.AVJ_WORSHIP,
+                        onClick = { selectedTab = YouTubeTabFilter.AVJ_WORSHIP },
                         label = {
                             Text(
-                                text = "Vinay Kumar AVJ",
-                                fontWeight = if (!isWorshipSelected) FontWeight.Bold else FontWeight.Normal
+                                text = "AVJ Worship",
+                                fontWeight = if (selectedTab == YouTubeTabFilter.AVJ_WORSHIP) FontWeight.Bold else FontWeight.Normal
                             )
                         },
-                        leadingIcon = if (!isWorshipSelected) {
+                        leadingIcon = if (selectedTab == YouTubeTabFilter.AVJ_WORSHIP) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         } else null,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1.3f)
+                    )
+
+                    // Vinay Kumar AVJ Tab
+                    FilterChip(
+                        selected = selectedTab == YouTubeTabFilter.VINAY_KUMAR_AVJ,
+                        onClick = { selectedTab = YouTubeTabFilter.VINAY_KUMAR_AVJ },
+                        label = {
+                            Text(
+                                text = "Vinay Kumar",
+                                fontWeight = if (selectedTab == YouTubeTabFilter.VINAY_KUMAR_AVJ) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = if (selectedTab == YouTubeTabFilter.VINAY_KUMAR_AVJ) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        modifier = Modifier.weight(1.3f)
                     )
                 }
             }
 
-            // Channel Hero Card
+            // Channel Hero Banner
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Column(
+                val currentInfo = when (selectedTab) {
+                    YouTubeTabFilter.ALL -> null
+                    YouTubeTabFilter.AVJ_WORSHIP -> PredefinedPlaylists.channelWorship
+                    YouTubeTabFilter.VINAY_KUMAR_AVJ -> PredefinedPlaylists.channelMain
+                }
+
+                if (currentInfo != null) {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .clip(CircleShape)
-                                    .background(NavyPrimary),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = if (isWorshipSelected) "W" else "VK",
-                                    color = GoldWarm,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = selectedChannel.name,
-                                    style = MaterialTheme.typography.titleMedium.copy(
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .background(NavyPrimary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (selectedTab == YouTubeTabFilter.AVJ_WORSHIP) "AVJ" else "VK",
+                                        color = GoldWarm,
+                                        fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold
                                     )
-                                )
-                                Text(
-                                    text = selectedChannel.handle,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        color = MaterialTheme.colorScheme.primary
+                                }
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = currentInfo.name,
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     )
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Text(
-                            text = selectedChannel.description,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = openChannelInYouTube,
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFCC0000)
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Subscriptions,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Subscribe", fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = currentInfo.handle,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
                             }
 
-                            OutlinedButton(
-                                onClick = openChannelInYouTube,
-                                modifier = Modifier.weight(1f)
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = currentInfo.description,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.OpenInNew,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Open Channel")
+                                Button(
+                                    onClick = { openChannelInYouTube(currentInfo.channelUrl) },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFCC0000)
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Subscriptions,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Subscribe", fontWeight = FontWeight.Bold)
+                                }
+
+                                OutlinedButton(
+                                    onClick = { openChannelInYouTube(currentInfo.channelUrl) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.OpenInNew,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Open Channel")
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Section: Latest Videos
+            // Section: Latest Videos (Newest -> Oldest)
             item {
                 SectionHeader(
-                    title = "LATEST VIDEOS",
-                    modifier = Modifier.padding(top = 12.dp)
+                    title = if (selectedTab == YouTubeTabFilter.ALL) "ALL VIDEOS (NEWEST FIRST)" else "LATEST VIDEOS",
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            if (latestVideos.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No videos available right now. Pull down to refresh.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                items(latestVideos) { video ->
+                    YouTubeVideoCard(
+                        video = video,
+                        onClick = { onVideoClick(video) },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            // Section: Playlists
+            item {
+                SectionHeader(
+                    title = "FEATURED PLAYLISTS",
+                    modifier = Modifier.padding(top = 16.dp)
                 )
             }
 
             item {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(latestVideos, key = { it.id }) { video ->
-                        Box(modifier = Modifier.width(260.dp)) {
-                            YouTubeVideoCard(
-                                video = video,
-                                onClick = { onVideoClick(video) }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Section: Featured Playlists (All 12)
-            item {
-                SectionHeader(
-                    title = "OFFICIAL PLAYLISTS (${playlists.size})",
-                    modifier = Modifier.padding(top = 16.dp)
-                )
-            }
-
-            items(playlists, key = { it.id }) { playlist ->
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    PlaylistCard(
-                        playlist = playlist,
-                        onClick = { onPlaylistClick(playlist) }
-                    )
-                }
-            }
-
-            // Section: Popular / Sermons
-            if (popularVideos.isNotEmpty()) {
-                item {
-                    SectionHeader(
-                        title = "POPULAR & SERMONS",
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-                }
-
-                items(popularVideos, key = { "pop_" + it.id }) { video ->
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                        YouTubeVideoCard(
-                            video = video,
-                            onClick = { onVideoClick(video) }
+                    items(playlists) { playlist ->
+                        PlaylistCard(
+                            playlist = playlist,
+                            onClick = { onPlaylistClick(playlist) }
                         )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        )
     }
 }

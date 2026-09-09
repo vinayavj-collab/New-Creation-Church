@@ -73,6 +73,11 @@ sealed interface AppRoute {
     data class BibleReader(val bookId: Int, val chapter: Int, val targetVerse: Int? = null) : AppRoute
     data object BibleSearch : AppRoute
     data object BibleSaved : AppRoute
+    data object BibleReadingPlan : AppRoute
+    data object DedicatedNotes : AppRoute
+    data object Lyrics : AppRoute
+    data object SyncCenter : AppRoute
+    data object BackupRestore : AppRoute
     data object UpcomingEvents : AppRoute
     data object EventCalendar : AppRoute
     data object SavedItems : AppRoute
@@ -252,6 +257,11 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
                                 onRecentlyViewedClick = { currentRoute = AppRoute.RecentlyViewed },
                                 onCustomizeHomeClick = { currentRoute = AppRoute.HomeScreenSettings },
                                 onBibleClick = { currentRoute = AppRoute.BibleHome },
+                                onReadingPlanClick = { currentRoute = AppRoute.BibleReadingPlan },
+                                onNotesClick = { currentRoute = AppRoute.DedicatedNotes },
+                                onLyricsClick = { currentRoute = AppRoute.Lyrics },
+                                onSyncCenterClick = { currentRoute = AppRoute.SyncCenter },
+                                onBackupRestoreClick = { currentRoute = AppRoute.BackupRestore },
                                 onSearchClick = { currentRoute = AppRoute.Search },
                                 onCategoriesClick = { currentRoute = AppRoute.Categories },
                                 onSettingsClick = { currentRoute = AppRoute.Settings },
@@ -388,13 +398,52 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
             SettingsScreen(
                 viewModel = viewModel,
                 onAboutClick = { currentRoute = AppRoute.About },
-                onCustomizeHomeClick = { currentRoute = AppRoute.HomeScreenSettings }
+                onCustomizeHomeClick = { currentRoute = AppRoute.HomeScreenSettings },
+                onSyncCenterClick = { currentRoute = AppRoute.SyncCenter },
+                onBackupRestoreClick = { currentRoute = AppRoute.BackupRestore }
             )
         }
 
         is AppRoute.About -> {
             AboutScreen(
                 onBack = { currentRoute = AppRoute.Main }
+            )
+        }
+
+        is AppRoute.BibleReadingPlan -> {
+            com.example.ui.bible.BibleReadingPlanScreen(
+                planRepository = viewModel.readingPlanRepository,
+                onBackClick = { currentRoute = AppRoute.Main },
+                onOpenBible = { bId, ch -> currentRoute = AppRoute.BibleReader(bId, ch) }
+            )
+        }
+
+        is AppRoute.DedicatedNotes -> {
+            DedicatedNotesScreen(
+                notesRepository = viewModel.dedicatedNotesRepository,
+                onBackClick = { currentRoute = AppRoute.Main },
+                onOpenVerse = { bId, ch, v -> currentRoute = AppRoute.BibleReader(bId, ch, v) }
+            )
+        }
+
+        is AppRoute.Lyrics -> {
+            LyricsScreen(
+                lyricsRepository = viewModel.lyricsRepository,
+                onBackClick = { currentRoute = AppRoute.Main }
+            )
+        }
+
+        is AppRoute.SyncCenter -> {
+            SyncCenterScreen(
+                syncRepository = viewModel.syncCenterRepository,
+                onBackClick = { currentRoute = AppRoute.Main }
+            )
+        }
+
+        is AppRoute.BackupRestore -> {
+            BackupRestoreScreen(
+                backupRepository = viewModel.backupRepository,
+                onBackClick = { currentRoute = AppRoute.Main }
             )
         }
 

@@ -17,9 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.AppLanguage
-import com.example.data.model.ThemeMode
-import com.example.data.model.appStrings
+import com.example.data.model.*
 import com.example.ui.components.FavoriteCategoriesDialog
 import com.example.ui.viewmodel.MainViewModel
 
@@ -29,6 +27,8 @@ fun SettingsScreen(
     viewModel: MainViewModel,
     onAboutClick: () -> Unit,
     onCustomizeHomeClick: () -> Unit,
+    onSyncCenterClick: () -> Unit = {},
+    onBackupRestoreClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -43,7 +43,7 @@ fun SettingsScreen(
             action = Intent.ACTION_SEND
             putExtra(
                 Intent.EXTRA_TEXT,
-                "Vinay Kumar AVJ - Fellowship Events • Videos • Photos • Memories\nDownload the official app to stay connected with fellowship events and worship!"
+                "Vinay Kumar AVJ - Fellowship Events • Videos • Photos • Holy Bible • Christian Songs\nDownload the official app to stay connected with fellowship events and worship!"
             )
             type = "text/plain"
         }
@@ -66,7 +66,7 @@ fun SettingsScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = 90.dp)
         ) {
-            // 1. Language & Localization (App Language Setting)
+            // 1. Language & Localization
             item {
                 SettingsSectionHeader(title = strings.secLanguage, icon = Icons.Default.Language)
             }
@@ -107,39 +107,7 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Active status badge
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = when (settings.appLanguage) {
-                                        AppLanguage.ENGLISH -> "Active: English"
-                                        AppLanguage.HINDI -> "सक्रिय: हिंदी (Hindi)"
-                                        AppLanguage.SYSTEM -> "Active: ${strings.langSystem}"
-                                    },
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Quick Switch Chips (English, Hindi, System)
+                        // Quick Switch Chips
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -194,7 +162,161 @@ fun SettingsScreen(
                 }
             }
 
-            // 2. Appearance
+            // 2. Personal Vlog Display Mode (Requirement 13)
+            item {
+                SettingsSectionHeader(title = "PERSONAL VLOG DISPLAY MODE", icon = Icons.Default.Person)
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Choose how Personal Vlogs are displayed in the app:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        PersonalVlogMode.entries.forEach { mode ->
+                            val isSelected = settings.personalVlogMode == mode
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.updatePersonalVlogMode(mode) }
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = { viewModel.updatePersonalVlogMode(mode) }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = when (mode) {
+                                            PersonalVlogMode.HIDDEN -> "Hidden (Default - Fellowship Events only)"
+                                            PersonalVlogMode.SECONDARY -> "Secondary Section (Blogs sub-tab)"
+                                            PersonalVlogMode.HOME_AND_SECONDARY -> "Home + Secondary Section"
+                                            PersonalVlogMode.PRIORITY_OVERRIDE -> "Priority / Override"
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. YouTube Default Tab (Requirement 17)
+            item {
+                SettingsSectionHeader(title = "YOUTUBE DEFAULT CHANNEL / TAB", icon = Icons.Default.PlayCircle)
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = settings.youtubeDefaultTab == YouTubeDefaultTab.AVJ_WORSHIP,
+                                onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.AVJ_WORSHIP) },
+                                label = { Text("AVJ Worship") },
+                                modifier = Modifier.weight(1.2f)
+                            )
+                            FilterChip(
+                                selected = settings.youtubeDefaultTab == YouTubeDefaultTab.VINAY_KUMAR_AVJ,
+                                onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.VINAY_KUMAR_AVJ) },
+                                label = { Text("Vinay Kumar") },
+                                modifier = Modifier.weight(1.2f)
+                            )
+                            FilterChip(
+                                selected = settings.youtubeDefaultTab == YouTubeDefaultTab.ALL,
+                                onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.ALL) },
+                                label = { Text("ALL") },
+                                modifier = Modifier.weight(0.8f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 4. Bible Reading Style (Requirement 21)
+            item {
+                SettingsSectionHeader(title = "BIBLE READING STYLE", icon = Icons.Default.MenuBook)
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = settings.bibleReadingStyle == BibleReadingStyle.PRINTED_BIBLE,
+                                onClick = { viewModel.updateBibleReadingStyle(BibleReadingStyle.PRINTED_BIBLE) },
+                                label = { Text("Printed Bible (Default)") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = settings.bibleReadingStyle == BibleReadingStyle.PARAGRAPH,
+                                onClick = { viewModel.updateBibleReadingStyle(BibleReadingStyle.PARAGRAPH) },
+                                label = { Text("Paragraph Style") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 5. Data Saver Mode (Requirement 28)
+            item {
+                SettingsSectionHeader(title = "DATA USAGE & MEDIA", icon = Icons.Default.DataUsage)
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        SettingsSwitchRow(
+                            title = "Data Saver Mode",
+                            subtitle = "Reduce mobile data by loading compressed thumbnails and on-demand full resolution images.",
+                            checked = settings.dataSaverEnabled,
+                            onCheckedChange = { viewModel.updateDataSaver(it) }
+                        )
+                    }
+                }
+            }
+
+            // 6. Appearance & Theme
             item {
                 SettingsSectionHeader(title = strings.secAppearance, icon = Icons.Default.Brightness4)
             }
@@ -241,7 +363,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 3. Home Screen Customization & Categories
+            // 7. Home Screen Customization & Categories
             item {
                 SettingsSectionHeader(title = strings.secFeedCustomization, icon = Icons.Default.Tune)
             }
@@ -274,49 +396,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 4. Content Sources (CRITICAL: Personal Vlog default OFF)
-            item {
-                SettingsSectionHeader(title = strings.secContentSources, icon = Icons.Default.Visibility)
-            }
-
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                        SettingsSwitchRow(
-                            title = strings.fellowshipEvents,
-                            subtitle = strings.fellowshipEventsSub,
-                            checked = settings.showFellowshipEvents,
-                            onCheckedChange = { viewModel.updateShowFellowshipEvents(it) }
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-
-                        SettingsSwitchRow(
-                            title = strings.youTubeVideos,
-                            subtitle = strings.youTubeVideosSub,
-                            checked = settings.showYouTube,
-                            onCheckedChange = { viewModel.updateShowYouTube(it) }
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-
-                        SettingsSwitchRow(
-                            title = strings.personalVlog,
-                            subtitle = strings.personalVlogSub,
-                            checked = settings.showPersonalVlog,
-                            onCheckedChange = { viewModel.updateShowPersonalVlog(it) }
-                        )
-                    }
-                }
-            }
-
-            // 5. Notifications
+            // 8. Notifications
             item {
                 SettingsSectionHeader(title = strings.secNotifications, icon = Icons.Default.Notifications)
             }
@@ -367,7 +447,40 @@ fun SettingsScreen(
                 }
             }
 
-            // 6. Other & Storage
+            // 9. Sync & Backup Management
+            item {
+                SettingsSectionHeader(title = "SYNC & BACKUP TOOLS", icon = Icons.Default.CloudSync)
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        SettingsClickableRow(
+                            title = "Sync Center",
+                            subtitle = "Check sync timestamps and refresh all feeds",
+                            icon = Icons.Default.Sync,
+                            onClick = onSyncCenterClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = "Backup & Restore",
+                            subtitle = "Export or restore study notes, bookmarks & lyrics",
+                            icon = Icons.Default.CloudUpload,
+                            onClick = onBackupRestoreClick
+                        )
+                    }
+                }
+            }
+
+            // 10. Other & Storage
             item {
                 SettingsSectionHeader(title = strings.secOtherStorage, icon = Icons.Default.Info)
             }
@@ -425,27 +538,26 @@ fun SettingsScreen(
 }
 
 @Composable
-fun SettingsSectionHeader(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
-) {
+fun SettingsSectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(start = 18.dp, end = 16.dp, top = 20.dp, bottom = 6.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium.copy(
+            style = MaterialTheme.typography.labelLarge.copy(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                letterSpacing = 0.8.sp
+                letterSpacing = 0.5.sp
             )
         )
     }
@@ -461,12 +573,10 @@ fun SettingsSwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
@@ -476,6 +586,7 @@ fun SettingsSwitchRow(
                 style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
             )
         }
+        Spacer(modifier = Modifier.width(12.dp))
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange

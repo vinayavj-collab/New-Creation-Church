@@ -28,12 +28,17 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(
     application: Application,
-    private val bloggerRepository: BloggerRepository,
-    private val youtubeRepository: YouTubeRepository,
-    private val savedItemRepository: SavedItemRepository,
-    private val recentlyViewedRepository: RecentlyViewedRepository,
-    private val preferencesManager: PreferencesManager,
-    private val bibleDatabase: BibleDatabase
+    val bloggerRepository: BloggerRepository,
+    val youtubeRepository: YouTubeRepository,
+    val savedItemRepository: SavedItemRepository,
+    val recentlyViewedRepository: RecentlyViewedRepository,
+    val preferencesManager: PreferencesManager,
+    val bibleDatabase: BibleDatabase,
+    val readingPlanRepository: com.example.data.bible.repository.ReadingPlanRepository,
+    val dedicatedNotesRepository: com.example.data.bible.repository.DedicatedNotesRepository,
+    val lyricsRepository: com.example.data.bible.repository.LyricsRepository,
+    val backupRepository: com.example.data.bible.repository.BackupRepository,
+    val syncCenterRepository: com.example.data.repository.SyncCenterRepository
 ) : AndroidViewModel(application) {
 
     val settings: StateFlow<UserSettings> = preferencesManager.settings
@@ -384,6 +389,27 @@ class MainViewModel(
         preferencesManager.updateNotifyUpcomingReminders(enabled)
     }
 
+    fun updatePersonalVlogMode(mode: PersonalVlogMode) {
+        preferencesManager.updatePersonalVlogMode(mode)
+        if (mode != PersonalVlogMode.HIDDEN) {
+            viewModelScope.launch(Dispatchers.IO) {
+                bloggerRepository.refreshPosts(showPersonalVlog = true)
+            }
+        }
+    }
+
+    fun updateBibleReadingStyle(style: BibleReadingStyle) {
+        preferencesManager.updateBibleReadingStyle(style)
+    }
+
+    fun updateYouTubeDefaultTab(tab: YouTubeDefaultTab) {
+        preferencesManager.updateYouTubeDefaultTab(tab)
+    }
+
+    fun updateDataSaver(enabled: Boolean) {
+        preferencesManager.updateDataSaverEnabled(enabled)
+    }
+
     fun scheduleEventReminder(
         context: Context,
         event: UpcomingEvent,
@@ -421,7 +447,30 @@ class MainViewModel(
             val savedRepo = SavedItemRepository(db)
             val recentRepo = RecentlyViewedRepository(db)
             val prefs = PreferencesManager(app)
-            return MainViewModel(app, bloggerRepo, ytRepo, savedRepo, recentRepo, prefs, bibleDb) as T
+            val bibleDao = bibleDb.bibleDao()
+            val readingPlanRepo = com.example.data.bible.repository.ReadingPlanRepository(bibleDao)
+            val dedicatedNotesRepo = com.example.data.bible.repository.DedicatedNotesRepository(bibleDao)
+            val lyricsRepo = com.example.data.bible.repository.LyricsRepository(bibleDao)
+            val backupRepo = com.example.data.bible.repository.BackupRepository(app, bibleDao)
+            val localDataSource = com.example.data.bible.local.BibleLocalDataSource(app, bibleDao)
+            val remoteDataSource = com.example.data.bible.remote.BibleRemoteDataSource()
+            val bibleRepo = com.example.data.bible.repository.BibleRepository(app, localDataSource, remoteDataSource)
+            val syncCenterRepo = com.example.data.repository.SyncCenterRepository(app, bloggerRepo, ytRepo, bibleRepo, lyricsRepo)
+
+            return MainViewModel(
+                app,
+                bloggerRepo,
+                ytRepo,
+                savedRepo,
+                recentRepo,
+                prefs,
+                bibleDb,
+                readingPlanRepo,
+                dedicatedNotesRepo,
+                lyricsRepo,
+                backupRepo,
+                syncCenterRepo
+            ) as T
         }
     }
 }

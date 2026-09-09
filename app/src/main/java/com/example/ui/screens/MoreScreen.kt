@@ -31,6 +31,11 @@ fun MoreScreen(
     onRecentlyViewedClick: () -> Unit,
     onCustomizeHomeClick: () -> Unit,
     onBibleClick: () -> Unit,
+    onReadingPlanClick: () -> Unit,
+    onNotesClick: () -> Unit,
+    onLyricsClick: () -> Unit,
+    onSyncCenterClick: () -> Unit,
+    onBackupRestoreClick: () -> Unit,
     onSearchClick: () -> Unit,
     onCategoriesClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -39,7 +44,6 @@ fun MoreScreen(
 ) {
     val context = LocalContext.current
     val strings = appStrings()
-    val settings by viewModel.settings.collectAsState()
     val upcomingEvents by viewModel.upcomingEvents.collectAsState()
     val savedItems by viewModel.savedItems.collectAsState()
 
@@ -66,8 +70,65 @@ fun MoreScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(16.dp)
         ) {
-            // Events & Personal Saved
+            // Section 1: Bible & Spiritual Resources
             item {
+                Text(
+                    text = "BIBLE & WORSHIP",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        SettingsClickableRow(
+                            title = strings.holyBible,
+                            subtitle = strings.holyBibleSub,
+                            icon = Icons.Default.MenuBook,
+                            onClick = onBibleClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = "Christian Songs & Lyrics",
+                            subtitle = "Hindi, Sadri & English Worship Lyrics & Chords",
+                            icon = Icons.Default.MusicNote,
+                            onClick = onLyricsClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = "Bible Reading Plans",
+                            subtitle = "365-Day, Gospels, Psalms & New Testament Guides",
+                            icon = Icons.Default.AutoStories,
+                            onClick = onReadingPlanClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = "My Study Notes",
+                            subtitle = "Personal reflections, sermon notes & color tags",
+                            icon = Icons.Default.EditNote,
+                            onClick = onNotesClick
+                        )
+                    }
+                }
+            }
+
+            // Section 2: Events & Saved
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = strings.secEventsSaved,
                     style = MaterialTheme.typography.labelMedium.copy(
@@ -122,10 +183,11 @@ fun MoreScreen(
                 }
             }
 
+            // Section 3: Search, Tools & Sync
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = strings.secBibleSearch,
+                    text = "SEARCH & CLOUD TOOLS",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -142,15 +204,6 @@ fun MoreScreen(
                 ) {
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         SettingsClickableRow(
-                            title = strings.holyBible,
-                            subtitle = strings.holyBibleSub,
-                            icon = Icons.Default.MenuBook,
-                            onClick = onBibleClick
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-
-                        SettingsClickableRow(
                             title = strings.globalSearch,
                             subtitle = strings.globalSearchSub,
                             icon = Icons.Default.Search,
@@ -165,10 +218,29 @@ fun MoreScreen(
                             icon = Icons.Default.Label,
                             onClick = onCategoriesClick
                         )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = "Sync Center",
+                            subtitle = "Check offline feeds status and sync all now",
+                            icon = Icons.Default.Sync,
+                            onClick = onSyncCenterClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = "Backup & Restore",
+                            subtitle = "Export or restore study notes, bookmarks & lyrics",
+                            icon = Icons.Default.CloudUpload,
+                            onClick = onBackupRestoreClick
+                        )
                     }
                 }
             }
 
+            // Section 4: App Customization & Settings
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -235,7 +307,7 @@ fun MoreScreen(
                 }
             }
 
-            // Quick links to official channels
+            // Official Channels Quick Links
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -310,22 +382,18 @@ fun SettingsClickableRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
             )
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.size(16.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
         )
     }
 }

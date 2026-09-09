@@ -111,4 +111,62 @@ interface BibleDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveReadingPosition(position: ReadingPositionEntity)
+
+    // Reading Plan Progress
+    @Query("SELECT * FROM reading_plan_progress WHERE planId = :planId")
+    fun getPlanProgress(planId: String): Flow<List<ReadingPlanProgressEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun setPlanDayCompleted(progress: ReadingPlanProgressEntity)
+
+    @Query("DELETE FROM reading_plan_progress WHERE planId = :planId")
+    suspend fun resetPlan(planId: String)
+
+    // Dedicated Notes
+    @Query("SELECT * FROM dedicated_notes ORDER BY modifiedAt DESC")
+    fun getAllDedicatedNotes(): Flow<List<DedicatedNoteEntity>>
+
+    @Query("SELECT * FROM dedicated_notes WHERE id = :id LIMIT 1")
+    suspend fun getDedicatedNoteById(id: Long): DedicatedNoteEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDedicatedNote(note: DedicatedNoteEntity): Long
+
+    @Update
+    suspend fun updateDedicatedNote(note: DedicatedNoteEntity)
+
+    @Query("DELETE FROM dedicated_notes WHERE id = :id")
+    suspend fun deleteDedicatedNoteById(id: Long)
+
+    @Query("SELECT * FROM dedicated_notes WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%'")
+    fun searchDedicatedNotes(query: String): Flow<List<DedicatedNoteEntity>>
+
+    // Christian Songs / Lyrics
+    @Query("SELECT * FROM christian_songs ORDER BY title ASC")
+    fun getAllSongs(): Flow<List<ChristianSongEntity>>
+
+    @Query("SELECT * FROM christian_songs WHERE isFavorite = 1 ORDER BY title ASC")
+    fun getFavoriteSongs(): Flow<List<ChristianSongEntity>>
+
+    @Query("SELECT * FROM christian_songs WHERE id = :id LIMIT 1")
+    suspend fun getSongById(id: Long): ChristianSongEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSong(song: ChristianSongEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSongs(songs: List<ChristianSongEntity>)
+
+    @Update
+    suspend fun updateSong(song: ChristianSongEntity)
+
+    @Query("DELETE FROM christian_songs WHERE id = :id")
+    suspend fun deleteSongById(id: Long)
+
+    @Query("SELECT * FROM christian_songs WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%' OR artist LIKE '%' || :query || '%'")
+    fun searchSongs(query: String): Flow<List<ChristianSongEntity>>
+
+    @Query("SELECT COUNT(*) FROM christian_songs")
+    suspend fun getSongCount(): Int
 }
+

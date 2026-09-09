@@ -6,23 +6,47 @@ enum class ThemeMode {
     DARK
 }
 
+enum class PersonalVlogMode(val displayName: String) {
+    HIDDEN("Hidden (Default)"),
+    SECONDARY("Secondary (Available Separately)"),
+    HOME_AND_SECONDARY("Home + Secondary"),
+    PRIORITY_OVERRIDE("Priority / Override (When Newer)")
+}
+
+enum class BibleReadingStyle(val displayName: String) {
+    PRINTED_BIBLE("Printed Bible Style (Continuous + Headings)"),
+    PARAGRAPH("Paragraph Style")
+}
+
+enum class YouTubeDefaultTab(val displayName: String) {
+    AVJ_WORSHIP("AVJ Worship (Default)"),
+    VINAY_KUMAR_AVJ("Vinay Kumar AVJ"),
+    ALL("All Videos")
+}
+
 enum class HomeSectionType(val id: String, val defaultTitle: String) {
-    FELLOWSHIP_EVENTS("fellowship", "Fellowship Events (Featured)"),
+    TODAYS_VERSE("verse", "Today's Bible Verse / आज का वचन"),
     UPCOMING_EVENTS("upcoming", "Upcoming Events"),
-    LATEST_EVENTS("latest_events", "Latest Events"),
+    FELLOWSHIP_EVENTS("fellowship", "Fellowship Events (Featured)"),
     LATEST_VIDEOS("latest_videos", "Latest YouTube Videos"),
     PLAYLISTS("playlists", "Featured Playlists"),
     PHOTOS("photos", "Photo Gallery"),
-    TODAYS_VERSE("verse", "Today's Bible Verse"),
-    PERSONAL_VLOG("personal_vlog", "Personal Vlog (Hidden by Default)")
+    LATEST_EVENTS("latest_events", "Latest Events"),
+    PERSONAL_VLOG("personal_vlog", "Personal Vlog")
 }
 
 data class UserSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val showFellowshipEvents: Boolean = true,
-    val showPersonalVlog: Boolean = false, // CRITICAL: OFF by default
+    val personalVlogMode: PersonalVlogMode = PersonalVlogMode.HIDDEN, // CRITICAL: HIDDEN by default
+    val showPersonalVlog: Boolean = false, // Backwards-compatible flag
     val showYouTube: Boolean = true,
     val showShorts: Boolean = true,
+    val youtubeDefaultTab: YouTubeDefaultTab = YouTubeDefaultTab.AVJ_WORSHIP,
+    val bibleReadingStyle: BibleReadingStyle = BibleReadingStyle.PRINTED_BIBLE,
+    val dataSaverEnabled: Boolean = false,
+    val notifyTodaysScripture: Boolean = true,
+    val notifyReadingPlan: Boolean = true,
     val notifyFellowshipEvents: Boolean = true,
     val notifyYouTube: Boolean = true,
     val notifyPersonalVlog: Boolean = false, // CRITICAL: OFF by default
@@ -30,23 +54,24 @@ data class UserSettings(
     val appLanguage: AppLanguage = AppLanguage.SYSTEM,
     val favoriteCategories: Set<String> = emptySet(),
     val homeSectionsOrder: List<HomeSectionType> = listOf(
-        HomeSectionType.FELLOWSHIP_EVENTS,
+        HomeSectionType.TODAYS_VERSE,
         HomeSectionType.UPCOMING_EVENTS,
-        HomeSectionType.LATEST_EVENTS,
+        HomeSectionType.FELLOWSHIP_EVENTS,
         HomeSectionType.LATEST_VIDEOS,
         HomeSectionType.PLAYLISTS,
         HomeSectionType.PHOTOS,
-        HomeSectionType.TODAYS_VERSE,
+        HomeSectionType.LATEST_EVENTS,
         HomeSectionType.PERSONAL_VLOG
     ),
     val enabledHomeSections: Set<HomeSectionType> = setOf(
-        HomeSectionType.FELLOWSHIP_EVENTS,
+        HomeSectionType.TODAYS_VERSE,
         HomeSectionType.UPCOMING_EVENTS,
-        HomeSectionType.LATEST_EVENTS,
+        HomeSectionType.FELLOWSHIP_EVENTS,
         HomeSectionType.LATEST_VIDEOS,
         HomeSectionType.PLAYLISTS,
         HomeSectionType.PHOTOS,
-        HomeSectionType.TODAYS_VERSE
+        HomeSectionType.LATEST_EVENTS
     ),
     val lastReadPostId: String? = null
 )
+

@@ -90,3 +90,42 @@ data class ReadingPositionEntity(
     val translationId: String,
     val timestamp: Long = System.currentTimeMillis()
 )
+
+@Entity(
+    tableName = "reading_plan_progress",
+    primaryKeys = ["planId", "dayNumber"]
+)
+data class ReadingPlanProgressEntity(
+    val planId: String,
+    val dayNumber: Int,
+    val isCompleted: Boolean,
+    val completedTimestamp: Long = 0L
+)
+
+@Entity(tableName = "dedicated_notes")
+data class DedicatedNoteEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val title: String,
+    val content: String,
+    val colorHex: String = "#FFFBEB", // default warm yellow
+    val textColorHex: String = "#1E293B",
+    val linkedReferences: String = "", // comma-separated or text of references
+    val createdAt: Long = System.currentTimeMillis(),
+    val modifiedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "christian_songs")
+data class ChristianSongEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val title: String,
+    val content: String,
+    val artist: String = "Vinay Kumar AVJ",
+    val category: String = "Hindi Worship",
+    val isFavorite: Boolean = false,
+    val isUserCreated: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis(),
+    val modifiedAt: Long = System.currentTimeMillis()
+)
+
