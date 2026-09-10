@@ -9,6 +9,7 @@ data class BibleVerse(
     val translationId: String,
     val secondaryText: String? = null,
     val isBookmarked: Boolean = false,
+    val isFavorite: Boolean = false,
     val highlightColor: String? = null,
     val note: String? = null
 )

@@ -149,8 +149,11 @@ class BibleViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // Bookmarks, Highlights, Notes, Reading Position
+    // Bookmarks, Favorites, Highlights, Notes, Reading Position
     val bookmarks: StateFlow<List<BibleBookmarkEntity>> = repository.getAllBookmarks()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val favorites: StateFlow<List<com.example.data.bible.local.BibleFavoriteVerseEntity>> = repository.getAllFavorites()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val highlights: StateFlow<List<BibleHighlightEntity>> = repository.getAllHighlights()
@@ -266,6 +269,28 @@ class BibleViewModel(
         }
     }
 
+    fun toggleFavorite(verse: BibleVerse) {
+        viewModelScope.launch {
+            if (verse.isFavorite) {
+                repository.removeFavorite(verse.bookId, verse.chapter, verse.verseNumber)
+            } else {
+                repository.toggleFavorite(
+                    verse.bookId,
+                    verse.chapter,
+                    verse.verseNumber,
+                    _selectedTranslation.value.id,
+                    verse.text
+                )
+            }
+        }
+    }
+
+    fun removeFavoriteById(id: Long) {
+        viewModelScope.launch {
+            repository.removeFavoriteById(id)
+        }
+    }
+
     fun removeBookmarkById(id: Long) {
         viewModelScope.launch {
             repository.removeBookmarkById(id)
@@ -316,12 +341,68 @@ class BibleViewModel(
         _readingSettings.value = _readingSettings.value.copy(showVerseNumbers = show)
     }
 
+    fun toggleSubheadings(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showSubheadings = show)
+    }
+
+    fun toggleFavoritesHint(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showFavoritesHint = show)
+    }
+
+    fun toggleBookmarkHint(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showBookmarkHint = show)
+    }
+
+    fun toggleHighlights(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showHighlights = show)
+    }
+
+    fun toggleParagraphAndIndents(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showParagraphAndIndents = show)
+    }
+
+    fun toggleJesusWordsInRed(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showJesusWordsInRed = show)
+    }
+
+    fun updateJesusWordsColor(hex: String) {
+        _readingSettings.value = _readingSettings.value.copy(jesusWordsColorHex = hex)
+    }
+
+    fun toggleJustifyBibleText(justify: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(justifyBibleText = justify)
+    }
+
+    fun toggleSuggestVerseSelection(suggest: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(suggestVerseSelection = suggest)
+    }
+
+    fun toggleNoteHint(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showNoteHint = show)
+    }
+
+    fun toggleAudioPlayer(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showAudioPlayer = show)
+    }
+
+    fun toggleNoteFormatHtml(isHtml: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(noteFormatHtml = isHtml)
+    }
+
+    fun setScreenTimeout(minutes: Int) {
+        _readingSettings.value = _readingSettings.value.copy(screenTimeoutMinutes = minutes)
+    }
+
     fun updateTheme(theme: BibleTheme) {
         _readingSettings.value = _readingSettings.value.copy(theme = theme)
     }
 
     fun toggleRememberPosition(remember: Boolean) {
         _readingSettings.value = _readingSettings.value.copy(rememberLastReadingPosition = remember)
+    }
+
+    fun resetReadingSettings() {
+        _readingSettings.value = BibleReadingSettings()
     }
 
     fun clearTargetVerse() {

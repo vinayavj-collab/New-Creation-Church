@@ -143,7 +143,30 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
         }
     }
 
-    private fun playPreRecordedChapter(bookId: Int, chapter: Int) {
+    fun playFromVerse(targetVerseNum: Int, bookId: Int, chapter: Int, verses: List<BibleVerse>) {
+        currentVerseList = verses.sortedBy { it.verseNumber }
+        val verseIndex = currentVerseList.indexOfFirst { it.verseNumber == targetVerseNum }
+        _currentVerseNumber.value = targetVerseNum
+
+        if (_audioSourceType.value == AudioSourceType.TTS_NARRATION) {
+            startTtsNarration(if (verseIndex >= 0) verseIndex else 0)
+        } else {
+            val totalVerses = currentVerseList.size.coerceAtLeast(1)
+            val vIdx = if (verseIndex >= 0) verseIndex else (targetVerseNum - 1).coerceAtLeast(0)
+            val estimatedFraction = (vIdx.toFloat() / totalVerses.toFloat()).coerceIn(0f, 0.95f)
+
+            if (mediaPlayer == null || !_isPlaying.value) {
+                playPreRecordedChapter(bookId, chapter, initialOffsetFraction = estimatedFraction)
+            } else {
+                val dur = _durationMs.value
+                if (dur > 0) {
+                    seekTo((dur * estimatedFraction).toLong())
+                }
+            }
+        }
+    }
+
+    private fun playPreRecordedChapter(bookId: Int, chapter: Int, initialOffsetFraction: Float = 0f) {
         stop()
         _isBuffering.value = true
 
@@ -167,6 +190,11 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
                         mp.playbackParams = mp.playbackParams.setSpeed(_playbackSpeed.value)
                     } catch (e: Exception) {
                         Log.w("BibleAudioManager", "Could not set speed params", e)
+                    }
+                    if (initialOffsetFraction > 0f) {
+                        val seekPos = (mp.duration * initialOffsetFraction).toInt()
+                        mp.seekTo(seekPos)
+                        _currentPositionMs.value = seekPos.toLong()
                     }
                     mp.start()
                     _isPlaying.value = true

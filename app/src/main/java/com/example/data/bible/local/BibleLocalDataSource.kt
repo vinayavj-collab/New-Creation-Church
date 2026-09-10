@@ -131,9 +131,9 @@ class BibleLocalDataSource(
                 }
             }
 
-            // Seed Section Headings (ensure all 2,445+ verified headings across all 66 books are inserted)
-            val headingCount = bibleDao.getHeadingCount(BibleTranslation.HINDI_IRV.id)
-            if (headingCount < 2400) {
+            // Seed Section Headings (ensure all 2,435+ verified headings across all 66 books are inserted)
+            val hindiHeadingCount = bibleDao.getHeadingCount(BibleTranslation.HINDI_IRV.id)
+            if (hindiHeadingCount < 2400) {
                 try {
                     val headingsJson = context.assets.open("bible/offline_headings.json")
                         .bufferedReader()
@@ -146,7 +146,7 @@ class BibleLocalDataSource(
                         val obj = hArray.getJSONObject(i)
                         headingEntities.add(
                             BibleHeadingEntity(
-                                translationId = obj.optString("t", BibleTranslation.HINDI_IRV.id),
+                                translationId = BibleTranslation.HINDI_IRV.id,
                                 bookId = obj.optInt("b", 1),
                                 chapter = obj.optInt("c", 1),
                                 beforeVerse = obj.optInt("v", 1),
@@ -159,7 +159,39 @@ class BibleLocalDataSource(
                         bibleDao.insertHeadings(headingEntities)
                     }
                 } catch (e: Exception) {
-                    Log.e("BibleLocalDataSource", "Error seeding offline headings", e)
+                    Log.e("BibleLocalDataSource", "Error seeding offline Hindi headings", e)
+                }
+            }
+
+            // Seed English Headings
+            val englishHeadingCount = bibleDao.getHeadingCount(BibleTranslation.ENGLISH_KJV.id)
+            if (englishHeadingCount < 2400) {
+                try {
+                    val enHeadingsJson = context.assets.open("bible/offline_headings_en.json")
+                        .bufferedReader()
+                        .use { it.readText() }
+
+                    val enArray = JSONArray(enHeadingsJson)
+                    val enHeadingEntities = mutableListOf<BibleHeadingEntity>()
+
+                    for (i in 0 until enArray.length()) {
+                        val obj = enArray.getJSONObject(i)
+                        enHeadingEntities.add(
+                            BibleHeadingEntity(
+                                translationId = BibleTranslation.ENGLISH_KJV.id,
+                                bookId = obj.optInt("b", 1),
+                                chapter = obj.optInt("c", 1),
+                                beforeVerse = obj.optInt("v", 1),
+                                headingText = decodeAndSanitizeVerseText(obj.optString("h", ""))
+                            )
+                        )
+                    }
+
+                    if (enHeadingEntities.isNotEmpty()) {
+                        bibleDao.insertHeadings(enHeadingEntities)
+                    }
+                } catch (e: Exception) {
+                    Log.e("BibleLocalDataSource", "Error seeding offline English headings", e)
                 }
             }
         } catch (e: Exception) {
@@ -288,6 +320,36 @@ class BibleLocalDataSource(
 
     suspend fun removeBookmarkById(id: Long) {
         bibleDao.deleteBookmarkById(id)
+    }
+
+    // Favorites
+    fun getAllFavorites(): Flow<List<BibleFavoriteVerseEntity>> = bibleDao.getAllFavorites()
+
+    fun isVerseFavorite(bookId: Int, chapter: Int, verse: Int): Flow<Boolean> =
+        bibleDao.isVerseFavorite(bookId, chapter, verse)
+
+    fun getFavoritesForChapter(bookId: Int, chapter: Int): Flow<List<BibleFavoriteVerseEntity>> =
+        bibleDao.getFavoritesForChapter(bookId, chapter)
+
+    suspend fun addFavorite(bookId: Int, bookName: String, chapter: Int, verse: Int, translationId: String, text: String) {
+        bibleDao.insertFavorite(
+            BibleFavoriteVerseEntity(
+                bookId = bookId,
+                bookName = bookName,
+                chapter = chapter,
+                verse = verse,
+                translationId = translationId,
+                verseText = text
+            )
+        )
+    }
+
+    suspend fun removeFavorite(bookId: Int, chapter: Int, verse: Int) {
+        bibleDao.deleteFavorite(bookId, chapter, verse)
+    }
+
+    suspend fun removeFavoriteById(id: Long) {
+        bibleDao.deleteFavoriteById(id)
     }
 
     // Highlights

@@ -102,7 +102,7 @@ fun AboutScreen(
                     )
 
                     Text(
-                        text = "Version 1.0.0 • Production Hub",
+                        text = "Version 1.4 • Production Hub",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -133,6 +133,21 @@ fun AboutScreen(
                             text = "This application serves as a dedicated central hub for fellowship events, sermons, event reports, praise songs, and memories.\n\nThe primary focus of this app is \"Fellowship Events\", unifying public archives and YouTube channels into one fast, seamless, and offline-capable mobile experience.",
                             style = MaterialTheme.typography.bodyMedium,
                             lineHeight = 22.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "✨ What's New in Version 1.4:",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = NavyPrimary)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "• 📝 Rich Notes Editor: Bold, Italic, Underline, Strikethrough, Lists, Alignment & Verse Linking with dedicated Notes Window.\n• ⭐ Favorites & Bookmarks: Save, star, and organize inspiring verses.\n• 📸 Photo Verse Creator: Generate shareable picture quotes with scenic backgrounds.\n• 🔴 Words of Jesus in Red: Highlight Christ's words with custom color options.\n• ⏱️ Screen Timeout: Configurable keep-screen-on and auto screen-off timers.\n• ⚙️ Full Reading Customization: Subheadings, verse numbers, paragraph indents & text justification toggles.",
+                            style = MaterialTheme.typography.bodySmall,
+                            lineHeight = 18.sp
                         )
                     }
                 }

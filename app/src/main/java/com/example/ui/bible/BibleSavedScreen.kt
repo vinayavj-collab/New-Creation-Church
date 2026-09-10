@@ -9,11 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Bookmarks
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.bible.model.BibleBookDefinitions
+import com.example.data.bible.model.BibleVerse
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,10 +32,13 @@ fun BibleSavedScreen(
     modifier: Modifier = Modifier
 ) {
     val bookmarks by viewModel.bookmarks.collectAsState()
+    val favorites by viewModel.favorites.collectAsState()
     val highlights by viewModel.highlights.collectAsState()
     val notes by viewModel.notes.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
+    var editingNoteVerse by remember { mutableStateOf<BibleVerse?>(null) }
+    var editingNoteText by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -63,27 +63,34 @@ fun BibleSavedScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            TabRow(
+            ScrollableTabRow(
                 selectedTabIndex = selectedTab,
+                edgePadding = 12.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("बुकमार्क (${bookmarks.size})", fontSize = 13.sp) },
-                    icon = { Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    text = { Text("बुकमार्क (${bookmarks.size})", fontSize = 12.sp) },
+                    icon = { Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("हाइलाइट्स (${highlights.size})", fontSize = 13.sp) },
-                    icon = { Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    text = { Text("पसंदीदा (${favorites.size})", fontSize = 12.sp) },
+                    icon = { Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFF59E0B)) }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    text = { Text("नोट्स (${notes.size})", fontSize = 13.sp) },
-                    icon = { Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    text = { Text("हाइलाइट्स (${highlights.size})", fontSize = 12.sp) },
+                    icon = { Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                )
+                Tab(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    text = { Text("नोट्स (${notes.size})", fontSize = 12.sp) },
+                    icon = { Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 )
             }
 
@@ -91,7 +98,7 @@ fun BibleSavedScreen(
                 0 -> {
                     // Bookmarks List
                     if (bookmarks.isEmpty()) {
-                        EmptyStateBox("कोई बुकमार्क नहीं है।", "वचन पढ़ते समय बुकमार्क आइकन पर टैप करके उन्हें यहाँ सहेजें।")
+                        EmptyStateBox("कोई बुकमार्क नहीं है।", "वचन पढ़ते समय बुकमार्क विकल्प चुनकर उन्हें यहाँ सहेजें।")
                     } else {
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
@@ -146,9 +153,75 @@ fun BibleSavedScreen(
                     }
                 }
                 1 -> {
+                    // Favorites List
+                    if (favorites.isEmpty()) {
+                        EmptyStateBox("कोई पसंदीदा वचन नहीं है।", "वचन पर लंबे समय तक दबाकर (Long Press) 'पसंदीदा' (Favorite) बनाएँ।")
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(favorites, key = { it.id }) { item ->
+                                Card(
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onVerseClick(item.bookId, item.chapter, item.verse)
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    Icons.Default.Star,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFF59E0B),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "${item.bookName} ${item.chapter}:${item.verse}",
+                                                    style = MaterialTheme.typography.titleSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = item.verseText,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                maxLines = 3,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { viewModel.removeFavoriteById(item.id) }
+                                        ) {
+                                            Icon(
+                                                Icons.Default.DeleteOutline,
+                                                contentDescription = "Delete Favorite",
+                                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                2 -> {
                     // Highlights List
                     if (highlights.isEmpty()) {
-                        EmptyStateBox("कोई हाइलाइट नहीं है।", "वचन पर टैप करें और अपने पसंदीदा रंग से हाइलाइट करें।")
+                        EmptyStateBox("कोई हाइलाइट नहीं है।", "वचन पर टैप करें या स्वाइप करके अपने पसंदीदा रंग से हाइलाइट करें।")
                     } else {
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
@@ -207,10 +280,10 @@ fun BibleSavedScreen(
                         }
                     }
                 }
-                2 -> {
+                3 -> {
                     // Notes List
                     if (notes.isEmpty()) {
-                        EmptyStateBox("कोई व्यक्तिगत नोट नहीं है।", "वचन पर टैप करके व्यक्तिगत प्रार्थना या विचार लिख सकते हैं।")
+                        EmptyStateBox("कोई व्यक्तिगत नोट नहीं है।", "वचन पर लंबे समय तक दबाकर (Long Press) व्यक्तिगत प्रार्थना या विचार लिखें।")
                     } else {
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
@@ -223,7 +296,17 @@ fun BibleSavedScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            onVerseClick(item.bookId, item.chapter, item.verse)
+                                            val dummyVerse = BibleVerse(
+                                                bookId = item.bookId,
+                                                bookName = item.bookName,
+                                                chapter = item.chapter,
+                                                verseNumber = item.verse,
+                                                translationId = "hi_irv",
+                                                text = "",
+                                                note = item.noteText
+                                            )
+                                            editingNoteVerse = dummyVerse
+                                            editingNoteText = item.noteText
                                         }
                                 ) {
                                     Row(
@@ -234,14 +317,23 @@ fun BibleSavedScreen(
                                         verticalAlignment = Alignment.Top
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = "${item.bookName} ${item.chapter}:${item.verse}",
-                                                style = MaterialTheme.typography.titleSmall.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.primary
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    Icons.Default.EditNote,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
                                                 )
-                                            )
-                                            Spacer(modifier = Modifier.height(4.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "${item.bookName} ${item.chapter}:${item.verse}",
+                                                    style = MaterialTheme.typography.titleSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(6.dp))
                                             Surface(
                                                 shape = RoundedCornerShape(8.dp),
                                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -250,19 +342,44 @@ fun BibleSavedScreen(
                                                 Text(
                                                     text = item.noteText,
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    modifier = Modifier.padding(10.dp)
+                                                    modifier = Modifier.padding(10.dp),
+                                                    maxLines = 4,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }
 
-                                        IconButton(
-                                            onClick = { viewModel.deleteNote(item.bookId, item.chapter, item.verse) }
-                                        ) {
-                                            Icon(
-                                                Icons.Default.DeleteOutline,
-                                                contentDescription = "Delete Note",
-                                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                                            )
+                                        Row {
+                                            IconButton(
+                                                onClick = {
+                                                    val dummyVerse = BibleVerse(
+                                                        bookId = item.bookId,
+                                                        bookName = item.bookName,
+                                                        chapter = item.chapter,
+                                                        verseNumber = item.verse,
+                                                        translationId = "hi_irv",
+                                                        text = "",
+                                                        note = item.noteText
+                                                    )
+                                                    editingNoteVerse = dummyVerse
+                                                    editingNoteText = item.noteText
+                                                }
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Edit,
+                                                    contentDescription = "Edit Note",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = { viewModel.deleteNote(item.bookId, item.chapter, item.verse) }
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.DeleteOutline,
+                                                    contentDescription = "Delete Note",
+                                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -272,6 +389,27 @@ fun BibleSavedScreen(
                 }
             }
         }
+    }
+
+    // Full Note Editor modal when tapped in Saved list
+    if (editingNoteVerse != null) {
+        val v = editingNoteVerse!!
+        BibleNoteEditorDialog(
+            verse = v,
+            initialNote = editingNoteText,
+            onSave = { updatedText ->
+                viewModel.saveNote(v, updatedText)
+                editingNoteVerse = null
+            },
+            onDelete = {
+                viewModel.deleteNote(v.bookId, v.chapter, v.verseNumber)
+                editingNoteVerse = null
+            },
+            onDismiss = { editingNoteVerse = null },
+            onNavigateToVerse = { bId, chap, vNum ->
+                onVerseClick(bId, chap, vNum)
+            }
+        )
     }
 }
 

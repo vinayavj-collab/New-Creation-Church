@@ -1,9 +1,11 @@
 package com.example.ui.bible
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -34,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.bible.model.*
@@ -77,6 +80,7 @@ fun BibleReaderScreen(
     var showNavigatorModal by remember { mutableStateOf(false) }
     var selectedVerseForAction by remember { mutableStateOf<BibleVerse?>(null) }
     var verseForNoteDialog by remember { mutableStateOf<BibleVerse?>(null) }
+    var verseForPhotoDialog by remember { mutableStateOf<BibleVerse?>(null) }
     var activeFootnoteSheet by remember { mutableStateOf<Pair<String, List<FootnoteItem>>?>(null) }
 
     val listState = rememberLazyListState()
@@ -86,14 +90,37 @@ fun BibleReaderScreen(
     val activeAudioVerse by viewModel.audioManager.currentVerseNumber.collectAsState()
     val effectiveTargetVerse = activeAudioVerse ?: currentTargetVerse
 
+    // Screen timeout / Keep Screen On management based on settings
+    DisposableEffect(readingSettings.screenTimeoutMinutes) {
+        val activity = context as? Activity
+        if (readingSettings.screenTimeoutMinutes == 0) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     // Initialize book & chapter
     LaunchedEffect(bookId, chapter, targetVerse) {
         currentTargetVerse = targetVerse
         viewModel.openBook(bookId, chapter, targetVerse)
     }
 
-    // Prepare list items: Structured blocks (Headings, Titles, Prose Paragraphs, Poetry Blocks) or legacy fallback
-    val readerItems = remember(currentBook.id, currentChapter, structuredBlocks, chapterSections, verses, isChapterIncomplete, selectedTranslation.language) {
+    // Prepare list items: Structured blocks (Headings, Titles, Prose Paragraphs, Poetry Blocks) or fallback
+    val readerItems = remember(
+        currentBook.id,
+        currentChapter,
+        structuredBlocks,
+        chapterSections,
+        verses,
+        isChapterIncomplete,
+        selectedTranslation.language,
+        readingSettings.showSubheadings,
+        readingSettings.showParagraphAndIndents
+    ) {
         val items = mutableListOf<BibleReaderItem>()
         val bName = if (selectedTranslation.language == "hi") currentBook.nameHindi else currentBook.nameEnglish
         items.add(BibleReaderItem.Header(bName, currentChapter))
@@ -102,11 +129,19 @@ fun BibleReaderScreen(
             items.add(BibleReaderItem.IncompleteWarning)
         }
 
-        if (structuredBlocks.isNotEmpty()) {
+        if (structuredBlocks.isNotEmpty() && readingSettings.showParagraphAndIndents) {
             structuredBlocks.forEach { block ->
                 when (block) {
-                    is BibleContentBlock.SectionHeading -> items.add(BibleReaderItem.SectionHeadingBlock(block.text, block.beforeVerse))
-                    is BibleContentBlock.Title -> items.add(BibleReaderItem.TitleBlock(block.text, block.beforeVerse))
+                    is BibleContentBlock.SectionHeading -> {
+                        if (readingSettings.showSubheadings) {
+                            items.add(BibleReaderItem.SectionHeadingBlock(block.text, block.beforeVerse))
+                        }
+                    }
+                    is BibleContentBlock.Title -> {
+                        if (readingSettings.showSubheadings) {
+                            items.add(BibleReaderItem.TitleBlock(block.text, block.beforeVerse))
+                        }
+                    }
                     is BibleContentBlock.ProseParagraph -> items.add(BibleReaderItem.ProseParagraphBlock(block.verses))
                     is BibleContentBlock.PoetryBlock -> items.add(BibleReaderItem.PoetryBlockBlock(block.lines))
                 }
@@ -119,12 +154,12 @@ fun BibleReaderScreen(
                         verses = verses,
                         startVerse = verses.first().verseNumber,
                         endVerse = verses.last().verseNumber,
-                        isPoetic = isPoeticBook
+                        isPoetic = isPoeticBook && readingSettings.showParagraphAndIndents
                     )
                 )
             } else {
                 chapterSections.forEach { section ->
-                    if (section.heading != null && section.heading.headingText.isNotBlank()) {
+                    if (readingSettings.showSubheadings && section.heading != null && section.heading.headingText.isNotBlank()) {
                         items.add(BibleReaderItem.SubHeading(section.heading.headingText, section.heading.beforeVerse))
                     }
                     if (section.verses.isNotEmpty()) {
@@ -133,7 +168,7 @@ fun BibleReaderScreen(
                                 verses = section.verses,
                                 startVerse = section.verses.first().verseNumber,
                                 endVerse = section.verses.last().verseNumber,
-                                isPoetic = isPoeticBook
+                                isPoetic = isPoeticBook && readingSettings.showParagraphAndIndents
                             )
                         )
                     }
@@ -297,19 +332,21 @@ fun BibleReaderScreen(
                         Icon(Icons.Default.BookmarkBorder, contentDescription = "Saved")
                     }
                     IconButton(onClick = { showSettingsDialog = true }) {
-                        Icon(Icons.Default.FormatSize, contentDescription = "Text Settings")
+                        Icon(Icons.Default.Tune, contentDescription = "Reading Settings")
                     }
                 }
             )
         },
         bottomBar = {
             Column {
-                BibleAudioPlayerBar(
-                    audioManager = viewModel.audioManager,
-                    currentBook = currentBook,
-                    currentChapter = currentChapter,
-                    verses = verses
-                )
+                if (readingSettings.showAudioPlayer) {
+                    BibleAudioPlayerBar(
+                        audioManager = viewModel.audioManager,
+                        currentBook = currentBook,
+                        currentChapter = currentChapter,
+                        verses = verses
+                    )
+                }
 
                 // Chapter navigation bar
                 Surface(
@@ -317,58 +354,58 @@ fun BibleReaderScreen(
                     shadowElevation = 8.dp,
                     color = MaterialTheme.colorScheme.surface
                 ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val hasPrev = currentChapter > 1 || currentBook.id > 1
-                    OutlinedButton(
-                        onClick = {
-                            slideForward = false
-                            currentTargetVerse = null
-                            viewModel.previousChapter()
-                        },
-                        enabled = hasPrev,
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("पिछला (Prev)", style = MaterialTheme.typography.labelSmall)
-                    }
+                        val hasPrev = currentChapter > 1 || currentBook.id > 1
+                        OutlinedButton(
+                            onClick = {
+                                slideForward = false
+                                currentTargetVerse = null
+                                viewModel.previousChapter()
+                            },
+                            enabled = hasPrev,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("पिछला (Prev)", style = MaterialTheme.typography.labelSmall)
+                        }
 
-                    TextButton(onClick = { showNavigatorModal = true }) {
-                        Text(
-                            text = "Ch $currentChapter of ${currentBook.chapterCount} ▾",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
+                        TextButton(onClick = { showNavigatorModal = true }) {
+                            Text(
+                                text = "Ch $currentChapter of ${currentBook.chapterCount} ▾",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
                             )
-                        )
-                    }
+                        }
 
-                    val hasNext = currentChapter < currentBook.chapterCount || currentBook.id < 66
-                    Button(
-                        onClick = {
-                            slideForward = true
-                            currentTargetVerse = null
-                            viewModel.nextChapter()
-                        },
-                        enabled = hasNext,
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text("अगला (Next)", style = MaterialTheme.typography.labelSmall)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+                        val hasNext = currentChapter < currentBook.chapterCount || currentBook.id < 66
+                        Button(
+                            onClick = {
+                                slideForward = true
+                                currentTargetVerse = null
+                                viewModel.nextChapter()
+                            },
+                            enabled = hasNext,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text("अगला (Next)", style = MaterialTheme.typography.labelSmall)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
             }
-        }
-    },
+        },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         Box(
@@ -410,7 +447,7 @@ fun BibleReaderScreen(
                             "यह अध्याय अभी ऑफ़लाइन सहेजा नहीं गया है। कृपया नेटवर्क से कनेक्ट होने पर इसे रीफ़्रेश करें या अन्य अध्याय पढ़ें।"
                         },
                         style = MaterialTheme.typography.bodyMedium.copy(color = canvasTextColor.copy(alpha = 0.8f)),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     if (isOnline) {
@@ -560,7 +597,14 @@ fun BibleReaderScreen(
                                         targetVerse = effectiveTargetVerse,
                                         settings = readingSettings,
                                         textColor = canvasTextColor,
-                                        onVerseClick = { selectedVerseForAction = it },
+                                        isNewTestament = currentBook.id >= 40,
+                                        onVerseClick = { clickedVerse ->
+                                            currentTargetVerse = clickedVerse.verseNumber
+                                            viewModel.audioManager.playFromVerse(clickedVerse.verseNumber, currentBook.id, currentChapter, verses)
+                                        },
+                                        onVerseLongClick = { clickedVerse ->
+                                            selectedVerseForAction = clickedVerse
+                                        },
                                         onFootnoteClick = { vItem, fn ->
                                             activeFootnoteSheet = Pair("वचन ${vItem.verseNumber}", vItem.footnotes)
                                         },
@@ -576,7 +620,14 @@ fun BibleReaderScreen(
                                         targetVerse = effectiveTargetVerse,
                                         settings = readingSettings,
                                         textColor = canvasTextColor,
-                                        onVerseClick = { selectedVerseForAction = it },
+                                        isNewTestament = currentBook.id >= 40,
+                                        onVerseClick = { clickedVerse ->
+                                            currentTargetVerse = clickedVerse.verseNumber
+                                            viewModel.audioManager.playFromVerse(clickedVerse.verseNumber, currentBook.id, currentChapter, verses)
+                                        },
+                                        onVerseLongClick = { clickedVerse ->
+                                            selectedVerseForAction = clickedVerse
+                                        },
                                         onFootnoteClick = { lineItem, fn ->
                                             val refStr = if (lineItem.verseNumber != null) "वचन ${lineItem.verseNumber}" else "टिप्पणी"
                                             activeFootnoteSheet = Pair(refStr, lineItem.footnotes)
@@ -620,7 +671,14 @@ fun BibleReaderScreen(
                                             targetVerse = effectiveTargetVerse,
                                             settings = readingSettings,
                                             textColor = canvasTextColor,
-                                            onVerseClick = { selectedVerseForAction = it },
+                                            isNewTestament = currentBook.id >= 40,
+                                            onVerseClick = { clickedVerse ->
+                                                currentTargetVerse = clickedVerse.verseNumber
+                                                viewModel.audioManager.playFromVerse(clickedVerse.verseNumber, currentBook.id, currentChapter, verses)
+                                            },
+                                            onVerseLongClick = { clickedVerse ->
+                                                selectedVerseForAction = clickedVerse
+                                            },
                                             modifier = Modifier.padding(bottom = 16.dp)
                                         )
                                     } else {
@@ -629,7 +687,14 @@ fun BibleReaderScreen(
                                             targetVerse = effectiveTargetVerse,
                                             settings = readingSettings,
                                             textColor = canvasTextColor,
-                                            onVerseClick = { selectedVerseForAction = it },
+                                            isNewTestament = currentBook.id >= 40,
+                                            onVerseClick = { clickedVerse ->
+                                                currentTargetVerse = clickedVerse.verseNumber
+                                                viewModel.audioManager.playFromVerse(clickedVerse.verseNumber, currentBook.id, currentChapter, verses)
+                                            },
+                                            onVerseLongClick = { clickedVerse ->
+                                                selectedVerseForAction = clickedVerse
+                                            },
                                             modifier = Modifier.padding(bottom = 16.dp)
                                         )
                                     }
@@ -642,7 +707,7 @@ fun BibleReaderScreen(
         }
     }
 
-    // Verse Action Bottom Sheet
+    // Verse Action Bottom Sheet (Triggered on Long Press or Menu)
     if (selectedVerseForAction != null) {
         val verse = selectedVerseForAction!!
         ModalBottomSheet(
@@ -659,10 +724,28 @@ fun BibleReaderScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "$bookName ${verse.chapter}:${verse.verseNumber}",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "${verse.verseNumber}",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "$bookName ${verse.chapter}:${verse.verseNumber}",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                     IconButton(onClick = { selectedVerseForAction = null }) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
@@ -684,7 +767,7 @@ fun BibleReaderScreen(
 
                 // Highlight Color Palette
                 Text(
-                    text = "हाइलाइट करें (Highlight)",
+                    text = "हाइलाइट करें (Highlight Palette)",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -709,6 +792,10 @@ fun BibleReaderScreen(
                         viewModel.setHighlight(verse, "#FBCFE8")
                         selectedVerseForAction = null
                     }
+                    HighlightColorCircle(color = Color(0xFFDDD6FE), label = "Purple") {
+                        viewModel.setHighlight(verse, "#DDD6FE")
+                        selectedVerseForAction = null
+                    }
                     if (verse.highlightColor != null) {
                         OutlinedButton(
                             onClick = {
@@ -727,11 +814,72 @@ fun BibleReaderScreen(
                 HorizontalDivider()
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Actions: Copy, Share, Bookmark, Note
+                // Actions: Play Audio, Favorite, Bookmark, Notes, Photo Card, Copy, Share
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
+                    // Play Audio
+                    ActionColumnButton(
+                        icon = Icons.Default.PlayCircleOutline,
+                        label = "ऑडियो सुनें",
+                        tint = MaterialTheme.colorScheme.primary,
+                        onClick = {
+                            viewModel.audioManager.playFromVerse(verse.verseNumber, currentBook.id, currentChapter, verses)
+                            selectedVerseForAction = null
+                        }
+                    )
+
+                    // Favorite
+                    ActionColumnButton(
+                        icon = if (verse.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                        label = if (verse.isFavorite) "पसंदीदा" else "पसंदीदा बनाएं",
+                        tint = if (verse.isFavorite) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            viewModel.toggleFavorite(verse)
+                            selectedVerseForAction = null
+                        }
+                    )
+
+                    // Bookmark
+                    ActionColumnButton(
+                        icon = if (verse.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                        label = if (verse.isBookmarked) "सहेजा गया" else "बुकमार्क",
+                        tint = if (verse.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            viewModel.toggleBookmark(verse)
+                            selectedVerseForAction = null
+                        }
+                    )
+
+                    // Note Editor
+                    ActionColumnButton(
+                        icon = Icons.Default.EditNote,
+                        label = "नोट्स (Note)",
+                        onClick = {
+                            verseForNoteDialog = verse
+                            selectedVerseForAction = null
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    // Photo Generator (Interchange Photos with Bible view)
+                    ActionColumnButton(
+                        icon = Icons.Default.PhotoLibrary,
+                        label = "फोटो वचन",
+                        tint = Color(0xFF0284C7),
+                        onClick = {
+                            verseForPhotoDialog = verse
+                            selectedVerseForAction = null
+                        }
+                    )
+
                     // Copy
                     ActionColumnButton(
                         icon = Icons.Default.ContentCopy,
@@ -752,34 +900,13 @@ fun BibleReaderScreen(
                         label = "साझा (Share)",
                         onClick = {
                             val ref = "$bookName ${verse.chapter}:${verse.verseNumber}"
-                            val shareText = "$ref\n\n\"${verse.text}\"\n\n— Vinay Kumar AVJ"
+                            val shareText = "$ref\n\n\"${verse.text}\"\n\n— सच्चा मसीही जीवन"
                             val sendIntent = Intent().apply {
                                 action = Intent.ACTION_SEND
                                 putExtra(Intent.EXTRA_TEXT, shareText)
                                 type = "text/plain"
                             }
                             context.startActivity(Intent.createChooser(sendIntent, "Share Verse"))
-                            selectedVerseForAction = null
-                        }
-                    )
-
-                    // Bookmark
-                    ActionColumnButton(
-                        icon = if (verse.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                        label = if (verse.isBookmarked) "सहेजा गया" else "बुकमार्क",
-                        tint = if (verse.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        onClick = {
-                            viewModel.toggleBookmark(verse)
-                            selectedVerseForAction = null
-                        }
-                    )
-
-                    // Note
-                    ActionColumnButton(
-                        icon = Icons.Default.EditNote,
-                        label = "नोट्स (Note)",
-                        onClick = {
-                            verseForNoteDialog = verse
                             selectedVerseForAction = null
                         }
                     )
@@ -790,45 +917,29 @@ fun BibleReaderScreen(
         }
     }
 
-    // Add / Edit Note Dialog
+    // Rich Note Editor Dialog
     if (verseForNoteDialog != null) {
         val verse = verseForNoteDialog!!
-        var noteText by remember { mutableStateOf(verse.note ?: "") }
+        BibleNoteEditorDialog(
+            verse = verse,
+            initialNote = verse.note ?: "",
+            onSave = { updatedText ->
+                viewModel.saveNote(verse, updatedText)
+                verseForNoteDialog = null
+            },
+            onDelete = {
+                viewModel.deleteNote(verse.bookId, verse.chapter, verse.verseNumber)
+                verseForNoteDialog = null
+            },
+            onDismiss = { verseForNoteDialog = null }
+        )
+    }
 
-        AlertDialog(
-            onDismissRequest = { verseForNoteDialog = null },
-            title = {
-                Text(
-                    text = "नोट लिखें: $bookName ${verse.chapter}:${verse.verseNumber}",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = noteText,
-                        onValueChange = { noteText = it },
-                        label = { Text("व्यक्तिगत विचार या प्रार्थना") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp),
-                        maxLines = 6
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.saveNote(verse, noteText)
-                    verseForNoteDialog = null
-                }) {
-                    Text("सहेजें (Save)")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { verseForNoteDialog = null }) {
-                    Text("रद्द करें")
-                }
-            }
+    // Bible Verse Photo Generator Dialog
+    if (verseForPhotoDialog != null) {
+        BibleVersePhotoDialog(
+            verse = verseForPhotoDialog!!,
+            onDismiss = { verseForPhotoDialog = null }
         )
     }
 
@@ -856,6 +967,20 @@ fun BibleReaderScreen(
             onFontSizeChange = { viewModel.updateFontSize(it) },
             onLineSpacingChange = { viewModel.updateLineSpacing(it) },
             onShowVerseNumbersChange = { viewModel.toggleVerseNumbers(it) },
+            onShowSubheadingsChange = { viewModel.toggleSubheadings(it) },
+            onShowParagraphAndIndentsChange = { viewModel.toggleParagraphAndIndents(it) },
+            onShowJesusWordsInRedChange = { viewModel.toggleJesusWordsInRed(it) },
+            onJesusWordsColorChange = { viewModel.updateJesusWordsColor(it) },
+            onShowFavoritesHintChange = { viewModel.toggleFavoritesHint(it) },
+            onShowBookmarkHintChange = { viewModel.toggleBookmarkHint(it) },
+            onShowHighlightsChange = { viewModel.toggleHighlights(it) },
+            onShowNoteHintChange = { viewModel.toggleNoteHint(it) },
+            onJustifyBibleTextChange = { viewModel.toggleJustifyBibleText(it) },
+            onSuggestVerseSelectionChange = { viewModel.toggleSuggestVerseSelection(it) },
+            onShowAudioPlayerChange = { viewModel.toggleAudioPlayer(it) },
+            onScreenTimeoutChange = { viewModel.setScreenTimeout(it) },
+            onRememberPositionChange = { viewModel.toggleRememberPosition(it) },
+            onResetToDefault = { viewModel.resetReadingSettings() },
             onThemeChange = { viewModel.updateTheme(it) },
             onTranslationChange = { viewModel.selectTranslation(it) },
             onDismiss = { showSettingsDialog = false }
@@ -962,15 +1087,29 @@ private fun ActionColumnButton(
     }
 }
 
+// Helper to determine Jesus word color styling
+private fun getJesusWordColor(settings: BibleReadingSettings, isNewTestament: Boolean): Color? {
+    if (!settings.showJesusWordsInRed || !isNewTestament) return null
+    return try {
+        Color(android.graphics.Color.parseColor(settings.jesusWordsColorHex))
+    } catch (e: Exception) {
+        Color(0xFFDC2626)
+    }
+}
+
 @Composable
 private fun BibleParagraphContent(
     verses: List<BibleVerse>,
     targetVerse: Int?,
     settings: BibleReadingSettings,
     textColor: Color,
+    isNewTestament: Boolean,
     onVerseClick: (BibleVerse) -> Unit,
+    onVerseLongClick: (BibleVerse) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val jesusColor = getJesusWordColor(settings, isNewTestament)
+
     if (verses.any { !it.secondaryText.isNullOrBlank() }) {
         Column(
             modifier = modifier
@@ -980,9 +1119,11 @@ private fun BibleParagraphContent(
         ) {
             verses.forEach { verse ->
                 val isTarget = targetVerse != null && verse.verseNumber == targetVerse
-                val highlightColor = verse.highlightColor?.let {
-                    try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
-                } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+                val highlightColor = if (settings.showHighlights) {
+                    verse.highlightColor?.let {
+                        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
+                    } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+                } else if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
 
                 val fontSizeSp = settings.fontSize.sp.sp
                 val secondaryFontSizeSp = (settings.fontSize.sp * 0.9f).sp
@@ -995,7 +1136,12 @@ private fun BibleParagraphContent(
                     border = if (isTarget) androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFFD97706)) else null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onVerseClick(verse) }
+                        .pointerInput(verse) {
+                            detectTapGestures(
+                                onTap = { onVerseClick(verse) },
+                                onLongPress = { onVerseLongClick(verse) }
+                            )
+                        }
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(
@@ -1006,23 +1152,25 @@ private fun BibleParagraphContent(
                                 .padding(bottom = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = if (isTarget) Color(0xFFD97706) else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = "${verse.verseNumber}",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White,
-                                                fontSize = 11.sp
+                                if (settings.showVerseNumbers) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (isTarget) Color(0xFFD97706) else MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "${verse.verseNumber}",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White,
+                                                    fontSize = 11.sp
+                                                )
                                             )
-                                        )
+                                        }
                                     }
+                                    Spacer(modifier = Modifier.width(8.dp))
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "हिन्दी + English",
                                     style = MaterialTheme.typography.labelSmall.copy(
@@ -1033,10 +1181,13 @@ private fun BibleParagraphContent(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (verse.isBookmarked) {
+                                if (settings.showFavoritesHint && verse.isFavorite) {
+                                    Text("⭐ ", fontSize = 12.sp)
+                                }
+                                if (settings.showBookmarkHint && verse.isBookmarked) {
                                     Text("🔖 ", fontSize = 12.sp)
                                 }
-                                if (!verse.note.isNullOrBlank()) {
+                                if (settings.showNoteHint && !verse.note.isNullOrBlank()) {
                                     Text("📝 ", fontSize = 12.sp)
                                 }
                             }
@@ -1048,7 +1199,8 @@ private fun BibleParagraphContent(
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = fontSizeSp,
                                 fontWeight = FontWeight.Medium,
-                                color = textColor,
+                                color = jesusColor ?: textColor,
+                                textAlign = if (settings.justifyBibleText) TextAlign.Justify else TextAlign.Start,
                                 lineHeight = (settings.fontSize.sp * settings.lineSpacing.multiplier).sp
                             )
                         )
@@ -1064,6 +1216,7 @@ private fun BibleParagraphContent(
                                     fontSize = secondaryFontSizeSp,
                                     fontWeight = FontWeight.Normal,
                                     color = textColor.copy(alpha = 0.88f),
+                                    textAlign = if (settings.justifyBibleText) TextAlign.Justify else TextAlign.Start,
                                     lineHeight = (settings.fontSize.sp * 0.9f * settings.lineSpacing.multiplier).sp
                                 )
                             )
@@ -1079,15 +1232,15 @@ private fun BibleParagraphContent(
     val lineHeightSp = (settings.fontSize.sp * settings.lineSpacing.multiplier).sp
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-    // Build the paragraph AnnotatedString with verse numbers and highlights
-    val annotatedString = remember(verses, targetVerse, settings, textColor) {
+    // Build the paragraph AnnotatedString with verse numbers, indicators, and Jesus words
+    val annotatedString = remember(verses, targetVerse, settings, textColor, jesusColor) {
         buildAnnotatedString {
             verses.forEachIndexed { index, verse ->
                 pushStringAnnotation(tag = "VERSE_NUM", annotation = "${verse.verseNumber}")
 
                 val isTarget = targetVerse != null && verse.verseNumber == targetVerse
 
-                // Inline verse number (visually smaller and slightly superscripted, on the same line)
+                // Inline verse number
                 if (settings.showVerseNumbers) {
                     withStyle(
                         SpanStyle(
@@ -1101,18 +1254,16 @@ private fun BibleParagraphContent(
                     }
                 }
 
-                // Verse text with highlight or target accent if present
-                val highlightColor = verse.highlightColor?.let {
-                    try {
-                        Color(android.graphics.Color.parseColor(it))
-                    } catch (e: Exception) {
-                        null
-                    }
-                } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+                // Verse text with highlight or target accent
+                val highlightColor = if (settings.showHighlights) {
+                    verse.highlightColor?.let {
+                        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
+                    } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+                } else if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
 
                 withStyle(
                     SpanStyle(
-                        color = textColor,
+                        color = jesusColor ?: textColor,
                         fontSize = fontSizeSp,
                         fontWeight = if (isTarget) FontWeight.SemiBold else FontWeight.Normal,
                         background = highlightColor ?: Color.Transparent
@@ -1121,8 +1272,18 @@ private fun BibleParagraphContent(
                     append(verse.text)
                 }
 
-                // Inline icon indicators for bookmarks and notes
-                if (verse.isBookmarked) {
+                // Inline icon indicators for favorites, bookmarks, and notes
+                if (settings.showFavoritesHint && verse.isFavorite) {
+                    withStyle(
+                        SpanStyle(
+                            fontSize = (settings.fontSize.sp * 0.7f).sp,
+                            baselineShift = BaselineShift(0.25f)
+                        )
+                    ) {
+                        append(" ⭐")
+                    }
+                }
+                if (settings.showBookmarkHint && verse.isBookmarked) {
                     withStyle(
                         SpanStyle(
                             fontSize = (settings.fontSize.sp * 0.7f).sp,
@@ -1132,7 +1293,7 @@ private fun BibleParagraphContent(
                         append(" 🔖")
                     }
                 }
-                if (!verse.note.isNullOrBlank()) {
+                if (settings.showNoteHint && !verse.note.isNullOrBlank()) {
                     withStyle(
                         SpanStyle(
                             fontSize = (settings.fontSize.sp * 0.7f).sp,
@@ -1156,25 +1317,41 @@ private fun BibleParagraphContent(
         text = annotatedString,
         style = MaterialTheme.typography.bodyLarge.copy(
             lineHeight = lineHeightSp,
-            letterSpacing = 0.2.sp
+            letterSpacing = 0.2.sp,
+            textAlign = if (settings.justifyBibleText) TextAlign.Justify else TextAlign.Start
         ),
         onTextLayout = { layoutResult = it },
         modifier = modifier
             .fillMaxWidth()
             .pointerInput(verses) {
-                detectTapGestures { pos ->
-                    layoutResult?.let { layout ->
-                        val offset = layout.getOffsetForPosition(pos)
-                        annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset)
-                            .firstOrNull()?.let { annotation ->
-                                val vNum = annotation.item.toIntOrNull()
-                                val clicked = verses.find { it.verseNumber == vNum }
-                                if (clicked != null) {
-                                    onVerseClick(clicked)
+                detectTapGestures(
+                    onTap = { pos ->
+                        layoutResult?.let { layout ->
+                            val offset = layout.getOffsetForPosition(pos)
+                            annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset)
+                                .firstOrNull()?.let { annotation ->
+                                    val vNum = annotation.item.toIntOrNull()
+                                    val clicked = verses.find { it.verseNumber == vNum }
+                                    if (clicked != null) {
+                                        onVerseClick(clicked)
+                                    }
                                 }
-                            }
+                        }
+                    },
+                    onLongPress = { pos ->
+                        layoutResult?.let { layout ->
+                            val offset = layout.getOffsetForPosition(pos)
+                            annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset)
+                                .firstOrNull()?.let { annotation ->
+                                    val vNum = annotation.item.toIntOrNull()
+                                    val clicked = verses.find { it.verseNumber == vNum }
+                                    if (clicked != null) {
+                                        onVerseLongClick(clicked)
+                                    }
+                                }
+                        }
                     }
-                }
+                )
             }
     )
 }
@@ -1185,11 +1362,14 @@ private fun BiblePoeticContent(
     targetVerse: Int?,
     settings: BibleReadingSettings,
     textColor: Color,
+    isNewTestament: Boolean,
     onVerseClick: (BibleVerse) -> Unit,
+    onVerseLongClick: (BibleVerse) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val fontSizeSp = settings.fontSize.sp.sp
     val lineHeightSp = (settings.fontSize.sp * (settings.lineSpacing.multiplier + 0.18f)).sp
+    val jesusColor = getJesusWordColor(settings, isNewTestament)
 
     Column(
         modifier = modifier
@@ -1198,17 +1378,15 @@ private fun BiblePoeticContent(
     ) {
         verses.forEach { verse ->
             val isTarget = targetVerse != null && verse.verseNumber == targetVerse
-            val highlightColor = verse.highlightColor?.let {
-                try {
-                    Color(android.graphics.Color.parseColor(it))
-                } catch (e: Exception) {
-                    null
-                }
-            } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+            val highlightColor = if (settings.showHighlights) {
+                verse.highlightColor?.let {
+                    try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
+                } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+            } else if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
 
             var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-            val annotatedString = remember(verse, isTarget, settings, textColor) {
+            val annotatedString = remember(verse, isTarget, settings, textColor, jesusColor) {
                 buildAnnotatedString {
                     pushStringAnnotation(tag = "VERSE_NUM", annotation = "${verse.verseNumber}")
 
@@ -1227,7 +1405,7 @@ private fun BiblePoeticContent(
 
                     withStyle(
                         SpanStyle(
-                            color = textColor,
+                            color = jesusColor ?: textColor,
                             fontSize = fontSizeSp,
                             fontWeight = if (isTarget) FontWeight.SemiBold else FontWeight.Normal,
                             background = highlightColor ?: Color.Transparent
@@ -1236,12 +1414,17 @@ private fun BiblePoeticContent(
                         append(verse.text)
                     }
 
-                    if (verse.isBookmarked) {
+                    if (settings.showFavoritesHint && verse.isFavorite) {
+                        withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                            append(" ⭐")
+                        }
+                    }
+                    if (settings.showBookmarkHint && verse.isBookmarked) {
                         withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
                             append(" 🔖")
                         }
                     }
-                    if (!verse.note.isNullOrBlank()) {
+                    if (settings.showNoteHint && !verse.note.isNullOrBlank()) {
                         withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
                             append(" 📝")
                         }
@@ -1255,16 +1438,18 @@ private fun BiblePoeticContent(
                 text = annotatedString,
                 style = MaterialTheme.typography.bodyLarge.copy(
                     lineHeight = lineHeightSp,
-                    letterSpacing = 0.15.sp
+                    letterSpacing = 0.15.sp,
+                    textAlign = if (settings.justifyBibleText) TextAlign.Justify else TextAlign.Start
                 ),
                 onTextLayout = { layoutResult = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 14.dp, top = 3.dp, bottom = 3.dp)
+                    .padding(start = if (settings.showParagraphAndIndents) 14.dp else 0.dp, top = 3.dp, bottom = 3.dp)
                     .pointerInput(verse) {
-                        detectTapGestures {
-                            onVerseClick(verse)
-                        }
+                        detectTapGestures(
+                            onTap = { onVerseClick(verse) },
+                            onLongPress = { onVerseLongClick(verse) }
+                        )
                     }
             )
         }
@@ -1278,16 +1463,19 @@ private fun StructuredProseParagraphContent(
     targetVerse: Int?,
     settings: BibleReadingSettings,
     textColor: Color,
+    isNewTestament: Boolean,
     onVerseClick: (BibleVerse) -> Unit,
+    onVerseLongClick: (BibleVerse) -> Unit,
     onFootnoteClick: (VerseItem, FootnoteItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val fontSizeSp = settings.fontSize.sp.sp
     val lineHeightSp = (settings.fontSize.sp * settings.lineSpacing.multiplier).sp
     val accentColor = MaterialTheme.colorScheme.primary
+    val jesusColor = getJesusWordColor(settings, isNewTestament)
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-    val annotatedString = remember(verseItems, versesStateMap, targetVerse, settings, textColor, accentColor) {
+    val annotatedString = remember(verseItems, versesStateMap, targetVerse, settings, textColor, accentColor, jesusColor) {
         buildAnnotatedString {
             var currentVerseNum: Int? = null
             verseItems.forEachIndexed { index, vItem ->
@@ -1315,13 +1503,15 @@ private fun StructuredProseParagraphContent(
                     }
                 }
 
-                val highlightColor = bibleVerse?.highlightColor?.let {
-                    try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
-                } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+                val highlightColor = if (settings.showHighlights) {
+                    bibleVerse?.highlightColor?.let {
+                        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
+                    } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+                } else if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
 
                 withStyle(
                     SpanStyle(
-                        color = textColor,
+                        color = jesusColor ?: textColor,
                         fontSize = fontSizeSp,
                         fontWeight = if (isTarget) FontWeight.SemiBold else FontWeight.Normal,
                         background = highlightColor ?: Color.Transparent
@@ -1345,12 +1535,17 @@ private fun StructuredProseParagraphContent(
                     pop()
                 }
 
-                if (bibleVerse?.isBookmarked == true) {
+                if (settings.showFavoritesHint && bibleVerse?.isFavorite == true) {
+                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                        append(" ⭐")
+                    }
+                }
+                if (settings.showBookmarkHint && bibleVerse?.isBookmarked == true) {
                     withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
                         append(" 🔖")
                     }
                 }
-                if (!bibleVerse?.note.isNullOrBlank()) {
+                if (settings.showNoteHint && !bibleVerse?.note.isNullOrBlank()) {
                     withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
                         append(" 📝")
                     }
@@ -1371,37 +1566,55 @@ private fun StructuredProseParagraphContent(
         text = annotatedString,
         style = MaterialTheme.typography.bodyLarge.copy(
             lineHeight = lineHeightSp,
-            letterSpacing = 0.2.sp
+            letterSpacing = 0.2.sp,
+            textAlign = if (settings.justifyBibleText) TextAlign.Justify else TextAlign.Start
         ),
         onTextLayout = { layoutResult = it },
         modifier = modifier
             .fillMaxWidth()
             .pointerInput(verseItems) {
-                detectTapGestures { pos ->
-                    layoutResult?.let { layout ->
-                        val offset = layout.getOffsetForPosition(pos)
-                        val fnAnnotation = annotatedString.getStringAnnotations(tag = "FOOTNOTE", start = offset, end = offset).firstOrNull()
-                        if (fnAnnotation != null) {
-                            val vNum = fnAnnotation.item.toIntOrNull()
-                            val clickedItem = verseItems.find { (it.verseNumber ?: vNum) == vNum && it.footnotes.isNotEmpty() }
-                            if (clickedItem != null) {
-                                onFootnoteClick(clickedItem, clickedItem.footnotes.first())
-                                return@detectTapGestures
+                detectTapGestures(
+                    onTap = { pos ->
+                        layoutResult?.let { layout ->
+                            val offset = layout.getOffsetForPosition(pos)
+                            val fnAnnotation = annotatedString.getStringAnnotations(tag = "FOOTNOTE", start = offset, end = offset).firstOrNull()
+                            if (fnAnnotation != null) {
+                                val vNum = fnAnnotation.item.toIntOrNull()
+                                val clickedItem = verseItems.find { (it.verseNumber ?: vNum) == vNum && it.footnotes.isNotEmpty() }
+                                if (clickedItem != null) {
+                                    onFootnoteClick(clickedItem, clickedItem.footnotes.first())
+                                    return@detectTapGestures
+                                }
+                            }
+
+                            val verseAnnotation = annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset).firstOrNull()
+                            if (verseAnnotation != null) {
+                                val vNum = verseAnnotation.item.toIntOrNull()
+                                if (vNum != null) {
+                                    val bv = versesStateMap[vNum] ?: BibleVerse(
+                                        bookId = 0, bookName = "", chapter = 0, verseNumber = vNum, text = "", translationId = ""
+                                    )
+                                    onVerseClick(bv)
+                                }
                             }
                         }
-
-                        val verseAnnotation = annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset).firstOrNull()
-                        if (verseAnnotation != null) {
-                            val vNum = verseAnnotation.item.toIntOrNull()
-                            if (vNum != null) {
-                                val bv = versesStateMap[vNum] ?: BibleVerse(
-                                    bookId = 0, bookName = "", chapter = 0, verseNumber = vNum, text = "", translationId = ""
-                                )
-                                onVerseClick(bv)
+                    },
+                    onLongPress = { pos ->
+                        layoutResult?.let { layout ->
+                            val offset = layout.getOffsetForPosition(pos)
+                            val verseAnnotation = annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset).firstOrNull()
+                            if (verseAnnotation != null) {
+                                val vNum = verseAnnotation.item.toIntOrNull()
+                                if (vNum != null) {
+                                    val bv = versesStateMap[vNum] ?: BibleVerse(
+                                        bookId = 0, bookName = "", chapter = 0, verseNumber = vNum, text = "", translationId = ""
+                                    )
+                                    onVerseLongClick(bv)
+                                }
                             }
                         }
                     }
-                }
+                )
             }
     )
 }
@@ -1413,13 +1626,16 @@ private fun StructuredPoetryBlockContent(
     targetVerse: Int?,
     settings: BibleReadingSettings,
     textColor: Color,
+    isNewTestament: Boolean,
     onVerseClick: (BibleVerse) -> Unit,
+    onVerseLongClick: (BibleVerse) -> Unit,
     onFootnoteClick: (PoetryLineItem, FootnoteItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val fontSizeSp = settings.fontSize.sp.sp
     val lineHeightSp = (settings.fontSize.sp * (settings.lineSpacing.multiplier + 0.18f)).sp
     val accentColor = MaterialTheme.colorScheme.primary
+    val jesusColor = getJesusWordColor(settings, isNewTestament)
 
     Column(
         modifier = modifier
@@ -1435,13 +1651,15 @@ private fun StructuredPoetryBlockContent(
             val bibleVerse = effectiveVNum?.let { versesStateMap[it] }
             val isTarget = targetVerse != null && effectiveVNum == targetVerse
 
-            val highlightColor = bibleVerse?.highlightColor?.let {
-                try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
-            } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+            val highlightColor = if (settings.showHighlights) {
+                bibleVerse?.highlightColor?.let {
+                    try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
+                } ?: if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
+            } else if (isTarget) Color(0xFFFEF08A).copy(alpha = 0.5f) else null
 
             var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-            val annotatedString = remember(line, bibleVerse, isTarget, settings, textColor, accentColor) {
+            val annotatedString = remember(line, bibleVerse, isTarget, settings, textColor, accentColor, jesusColor) {
                 buildAnnotatedString {
                     if (effectiveVNum != null) {
                         pushStringAnnotation(tag = "VERSE_NUM", annotation = "$effectiveVNum")
@@ -1462,7 +1680,7 @@ private fun StructuredPoetryBlockContent(
 
                     withStyle(
                         SpanStyle(
-                            color = textColor,
+                            color = jesusColor ?: textColor,
                             fontSize = fontSizeSp,
                             fontWeight = if (isTarget) FontWeight.SemiBold else FontWeight.Normal,
                             background = highlightColor ?: Color.Transparent
@@ -1486,12 +1704,17 @@ private fun StructuredPoetryBlockContent(
                         pop()
                     }
 
-                    if (bibleVerse?.isBookmarked == true) {
+                    if (settings.showFavoritesHint && bibleVerse?.isFavorite == true) {
+                        withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                            append(" ⭐")
+                        }
+                    }
+                    if (settings.showBookmarkHint && bibleVerse?.isBookmarked == true) {
                         withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
                             append(" 🔖")
                         }
                     }
-                    if (!bibleVerse?.note.isNullOrBlank()) {
+                    if (settings.showNoteHint && !bibleVerse?.note.isNullOrBlank()) {
                         withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
                             append(" 📝")
                         }
@@ -1503,38 +1726,52 @@ private fun StructuredPoetryBlockContent(
                 }
             }
 
-            val indentStartPadding = (line.indent * 18 + 10).dp
+            val indentStartPadding = if (settings.showParagraphAndIndents) (line.indent * 18 + 10).dp else 0.dp
 
             Text(
                 text = annotatedString,
                 style = MaterialTheme.typography.bodyLarge.copy(
                     lineHeight = lineHeightSp,
-                    letterSpacing = 0.15.sp
+                    letterSpacing = 0.15.sp,
+                    textAlign = if (settings.justifyBibleText) TextAlign.Justify else TextAlign.Start
                 ),
                 onTextLayout = { layoutResult = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = indentStartPadding, top = 2.dp, bottom = 2.dp)
                     .pointerInput(line) {
-                        detectTapGestures { pos ->
-                            layoutResult?.let { layout ->
-                                val offset = layout.getOffsetForPosition(pos)
-                                if (line.footnotes.isNotEmpty()) {
-                                    val fnAnno = annotatedString.getStringAnnotations(tag = "FOOTNOTE", start = offset, end = offset).firstOrNull()
-                                    if (fnAnno != null) {
-                                        onFootnoteClick(line, line.footnotes.first())
-                                        return@detectTapGestures
+                        detectTapGestures(
+                            onTap = { pos ->
+                                layoutResult?.let { layout ->
+                                    val offset = layout.getOffsetForPosition(pos)
+                                    if (line.footnotes.isNotEmpty()) {
+                                        val fnAnno = annotatedString.getStringAnnotations(tag = "FOOTNOTE", start = offset, end = offset).firstOrNull()
+                                        if (fnAnno != null) {
+                                            onFootnoteClick(line, line.footnotes.first())
+                                            return@detectTapGestures
+                                        }
+                                    }
+
+                                    if (effectiveVNum != null) {
+                                        val bv = versesStateMap[effectiveVNum] ?: BibleVerse(
+                                            bookId = 0, bookName = "", chapter = 0, verseNumber = effectiveVNum, text = line.text, translationId = ""
+                                        )
+                                        onVerseClick(bv)
                                     }
                                 }
-
-                                if (effectiveVNum != null) {
-                                    val bv = versesStateMap[effectiveVNum] ?: BibleVerse(
-                                        bookId = 0, bookName = "", chapter = 0, verseNumber = effectiveVNum, text = line.text, translationId = ""
-                                    )
-                                    onVerseClick(bv)
+                            },
+                            onLongPress = { pos ->
+                                layoutResult?.let { layout ->
+                                    val offset = layout.getOffsetForPosition(pos)
+                                    if (effectiveVNum != null) {
+                                        val bv = versesStateMap[effectiveVNum] ?: BibleVerse(
+                                            bookId = 0, bookName = "", chapter = 0, verseNumber = effectiveVNum, text = line.text, translationId = ""
+                                        )
+                                        onVerseLongClick(bv)
+                                    }
                                 }
                             }
-                        }
+                        )
                     }
             )
         }

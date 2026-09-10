@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.example.data.bible.local.BibleBookmarkEntity
+import com.example.data.bible.local.BibleFavoriteVerseEntity
 import com.example.data.bible.local.BibleHighlightEntity
 import com.example.data.bible.local.BibleLocalDataSource
 import com.example.data.bible.local.BibleNoteEntity
@@ -58,7 +59,7 @@ class BibleRepository(
     }
 
     /**
-     * Offline-first chapter verses with bookmarks, highlights, and notes merged.
+     * Offline-first chapter verses with bookmarks, favorites, highlights, and notes merged.
      * Automatically verifies sequence completeness and re-fetches if verses are missing.
      */
     fun getChapterVerses(
@@ -67,15 +68,34 @@ class BibleRepository(
         chapter: Int,
         coroutineScope: CoroutineScope
     ): Flow<List<BibleVerse>> {
+        val bookmarksFlow = localDataSource.getAllBookmarks()
+        val favoritesFlow = localDataSource.getAllFavorites()
+        val highlightsFlow = localDataSource.getHighlightsForChapter(bookId, chapter)
+        val notesFlow = localDataSource.getNotesForChapter(bookId, chapter)
+
         if (translationId == com.example.data.bible.model.BibleTranslation.PARALLEL_HI_EN.id) {
             val hinVersesFlow = localDataSource.getVersesForChapter(com.example.data.bible.model.BibleTranslation.HINDI_IRV.id, bookId, chapter)
             val engVersesFlow = localDataSource.getVersesForChapter(com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id, bookId, chapter)
-            val bookmarksFlow = localDataSource.getAllBookmarks()
-            val highlightsFlow = localDataSource.getHighlightsForChapter(bookId, chapter)
-            val notesFlow = localDataSource.getNotesForChapter(bookId, chapter)
 
-            return combine(hinVersesFlow, engVersesFlow, bookmarksFlow, highlightsFlow, notesFlow) { hinVerses, engVerses, bookmarks, highlights, notes ->
+            return combine(hinVersesFlow, engVersesFlow, bookmarksFlow, favoritesFlow, highlightsFlow, notesFlow) { args: Array<Any> ->
+                @Suppress("UNCHECKED_CAST")
+                val hinVerses = args[0] as List<BibleVerse>
+                @Suppress("UNCHECKED_CAST")
+                val engVerses = args[1] as List<BibleVerse>
+                @Suppress("UNCHECKED_CAST")
+                val bookmarks = args[2] as List<BibleBookmarkEntity>
+                @Suppress("UNCHECKED_CAST")
+                val favorites = args[3] as List<BibleFavoriteVerseEntity>
+                @Suppress("UNCHECKED_CAST")
+                val highlights = args[4] as List<BibleHighlightEntity>
+                @Suppress("UNCHECKED_CAST")
+                val notes = args[5] as List<BibleNoteEntity>
+
                 val bookmarkedSet = bookmarks.filter { it.bookId == bookId && it.chapter == chapter }
+                    .map { it.verse }
+                    .toSet()
+
+                val favoriteSet = favorites.filter { it.bookId == bookId && it.chapter == chapter }
                     .map { it.verse }
                     .toSet()
 
@@ -93,6 +113,7 @@ class BibleRepository(
                         translationId = com.example.data.bible.model.BibleTranslation.PARALLEL_HI_EN.id,
                         secondaryText = eng?.text,
                         isBookmarked = bookmarkedSet.contains(hin.verseNumber),
+                        isFavorite = favoriteSet.contains(hin.verseNumber),
                         highlightColor = highlightMap[hin.verseNumber],
                         note = noteMap[hin.verseNumber]
                     )
@@ -113,12 +134,24 @@ class BibleRepository(
         }
 
         val versesFlow = localDataSource.getVersesForChapter(translationId, bookId, chapter)
-        val bookmarksFlow = localDataSource.getAllBookmarks()
-        val highlightsFlow = localDataSource.getHighlightsForChapter(bookId, chapter)
-        val notesFlow = localDataSource.getNotesForChapter(bookId, chapter)
 
-        return combine(versesFlow, bookmarksFlow, highlightsFlow, notesFlow) { verses, bookmarks, highlights, notes ->
+        return combine(versesFlow, bookmarksFlow, favoritesFlow, highlightsFlow, notesFlow) { args: Array<Any> ->
+            @Suppress("UNCHECKED_CAST")
+            val verses = args[0] as List<BibleVerse>
+            @Suppress("UNCHECKED_CAST")
+            val bookmarks = args[1] as List<BibleBookmarkEntity>
+            @Suppress("UNCHECKED_CAST")
+            val favorites = args[2] as List<BibleFavoriteVerseEntity>
+            @Suppress("UNCHECKED_CAST")
+            val highlights = args[3] as List<BibleHighlightEntity>
+            @Suppress("UNCHECKED_CAST")
+            val notes = args[4] as List<BibleNoteEntity>
+
             val bookmarkedSet = bookmarks.filter { it.bookId == bookId && it.chapter == chapter }
+                .map { it.verse }
+                .toSet()
+
+            val favoriteSet = favorites.filter { it.bookId == bookId && it.chapter == chapter }
                 .map { it.verse }
                 .toSet()
 
@@ -128,6 +161,7 @@ class BibleRepository(
             verses.sortedBy { it.verseNumber }.map { verse ->
                 verse.copy(
                     isBookmarked = bookmarkedSet.contains(verse.verseNumber),
+                    isFavorite = favoriteSet.contains(verse.verseNumber),
                     highlightColor = highlightMap[verse.verseNumber],
                     note = noteMap[verse.verseNumber]
                 )
@@ -175,6 +209,26 @@ class BibleRepository(
 
     suspend fun removeBookmarkById(id: Long) {
         localDataSource.removeBookmarkById(id)
+    }
+
+    // Favorites
+    fun getAllFavorites(): Flow<List<BibleFavoriteVerseEntity>> = localDataSource.getAllFavorites()
+
+    suspend fun toggleFavorite(bookId: Int, chapter: Int, verse: Int, translationId: String, verseText: String) {
+        val book = BibleBookDefinitions.getBookById(bookId)
+        val bookName = book?.nameHindi ?: "अध्याय $chapter"
+        val existing = localDataSource.getVersesForChapterSync(translationId, bookId, chapter)
+        val text = existing.find { it.verse == verse }?.text ?: verseText
+
+        localDataSource.addFavorite(bookId, bookName, chapter, verse, translationId, text)
+    }
+
+    suspend fun removeFavorite(bookId: Int, chapter: Int, verse: Int) {
+        localDataSource.removeFavorite(bookId, chapter, verse)
+    }
+
+    suspend fun removeFavoriteById(id: Long) {
+        localDataSource.removeFavoriteById(id)
     }
 
     // Highlights

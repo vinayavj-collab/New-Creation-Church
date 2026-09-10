@@ -51,6 +51,22 @@ data class BibleBookmarkEntity(
 )
 
 @Entity(
+    tableName = "bible_favorites",
+    indices = [Index(value = ["bookId", "chapter", "verse"], unique = true)]
+)
+data class BibleFavoriteVerseEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val bookId: Int,
+    val bookName: String,
+    val chapter: Int,
+    val verse: Int,
+    val translationId: String,
+    val verseText: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(
     tableName = "bible_highlights",
     indices = [Index(value = ["bookId", "chapter", "verse"], unique = true)]
 )
