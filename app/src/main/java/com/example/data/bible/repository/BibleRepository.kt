@@ -25,6 +25,7 @@ class BibleRepository(
     private val remoteDataSource: BibleRemoteDataSource
 ) {
     suspend fun initialize() {
+        com.example.data.bible.model.BibleVerseCounts.initialize(context)
         localDataSource.ensureSeeded()
     }
 
@@ -66,7 +67,40 @@ class BibleRepository(
         chapter: Int,
         coroutineScope: CoroutineScope
     ): Flow<List<BibleVerse>> {
-        // Trigger background fetch if local chapter is missing OR has missing/incomplete verses
+        if (translationId == com.example.data.bible.model.BibleTranslation.PARALLEL_HI_EN.id) {
+            val hinVersesFlow = localDataSource.getVersesForChapter(com.example.data.bible.model.BibleTranslation.HINDI_IRV.id, bookId, chapter)
+            val engVersesFlow = localDataSource.getVersesForChapter(com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id, bookId, chapter)
+            val bookmarksFlow = localDataSource.getAllBookmarks()
+            val highlightsFlow = localDataSource.getHighlightsForChapter(bookId, chapter)
+            val notesFlow = localDataSource.getNotesForChapter(bookId, chapter)
+
+            return combine(hinVersesFlow, engVersesFlow, bookmarksFlow, highlightsFlow, notesFlow) { hinVerses, engVerses, bookmarks, highlights, notes ->
+                val bookmarkedSet = bookmarks.filter { it.bookId == bookId && it.chapter == chapter }
+                    .map { it.verse }
+                    .toSet()
+
+                val highlightMap = highlights.associate { it.verse to it.colorHex }
+                val noteMap = notes.associate { it.verse to it.noteText }
+
+                val engMap = engVerses.associateBy { it.verseNumber }
+                val book = BibleBookDefinitions.getBookById(bookId)
+                val combinedBookName = "${book?.nameHindi ?: ""} (${book?.nameEnglish ?: ""})"
+
+                hinVerses.sortedBy { it.verseNumber }.map { hin ->
+                    val eng = engMap[hin.verseNumber]
+                    hin.copy(
+                        bookName = combinedBookName,
+                        translationId = com.example.data.bible.model.BibleTranslation.PARALLEL_HI_EN.id,
+                        secondaryText = eng?.text,
+                        isBookmarked = bookmarkedSet.contains(hin.verseNumber),
+                        highlightColor = highlightMap[hin.verseNumber],
+                        note = noteMap[hin.verseNumber]
+                    )
+                }
+            }
+        }
+
+        // Single Translation Mode (Hindi or English)
         coroutineScope.launch(Dispatchers.IO) {
             val localVerses = localDataSource.getVersesForChapterSync(translationId, bookId, chapter)
             val isComplete = isVerseSequenceComplete(localVerses)
@@ -174,5 +208,9 @@ class BibleRepository(
         val book = BibleBookDefinitions.getBookById(bookId)
         val bookName = book?.nameHindi ?: "अध्याय $chapter"
         localDataSource.saveReadingPosition(bookId, bookName, chapter, verse, translationId)
+    }
+
+    suspend fun getStructuredChapter(bookId: Int, chapter: Int): List<com.example.data.bible.model.BibleContentBlock> {
+        return localDataSource.getStructuredChapter(bookId, chapter)
     }
 }

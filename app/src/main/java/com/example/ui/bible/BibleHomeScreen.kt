@@ -125,16 +125,20 @@ fun BibleHomeScreen(
                 ) {
                     AssistChip(
                         onClick = {
-                            val next = if (selectedTranslation.language == "hi") {
-                                com.example.data.bible.model.BibleTranslation.ENGLISH_WEB
-                            } else {
-                                com.example.data.bible.model.BibleTranslation.HINDI_IRV
+                            val next = when (selectedTranslation.id) {
+                                com.example.data.bible.model.BibleTranslation.HINDI_IRV.id -> com.example.data.bible.model.BibleTranslation.ENGLISH_KJV
+                                com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id -> com.example.data.bible.model.BibleTranslation.PARALLEL_HI_EN
+                                else -> com.example.data.bible.model.BibleTranslation.HINDI_IRV
                             }
                             viewModel.selectTranslation(next)
                         },
                         label = {
                             Text(
-                                text = if (selectedTranslation.language == "hi") "📖 हिन्दी (IRV)" else "📖 English (WEB)",
+                                text = when (selectedTranslation.id) {
+                                    com.example.data.bible.model.BibleTranslation.HINDI_IRV.id -> "📖 हिन्दी"
+                                    com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id -> "📖 English"
+                                    else -> "📖 एक साथ (HI+EN)"
+                                },
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         },
@@ -151,7 +155,7 @@ fun BibleHomeScreen(
 
                     AssistChip(
                         onClick = onSavedClick,
-                        label = { Text("सहेजे गए") },
+                        label = { Text("सहेजे गए (Saved)") },
                         leadingIcon = { Icon(Icons.Default.Bookmarks, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     )
                 }
@@ -314,77 +318,20 @@ fun BibleHomeScreen(
         }
     }
 
-    // Chapter Picker Bottom Sheet
+    // 3-Step Book -> Chapter -> Verse Selector Modal
     if (bookForChapterPicker != null) {
         val activeBook = bookForChapterPicker!!
-        ModalBottomSheet(
-            onDismissRequest = { bookForChapterPicker = null },
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = if (selectedTranslation.language == "hi") activeBook.nameHindi else activeBook.nameEnglish,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = "${activeBook.chapterCount} अध्याय (Chapters) • ${activeBook.category}",
-                            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        )
-                    }
-                    IconButton(onClick = { bookForChapterPicker = null }) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = "अध्याय चुनें (Select Chapter)",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 56.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 340.dp)
-                ) {
-                    items((1..activeBook.chapterCount).toList()) { chap ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier
-                                .aspectRatio(1f)
-                                .clickable {
-                                    val bId = activeBook.id
-                                    bookForChapterPicker = null
-                                    onOpenReader(bId, chap, null)
-                                }
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "$chap",
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(24.dp))
+        BibleBookChapterVerseSelectorModal(
+            initialBook = activeBook,
+            initialChapter = 1,
+            initialVerse = null,
+            isHindi = selectedTranslation.language == "hi",
+            onDismiss = { bookForChapterPicker = null },
+            onSelectionComplete = { book, chapter, verse ->
+                bookForChapterPicker = null
+                onOpenReader(book.id, chapter, verse)
             }
-        }
+        )
     }
 
     // Settings Dialog

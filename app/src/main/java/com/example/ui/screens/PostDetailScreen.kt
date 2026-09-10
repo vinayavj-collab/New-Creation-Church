@@ -40,6 +40,7 @@ import com.example.ui.components.YouTubePlayerView
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.BloggerImageUtils
 import com.example.util.ReminderScheduler
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +56,7 @@ fun PostDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val settings by viewModel.settings.collectAsState()
     val allPosts by viewModel.allPosts.collectAsState()
     val allVideos by viewModel.youtubeVideos.collectAsState()
     val isSaved by viewModel.isSaved("POST_${post.id}").collectAsState(initial = false)
@@ -199,17 +201,51 @@ fun PostDetailScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = 60.dp)
         ) {
+            // Data Saver Banner if active
+            if (settings.dataSaverEnabled) {
+                item {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DataUsage,
+                                contentDescription = "Data Saver",
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "⚡ Data Saver Active: Blogger images loading in low quality",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
             // Featured Header Image
             if (!post.featuredImageUrl.isNullOrBlank()) {
                 item {
+                    val optFeatured = BloggerImageUtils.getOptimizedUrl(post.featuredImageUrl, settings.dataSaverEnabled)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(240.dp)
+                            .clickable { onImageClick(post.featuredImageUrl) }
                     ) {
                         AsyncImage(
                             model = ImageRequest.Builder(context)
-                                .data(post.featuredImageUrl)
+                                .data(optFeatured)
                                 .crossfade(true)
                                 .build(),
                             contentDescription = post.title,
@@ -393,12 +429,99 @@ fun PostDetailScreen(
                                 android.graphics.Color.parseColor("#1E293B")
                             }
                             textView.setTextColor(textColor)
+                            // Remove raw img tags for clean text flow in TextView since images are rendered as Compose cards below
+                            val textOnlyHtml = post.contentHtml
+                                .replace(Regex("<img[^>]*>"), "")
+                                .ifEmpty { post.plainTextExcerpt }
                             textView.text = HtmlCompat.fromHtml(
-                                post.contentHtml.ifEmpty { post.plainTextExcerpt },
+                                textOnlyHtml,
                                 HtmlCompat.FROM_HTML_MODE_COMPACT
                             )
                         }
                     )
+                }
+            }
+
+            // Article Photos Section (Renders all inline Blogger images)
+            if (post.allImages.isNotEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        ) {
+                            Text(
+                                text = "📸 ARTICLE PHOTOS (${post.allImages.size})",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Text(
+                                text = "Tap photo to zoom",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            )
+                        }
+
+                        post.allImages.forEachIndexed { index, rawUrl ->
+                            val optUrl = BloggerImageUtils.getOptimizedUrl(rawUrl, settings.dataSaverEnabled)
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(260.dp)
+                                    .padding(vertical = 6.dp)
+                                    .clickable { onImageClick(rawUrl) },
+                                shape = RoundedCornerShape(16.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(context)
+                                            .data(optUrl)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = "Photo ${index + 1}",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    Surface(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .padding(10.dp),
+                                        color = Color.Black.copy(alpha = 0.65f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ZoomIn,
+                                                contentDescription = "Zoom",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Photo ${index + 1} • Zoom",
+                                                color = Color.White,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

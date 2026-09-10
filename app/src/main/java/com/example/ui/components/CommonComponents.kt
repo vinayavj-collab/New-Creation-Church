@@ -34,6 +34,7 @@ import com.example.ui.theme.GoldSubtle
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyDark
 import com.example.ui.theme.NavyPrimary
+import com.example.util.BloggerImageUtils
 
 @Composable
 fun AppHeader(
@@ -187,7 +188,8 @@ fun SourceBadge(
 fun FeaturedPostCard(
     post: BlogPost,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    dataSaverEnabled: Boolean = false
 ) {
     Card(
         modifier = modifier
@@ -209,7 +211,7 @@ fun FeaturedPostCard(
                 if (!post.featuredImageUrl.isNullOrEmpty()) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(post.featuredImageUrl)
+                            .data(BloggerImageUtils.getOptimizedUrl(post.featuredImageUrl, dataSaverEnabled))
                             .crossfade(true)
                             .build(),
                         contentDescription = post.title,
@@ -358,7 +360,8 @@ fun FeaturedPostCard(
 fun BlogPostCard(
     post: BlogPost,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    dataSaverEnabled: Boolean = false
 ) {
     Card(
         modifier = modifier
@@ -379,7 +382,7 @@ fun BlogPostCard(
                 ) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(post.featuredImageUrl)
+                            .data(BloggerImageUtils.getOptimizedUrl(post.featuredImageUrl, dataSaverEnabled))
                             .crossfade(true)
                             .build(),
                         contentDescription = post.title,

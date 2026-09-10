@@ -190,7 +190,8 @@ fun HomeScreen(
                                         Spacer(modifier = Modifier.height(8.dp))
                                         FeaturedPostCard(
                                             post = featuredPost,
-                                            onClick = { onPostClick(featuredPost) }
+                                            onClick = { onPostClick(featuredPost) },
+                                            dataSaverEnabled = settings.dataSaverEnabled
                                         )
                                     }
                                 }
@@ -214,7 +215,8 @@ fun HomeScreen(
                                     Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                                         BlogPostCard(
                                             post = post,
-                                            onClick = { onPostClick(post) }
+                                            onClick = { onPostClick(post) },
+                                            dataSaverEnabled = settings.dataSaverEnabled
                                         )
                                     }
                                 }

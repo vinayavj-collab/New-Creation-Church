@@ -3,6 +3,7 @@ package com.example.data.remote
 import android.os.Build
 import com.example.data.model.BlogPost
 import com.example.data.model.BlogSourceType
+import com.example.util.BloggerImageUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -82,9 +83,9 @@ class BloggerFeedService {
                 val imgMatcher = imgPattern.matcher(contentHtml)
                 while (imgMatcher.find()) {
                     val rawSrc = imgMatcher.group(1) ?: continue
-                    val highRes = getHighResUrl(rawSrc)
-                    if (!allImages.contains(highRes)) {
-                        allImages.add(highRes)
+                    val cleanUrl = BloggerImageUtils.sanitizeUrl(rawSrc)
+                    if (cleanUrl.isNotEmpty() && !allImages.contains(cleanUrl)) {
+                        allImages.add(cleanUrl)
                     }
                 }
 
@@ -92,7 +93,7 @@ class BloggerFeedService {
                 val thumbUrl = entry.optJSONObject("media\$thumbnail")?.optString("url")
                 val featuredImageUrl = when {
                     allImages.isNotEmpty() -> allImages.first()
-                    !thumbUrl.isNullOrEmpty() -> getHighResUrl(thumbUrl)
+                    !thumbUrl.isNullOrEmpty() -> BloggerImageUtils.sanitizeUrl(thumbUrl)
                     else -> null
                 }
 

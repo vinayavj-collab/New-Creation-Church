@@ -27,17 +27,28 @@ data class BibleTranslation(
             isOfflineAvailable = true
         )
 
-        val ENGLISH_WEB = BibleTranslation(
-            id = "ENG_WEB",
-            nameHindi = "अंग्रेज़ी (WEB)",
-            nameEnglish = "English (World English Bible)",
+        val ENGLISH_KJV = BibleTranslation(
+            id = "ENG_KJV",
+            nameHindi = "अंग्रेज़ी (KJV)",
+            nameEnglish = "English (King James Version)",
             language = "en",
             license = "Public Domain",
-            attribution = "World English Bible - Free of copyright restrictions",
+            attribution = "Public Domain English Bible",
             isPublicDomain = true,
             isOfflineAvailable = true
         )
 
-        val ALL = listOf(HINDI_IRV, ENGLISH_WEB)
+        val PARALLEL_HI_EN = BibleTranslation(
+            id = "PARALLEL_HI_EN",
+            nameHindi = "एक साथ (हिन्दी + English)",
+            nameEnglish = "Parallel (Hindi + English)",
+            language = "hi-en",
+            license = "Dual Translation",
+            attribution = "Hindi IRV + English KJV Verse by Verse",
+            isPublicDomain = false,
+            isOfflineAvailable = true
+        )
+
+        val ALL = listOf(HINDI_IRV, ENGLISH_KJV, PARALLEL_HI_EN)
     }
 }

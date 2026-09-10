@@ -137,7 +137,7 @@ class BackupRepository(
                     val obj = bmArray.getJSONObject(i)
                     val bm = BibleBookmarkEntity(
                         bookId = obj.getInt("bookId"),
-                        bookName = obj.getString("bookName"),
+                        bookName = obj.optString("bookName", "Bible"),
                         chapter = obj.getInt("chapter"),
                         verse = obj.getInt("verse"),
                         translationId = obj.optString("translationId", "hi_irv"),
@@ -176,7 +176,7 @@ class BackupRepository(
                         bookName = obj.optString("bookName", "Bible"),
                         chapter = obj.getInt("chapter"),
                         verse = obj.getInt("verse"),
-                        noteText = obj.getString("noteText"),
+                        noteText = obj.optString("noteText", ""),
                         timestamp = obj.optLong("timestamp", System.currentTimeMillis())
                     )
                     bibleDao.saveNote(note)
@@ -209,8 +209,8 @@ class BackupRepository(
                 for (i in 0 until songArray.length()) {
                     val obj = songArray.getJSONObject(i)
                     val song = ChristianSongEntity(
-                        title = obj.getString("title"),
-                        content = obj.getString("content"),
+                        title = obj.optString("title", "Untitled"),
+                        content = obj.optString("content", ""),
                         artist = obj.optString("artist", "Vinay Kumar AVJ"),
                         category = obj.optString("category", "Worship"),
                         isFavorite = obj.optBoolean("isFavorite", true),

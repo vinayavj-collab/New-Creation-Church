@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.bible.model.*
 
@@ -100,16 +101,25 @@ fun BibleSettingsDialog(
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     BibleTranslation.ALL.forEach { translation ->
                         val isSelected = selectedTranslation.id == translation.id
                         FilterChip(
                             selected = isSelected,
                             onClick = { onTranslationChange(translation) },
-                            label = { Text(if (translation.language == "hi") "हिन्दी (IRV)" else "English (WEB)") },
+                            label = {
+                                Text(
+                                    when (translation.id) {
+                                        BibleTranslation.HINDI_IRV.id -> "हिन्दी (IRV)"
+                                        BibleTranslation.ENGLISH_KJV.id -> "English (KJV)"
+                                        else -> "एक साथ (HI + EN)"
+                                    },
+                                    fontSize = 12.sp
+                                )
+                            },
                             leadingIcon = if (isSelected) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
                             } else null
                         )
                     }

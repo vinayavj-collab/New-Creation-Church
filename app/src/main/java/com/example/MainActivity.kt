@@ -279,8 +279,18 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
                 viewModel = viewModel,
                 onBack = { currentRoute = AppRoute.Main },
                 onImageClick = { imgUrl ->
-                    val idx = galleryPhotos.indexOfFirst { it.imageUrl == imgUrl }
-                    currentRoute = AppRoute.PhotoViewer(galleryPhotos, if (idx >= 0) idx else 0)
+                    val postPhotos = route.post.allImages.map { url ->
+                        GalleryPhoto(
+                            imageUrl = url,
+                            postTitle = route.post.title,
+                            postId = route.post.id,
+                            source = route.post.source,
+                            publishedDate = route.post.publishedDate
+                        )
+                    }
+                    val targetList = if (postPhotos.isNotEmpty()) postPhotos else galleryPhotos
+                    val idx = targetList.indexOfFirst { it.imageUrl == imgUrl }.coerceAtLeast(0)
+                    currentRoute = AppRoute.PhotoViewer(targetList, idx)
                 },
                 onVideoClick = { vidId ->
                     val video = YouTubeVideo(

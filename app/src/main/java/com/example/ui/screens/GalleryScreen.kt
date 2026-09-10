@@ -30,6 +30,7 @@ import com.example.data.model.GalleryPhoto
 import com.example.ui.components.SourceBadge
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.BloggerImageUtils
 
 data class PhotoAlbum(
     val postId: String,
@@ -219,7 +220,7 @@ fun GalleryScreen(
                                     ) {
                                         AsyncImage(
                                             model = ImageRequest.Builder(LocalContext.current)
-                                                .data(album.coverPhotoUrl)
+                                                .data(BloggerImageUtils.getOptimizedUrl(album.coverPhotoUrl, settings.dataSaverEnabled))
                                                 .crossfade(true)
                                                 .build(),
                                             contentDescription = album.title,
@@ -304,7 +305,7 @@ fun GalleryScreen(
                                 ) {
                                     AsyncImage(
                                         model = ImageRequest.Builder(LocalContext.current)
-                                            .data(photo.imageUrl)
+                                            .data(BloggerImageUtils.getOptimizedUrl(photo.imageUrl, settings.dataSaverEnabled))
                                             .crossfade(true)
                                             .build(),
                                         contentDescription = photo.postTitle,

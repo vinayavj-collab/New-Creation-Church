@@ -28,6 +28,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.data.model.GalleryPhoto
 import com.example.ui.components.SourceBadge
+import com.example.util.BloggerImageUtils
 
 @Composable
 fun PhotoViewerScreen(
@@ -190,7 +191,7 @@ fun ZoomableImage(photo: GalleryPhoto) {
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(photo.imageUrl)
+                .data(BloggerImageUtils.sanitizeUrl(photo.imageUrl))
                 .crossfade(true)
                 .build(),
             contentDescription = photo.postTitle,

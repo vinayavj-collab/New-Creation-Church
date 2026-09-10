@@ -68,6 +68,20 @@ class BibleViewModel(
         repository.getChapterHeadings(translation.id, book.id, chapter)
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val structuredBlocks: StateFlow<List<BibleContentBlock>> = combine(
+        _selectedTranslation,
+        _currentBook,
+        _currentChapter
+    ) { translation, book, chapter ->
+        Triple(translation, book, chapter)
+    }.map { (translation, book, chapter) ->
+        if (translation.id.startsWith("HIN")) {
+            repository.getStructuredChapter(book.id, chapter)
+        } else {
+            emptyList()
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     // Verses partitioned into sections with their canonical section headings
     val chapterSections: StateFlow<List<ChapterSection>> = combine(
         verses,
@@ -312,6 +326,13 @@ class BibleViewModel(
 
     fun clearTargetVerse() {
         _targetVerse.value = null
+    }
+
+    val audioManager = com.example.util.BibleAudioManager(application)
+
+    override fun onCleared() {
+        super.onCleared()
+        audioManager.release()
     }
 
     class Factory(private val application: Application) : ViewModelProvider.Factory {
