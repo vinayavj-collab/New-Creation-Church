@@ -28,6 +28,100 @@ class YouTubeFeedService {
         fetchAndParseXml(url, "", fallbackChannelTitle)
     }
 
+    suspend fun fetchChannelPlaylists(
+        channelHandle: String,
+        channelId: String,
+        channelTitle: String
+    ): List<com.example.data.model.YouTubePlaylist> = withContext(Dispatchers.IO) {
+        val urls = listOf(
+            "https://www.youtube.com/$channelHandle/playlists",
+            "https://www.youtube.com/channel/$channelId/playlists"
+        )
+
+        for (url in urls) {
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept-Language", "en-US,en;q=0.9,hi;q=0.8")
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@use
+                    val html = response.body?.string() ?: return@use
+                    val playlists = parsePlaylistsFromHtml(html, channelTitle)
+                    if (playlists.isNotEmpty()) {
+                        return@withContext playlists
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        emptyList()
+    }
+
+    private fun parsePlaylistsFromHtml(html: String, fallbackChannelTitle: String): List<com.example.data.model.YouTubePlaylist> {
+        val result = mutableListOf<com.example.data.model.YouTubePlaylist>()
+        val seenIds = mutableSetOf<String>()
+
+        // 1. Extract ytInitialData or parse page script tags
+        val plRegex = java.util.regex.Pattern.compile(
+            "\"playlistId\"\\s*:\\s*\"(PL[a-zA-Z0-9_-]+)\".*?\"title\"\\s*:\\s*\\{\\s*(?:\"runs\"\\s*:\\s*\\[\\s*\\{\\s*\"text\"\\s*:\\s*\"(.*?)\"|\"simpleText\"\\s*:\\s*\"(.*?)\")",
+            java.util.regex.Pattern.DOTALL
+        )
+        val plMatcher = plRegex.matcher(html)
+        while (plMatcher.find()) {
+            val playlistId = plMatcher.group(1) ?: continue
+            val rawTitle = plMatcher.group(2) ?: plMatcher.group(3) ?: ""
+            val title = rawTitle
+                .replace("\\u0026", "&")
+                .replace("\\\"", "\"")
+                .replace("\\n", " ")
+                .trim()
+            if (playlistId.isNotBlank() && title.isNotBlank() && seenIds.add(playlistId)) {
+                result.add(
+                    com.example.data.model.YouTubePlaylist(
+                        id = playlistId,
+                        title = title,
+                        channelTitle = fallbackChannelTitle,
+                        playlistUrl = "https://youtube.com/playlist?list=$playlistId",
+                        thumbnailUrl = "https://i.ytimg.com/vi/default/hqdefault.jpg"
+                    )
+                )
+            }
+        }
+
+        // 2. Lockup / modern YouTube renderer pattern
+        val lockupRegex = java.util.regex.Pattern.compile(
+            "\"contentId\"\\s*:\\s*\"(PL[a-zA-Z0-9_-]+)\".*?\"primaryText\"\\s*:\\s*\\{\\s*\"content\"\\s*:\\s*\"(.*?)\"",
+            java.util.regex.Pattern.DOTALL
+        )
+        val lockupMatcher = lockupRegex.matcher(html)
+        while (lockupMatcher.find()) {
+            val playlistId = lockupMatcher.group(1) ?: continue
+            val rawTitle = lockupMatcher.group(2) ?: ""
+            val title = rawTitle
+                .replace("\\u0026", "&")
+                .replace("\\\"", "\"")
+                .replace("\\n", " ")
+                .trim()
+            if (playlistId.isNotBlank() && title.isNotBlank() && seenIds.add(playlistId)) {
+                result.add(
+                    com.example.data.model.YouTubePlaylist(
+                        id = playlistId,
+                        title = title,
+                        channelTitle = fallbackChannelTitle,
+                        playlistUrl = "https://youtube.com/playlist?list=$playlistId",
+                        thumbnailUrl = "https://i.ytimg.com/vi/default/hqdefault.jpg"
+                    )
+                )
+            }
+        }
+
+        return result
+    }
+
     private fun fetchAndParseXml(url: String, defaultChannelId: String, defaultChannelTitle: String): List<YouTubeVideo> {
         val request = Request.Builder()
             .url(url)

@@ -38,7 +38,8 @@ class MainViewModel(
     val dedicatedNotesRepository: com.example.data.bible.repository.DedicatedNotesRepository,
     val lyricsRepository: com.example.data.bible.repository.LyricsRepository,
     val backupRepository: com.example.data.bible.repository.BackupRepository,
-    val syncCenterRepository: com.example.data.repository.SyncCenterRepository
+    val syncCenterRepository: com.example.data.repository.SyncCenterRepository,
+    val bibleRepository: com.example.data.bible.repository.BibleRepository
 ) : AndroidViewModel(application) {
 
     val settings: StateFlow<UserSettings> = preferencesManager.settings
@@ -87,6 +88,11 @@ class MainViewModel(
     val youtubeVideos: StateFlow<List<YouTubeVideo>> = youtubeRepository
         .getAllVideosFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Dynamic YouTube Playlists
+    val youtubePlaylists: StateFlow<List<YouTubePlaylist>> = youtubeRepository
+        .playlistsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PredefinedPlaylists.items)
 
     // YouTube Channel Default: AVJ Worship (MANDATORY REQUIREMENT)
     private val _selectedChannel = MutableStateFlow(PredefinedPlaylists.channelWorship)
@@ -469,7 +475,8 @@ class MainViewModel(
                 dedicatedNotesRepo,
                 lyricsRepo,
                 backupRepo,
-                syncCenterRepo
+                syncCenterRepo,
+                bibleRepo
             ) as T
         }
     }

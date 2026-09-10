@@ -29,7 +29,11 @@ class BibleRemoteDataSource(
     ): List<BibleVerseEntity>? = withContext(Dispatchers.IO) {
         val bollsTranslation = when (translationId) {
             BibleTranslation.HINDI_IRV.id -> "HIOV"
+            BibleTranslation.HINDI_BSI_OV.id -> "HIOV"
+            BibleTranslation.HINDI_ERV.id -> "HINERV"
+            BibleTranslation.HINDI_ULB.id -> "HINULB"
             BibleTranslation.ENGLISH_KJV.id -> "KJV"
+            BibleTranslation.ENGLISH_WEB.id -> "WEB"
             else -> "HIOV"
         }
 

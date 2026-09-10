@@ -101,10 +101,17 @@ class BackupRepository(
         val songArray = JSONArray()
         songs.forEach { s ->
             val obj = JSONObject()
+            obj.put("songNumber", s.songNumber)
             obj.put("title", s.title)
             obj.put("content", s.content)
             obj.put("artist", s.artist)
             obj.put("category", s.category)
+            obj.put("keyScale", s.keyScale)
+            obj.put("colorHex", s.colorHex)
+            obj.put("textColorHex", s.textColorHex)
+            obj.put("linkedReferences", s.linkedReferences)
+            obj.put("personalNotes", s.personalNotes)
+            obj.put("blogPostId", s.blogPostId)
             obj.put("isFavorite", s.isFavorite)
             obj.put("isUserCreated", s.isUserCreated)
             obj.put("createdAt", s.createdAt)
@@ -209,10 +216,17 @@ class BackupRepository(
                 for (i in 0 until songArray.length()) {
                     val obj = songArray.getJSONObject(i)
                     val song = ChristianSongEntity(
+                        songNumber = obj.optInt("songNumber", 0),
                         title = obj.optString("title", "Untitled"),
                         content = obj.optString("content", ""),
                         artist = obj.optString("artist", "Vinay Kumar AVJ"),
                         category = obj.optString("category", "Worship"),
+                        keyScale = obj.optString("keyScale", "D"),
+                        colorHex = obj.optString("colorHex", "#FFFBEB"),
+                        textColorHex = obj.optString("textColorHex", "#1E293B"),
+                        linkedReferences = obj.optString("linkedReferences", ""),
+                        personalNotes = obj.optString("personalNotes", ""),
+                        blogPostId = obj.optString("blogPostId", ""),
                         isFavorite = obj.optBoolean("isFavorite", true),
                         isUserCreated = obj.optBoolean("isUserCreated", true),
                         createdAt = obj.optLong("createdAt", System.currentTimeMillis()),

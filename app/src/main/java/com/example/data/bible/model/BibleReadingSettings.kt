@@ -17,7 +17,8 @@ enum class BibleTheme(val title: String) {
     SYSTEM("System Default"),
     LIGHT("Light (उजला)"),
     DARK("Dark (गहरा)"),
-    SEPIA("Sepia / Warm (सहज)")
+    SEPIA("Sepia / Warm (सहज)"),
+    AMOLED("OLED Black (शुद्ध काला)")
 }
 
 enum class ScreenTimeoutSetting(val titleHindi: String, val titleEnglish: String, val minutes: Int) {
@@ -50,5 +51,7 @@ data class BibleReadingSettings(
     val screenTimeoutMinutes: Int = 0, // 0 = system, -1 = keep screen on, >0 = minutes
     val theme: BibleTheme = BibleTheme.SYSTEM,
     val rememberLastReadingPosition: Boolean = true,
-    val selectedTranslationId: String = BibleTranslation.HINDI_IRV.id
+    val selectedTranslationId: String = BibleTranslation.HINDI_IRV.id,
+    val useSerifFont: Boolean = false,
+    val originalFormatMode: Boolean = false
 )

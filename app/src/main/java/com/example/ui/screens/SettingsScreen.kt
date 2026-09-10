@@ -218,7 +218,7 @@ fun SettingsScreen(
 
             // 3. YouTube Default Tab (Requirement 17)
             item {
-                SettingsSectionHeader(title = "YOUTUBE DEFAULT CHANNEL / TAB", icon = Icons.Default.PlayCircle)
+                SettingsSectionHeader(title = "डिफ़ॉल्ट यूट्यूब चैनल / टैब (DEFAULT YOUTUBE TAB)", icon = Icons.Default.PlayCircle)
             }
 
             item {
@@ -230,27 +230,45 @@ fun SettingsScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "ऐप में YouTube स्क्रीन खोलते समय कौन सा चैनल पहले दिखेगा:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             FilterChip(
+                                selected = settings.youtubeDefaultTab == YouTubeDefaultTab.ALL,
+                                onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.ALL) },
+                                label = { Text("All Channels") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
                                 selected = settings.youtubeDefaultTab == YouTubeDefaultTab.AVJ_WORSHIP,
                                 onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.AVJ_WORSHIP) },
-                                label = { Text("AVJ Worship") },
-                                modifier = Modifier.weight(1.2f)
+                                label = { Text("Worship") },
+                                modifier = Modifier.weight(1f)
                             )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             FilterChip(
                                 selected = settings.youtubeDefaultTab == YouTubeDefaultTab.VINAY_KUMAR_AVJ,
                                 onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.VINAY_KUMAR_AVJ) },
-                                label = { Text("Vinay Kumar") },
-                                modifier = Modifier.weight(1.2f)
+                                label = { Text("Vinay Kumar AVJ") },
+                                modifier = Modifier.weight(1f)
                             )
                             FilterChip(
-                                selected = settings.youtubeDefaultTab == YouTubeDefaultTab.ALL,
-                                onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.ALL) },
-                                label = { Text("ALL") },
-                                modifier = Modifier.weight(0.8f)
+                                selected = settings.youtubeDefaultTab == YouTubeDefaultTab.NEW_CREATION_CHURCH,
+                                onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.NEW_CREATION_CHURCH) },
+                                label = { Text("New Creation Church") },
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }

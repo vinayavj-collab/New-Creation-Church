@@ -52,8 +52,9 @@ class SyncCenterRepository(
             val nowYT = System.currentTimeMillis()
             prefs.edit().putLong("last_youtube_sync", nowYT).apply()
 
-            // 3. Init Lyrics if needed
+            // 3. Init Lyrics & fetch new blog lyrics
             lyricsRepository.initializePreloadedLyrics()
+            lyricsRepository.fetchAndSyncLyricsFromBlogs()
             val nowLyrics = System.currentTimeMillis()
             prefs.edit().putLong("last_lyrics_sync", nowLyrics).apply()
 

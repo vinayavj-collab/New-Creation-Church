@@ -123,4 +123,13 @@ object PredefinedPlaylists {
         description = "Worship songs, Hindi Masih Geet, Sadri Christian songs, praises and spiritual melodies.",
         avatarUrl = "https://yt3.googleusercontent.com/ytc/AIdro_k..."
     )
+
+    val channelNewCreationChurch = YouTubeChannelInfo(
+        id = "UCK4HLm9WeAILv2CfPU9nCmw",
+        name = "New Creation Church",
+        handle = "@newcreationchurchministry51015",
+        channelUrl = "https://youtube.com/@newcreationchurchministry51015",
+        description = "Official channel of New Creation Church Ministry featuring Sermons, Prayers, Worship & Fellowship Services.",
+        avatarUrl = "https://yt3.googleusercontent.com/ytc/AIdro_k..."
+    )
 }

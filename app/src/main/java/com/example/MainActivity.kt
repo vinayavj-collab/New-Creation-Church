@@ -218,6 +218,7 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
                                 onViewAllPosts = { currentDestination = MainDestination.BLOGS },
                                 onViewAllVideos = { currentDestination = MainDestination.YOUTUBE },
                                 onViewGallery = { currentDestination = MainDestination.PHOTOS },
+                                onSongBookClick = { currentRoute = AppRoute.Lyrics },
                                 onReadVerse = { bId, chap, verseNum ->
                                     currentRoute = AppRoute.BibleReader(bId, chap, verseNum)
                                 }
@@ -431,6 +432,7 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
         is AppRoute.DedicatedNotes -> {
             DedicatedNotesScreen(
                 notesRepository = viewModel.dedicatedNotesRepository,
+                bibleRepository = viewModel.bibleRepository,
                 onBackClick = { currentRoute = AppRoute.Main },
                 onOpenVerse = { bId, ch, v -> currentRoute = AppRoute.BibleReader(bId, ch, v) }
             )
@@ -439,7 +441,9 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
         is AppRoute.Lyrics -> {
             LyricsScreen(
                 lyricsRepository = viewModel.lyricsRepository,
-                onBackClick = { currentRoute = AppRoute.Main }
+                bibleRepository = viewModel.bibleRepository,
+                onBackClick = { currentRoute = AppRoute.Main },
+                onOpenVerse = { bId, ch, v -> currentRoute = AppRoute.BibleReader(bId, ch, v) }
             )
         }
 

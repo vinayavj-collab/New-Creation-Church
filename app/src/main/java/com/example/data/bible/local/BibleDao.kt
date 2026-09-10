@@ -160,15 +160,18 @@ interface BibleDao {
     @Query("SELECT * FROM dedicated_notes WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%'")
     fun searchDedicatedNotes(query: String): Flow<List<DedicatedNoteEntity>>
 
-    // Christian Songs / Lyrics
-    @Query("SELECT * FROM christian_songs ORDER BY title ASC")
+    // Christian Songs / Song Book
+    @Query("SELECT * FROM christian_songs ORDER BY CASE WHEN songNumber > 0 THEN songNumber ELSE 99999 END ASC, title ASC")
     fun getAllSongs(): Flow<List<ChristianSongEntity>>
 
-    @Query("SELECT * FROM christian_songs WHERE isFavorite = 1 ORDER BY title ASC")
+    @Query("SELECT * FROM christian_songs WHERE isFavorite = 1 ORDER BY CASE WHEN songNumber > 0 THEN songNumber ELSE 99999 END ASC, title ASC")
     fun getFavoriteSongs(): Flow<List<ChristianSongEntity>>
 
     @Query("SELECT * FROM christian_songs WHERE id = :id LIMIT 1")
     suspend fun getSongById(id: Long): ChristianSongEntity?
+
+    @Query("SELECT * FROM christian_songs WHERE songNumber = :number LIMIT 1")
+    suspend fun getSongByNumber(number: Int): ChristianSongEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(song: ChristianSongEntity): Long
@@ -182,8 +185,11 @@ interface BibleDao {
     @Query("DELETE FROM christian_songs WHERE id = :id")
     suspend fun deleteSongById(id: Long)
 
-    @Query("SELECT * FROM christian_songs WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%' OR artist LIKE '%' || :query || '%'")
+    @Query("SELECT * FROM christian_songs WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%' OR artist LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%' OR CAST(songNumber AS TEXT) = :query")
     fun searchSongs(query: String): Flow<List<ChristianSongEntity>>
+
+    @Query("SELECT MAX(songNumber) FROM christian_songs")
+    suspend fun getMaxSongNumber(): Int?
 
     @Query("SELECT COUNT(*) FROM christian_songs")
     suspend fun getSongCount(): Int

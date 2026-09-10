@@ -35,6 +35,7 @@ fun BibleSettingsDialog(
     onShowVerseNumbersChange: (Boolean) -> Unit,
     onShowSubheadingsChange: (Boolean) -> Unit = {},
     onShowParagraphAndIndentsChange: (Boolean) -> Unit = {},
+    onOriginalFormatModeChange: (Boolean) -> Unit = {},
     onShowJesusWordsInRedChange: (Boolean) -> Unit = {},
     onJesusWordsColorChange: (String) -> Unit = {},
     onShowFavoritesHintChange: (Boolean) -> Unit = {},
@@ -136,13 +137,15 @@ fun BibleSettingsDialog(
 
                     // Translation selector
                     Text(
-                        text = "अनुवाद (Translation)",
+                        text = "अनुवाद चुनें (Select Translation)",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Row(
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         BibleTranslation.ALL.forEach { translation ->
                             val isSelected = selectedTranslation.id == translation.id
@@ -153,8 +156,12 @@ fun BibleSettingsDialog(
                                     Text(
                                         when (translation.id) {
                                             BibleTranslation.HINDI_IRV.id -> "हिन्दी (IRV)"
+                                            BibleTranslation.HINDI_BSI_OV.id -> "हिन्दी (BSI Old)"
+                                            BibleTranslation.HINDI_ERV.id -> "हिन्दी (ERV सरल)"
+                                            BibleTranslation.HINDI_ULB.id -> "हिन्दी (ULB मूलनिष्ठ)"
                                             BibleTranslation.ENGLISH_KJV.id -> "English (KJV)"
-                                            else -> "एक साथ (HI + EN)"
+                                            BibleTranslation.ENGLISH_WEB.id -> "English (WEB)"
+                                            else -> "एक साथ (HI+EN)"
                                         },
                                         fontSize = 11.sp
                                     )
@@ -279,6 +286,14 @@ fun BibleSettingsDialog(
 
                     // SECTION 2: SHOW IN BIBLE WINDOW OPTIONS (Version 1.4 Toggles)
                     SettingsSectionHeader("बाइबल विंडो विकल्प (Bible Window Options)")
+
+                    // Original Format Mode Option
+                    SettingsToggleRow(
+                        title = "मूल मुद्रित प्रारूप (Original Print Format)",
+                        subtitle = "पारंपरिक प्रिंटेड बाइबिल की तरह सेरिफ़ फॉन्ट, समरेखण एवं पैराग्राफ प्रवाह",
+                        checked = settings.originalFormatMode,
+                        onCheckedChange = onOriginalFormatModeChange
+                    )
 
                     // Subheadings Option
                     SettingsToggleRow(

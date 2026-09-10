@@ -135,10 +135,17 @@ data class DedicatedNoteEntity(
 data class ChristianSongEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val songNumber: Int = 0,
     val title: String,
     val content: String,
     val artist: String = "Vinay Kumar AVJ",
     val category: String = "Hindi Worship",
+    val keyScale: String = "D",
+    val colorHex: String = "#FFFBEB",
+    val textColorHex: String = "#1E293B",
+    val linkedReferences: String = "",
+    val personalNotes: String = "",
+    val blogPostId: String = "",
     val isFavorite: Boolean = false,
     val isUserCreated: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),

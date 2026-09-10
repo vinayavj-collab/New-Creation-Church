@@ -397,6 +397,25 @@ class BibleViewModel(
         _readingSettings.value = _readingSettings.value.copy(theme = theme)
     }
 
+    fun toggleSerifFont(useSerif: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(useSerifFont = useSerif)
+    }
+
+    fun toggleOriginalFormatMode(enabled: Boolean) {
+        if (enabled) {
+            _readingSettings.value = _readingSettings.value.copy(
+                originalFormatMode = true,
+                useSerifFont = true,
+                justifyBibleText = true,
+                showParagraphAndIndents = true
+            )
+        } else {
+            _readingSettings.value = _readingSettings.value.copy(
+                originalFormatMode = false
+            )
+        }
+    }
+
     fun toggleRememberPosition(remember: Boolean) {
         _readingSettings.value = _readingSettings.value.copy(rememberLastReadingPosition = remember)
     }

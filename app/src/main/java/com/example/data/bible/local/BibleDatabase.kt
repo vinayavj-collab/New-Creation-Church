@@ -18,7 +18,7 @@ import androidx.room.RoomDatabase
         DedicatedNoteEntity::class,
         ChristianSongEntity::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 abstract class BibleDatabase : RoomDatabase() {

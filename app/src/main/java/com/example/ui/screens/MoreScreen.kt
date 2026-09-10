@@ -99,9 +99,9 @@ fun MoreScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
 
                         SettingsClickableRow(
-                            title = "Christian Songs & Lyrics",
-                            subtitle = "Hindi, Sadri & English Worship Lyrics & Chords",
-                            icon = Icons.Default.MusicNote,
+                            title = "हिंदी मसीही गीत पुस्तक (Song Book)",
+                            subtitle = "गीत संख्या, वर्णमाला इंडेक्स, सर्च व नए गीत जोड़ें",
+                            icon = Icons.Default.LibraryMusic,
                             onClick = onLyricsClick
                         )
 

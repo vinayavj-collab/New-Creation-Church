@@ -19,9 +19,10 @@ enum class BibleReadingStyle(val displayName: String) {
 }
 
 enum class YouTubeDefaultTab(val displayName: String) {
-    AVJ_WORSHIP("AVJ Worship (Default)"),
+    ALL("All Channels (सभी चैनल)"),
+    AVJ_WORSHIP("Vinay Kumar AVJ Worship (Worship)"),
     VINAY_KUMAR_AVJ("Vinay Kumar AVJ"),
-    ALL("All Videos")
+    NEW_CREATION_CHURCH("New Creation Church")
 }
 
 enum class HomeSectionType(val id: String, val defaultTitle: String) {

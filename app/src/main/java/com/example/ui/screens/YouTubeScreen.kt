@@ -2,12 +2,15 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,7 +18,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Subscriptions
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -43,7 +48,8 @@ import com.example.ui.viewmodel.MainViewModel
 enum class YouTubeTabFilter {
     ALL,
     AVJ_WORSHIP,
-    VINAY_KUMAR_AVJ
+    VINAY_KUMAR_AVJ,
+    NEW_CREATION_CHURCH
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,13 +65,14 @@ fun YouTubeScreen(
     val allVideos by viewModel.youtubeVideos.collectAsState()
     val settings by viewModel.settings.collectAsState()
 
-    // Default tab comes from user settings (defaulting to AVJ Worship or ALL)
+    // Default tab comes from user settings (defaulting to AVJ Worship or ALL or user preference)
     var selectedTab by remember {
         mutableStateOf(
             when (settings.youtubeDefaultTab) {
                 YouTubeDefaultTab.ALL -> YouTubeTabFilter.ALL
-                YouTubeDefaultTab.VINAY_KUMAR_AVJ -> YouTubeTabFilter.VINAY_KUMAR_AVJ
                 YouTubeDefaultTab.AVJ_WORSHIP -> YouTubeTabFilter.AVJ_WORSHIP
+                YouTubeDefaultTab.VINAY_KUMAR_AVJ -> YouTubeTabFilter.VINAY_KUMAR_AVJ
+                YouTubeDefaultTab.NEW_CREATION_CHURCH -> YouTubeTabFilter.NEW_CREATION_CHURCH
             }
         )
     }
@@ -77,11 +84,21 @@ fun YouTubeScreen(
             YouTubeTabFilter.ALL -> sortedAll
             YouTubeTabFilter.AVJ_WORSHIP -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelWorship.id }.ifEmpty { sortedAll }
             YouTubeTabFilter.VINAY_KUMAR_AVJ -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelMain.id }.ifEmpty { sortedAll }
+            YouTubeTabFilter.NEW_CREATION_CHURCH -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }.ifEmpty { sortedAll }
         }
     }
 
-    val latestVideos = displayVideos.take(12)
-    val playlists = PredefinedPlaylists.items
+    val latestVideos = displayVideos.take(16)
+    val allPlaylists by viewModel.youtubePlaylists.collectAsState()
+
+    val playlists = remember(allPlaylists, selectedTab) {
+        when (selectedTab) {
+            YouTubeTabFilter.ALL -> allPlaylists
+            YouTubeTabFilter.AVJ_WORSHIP -> allPlaylists.filter { it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
+            YouTubeTabFilter.VINAY_KUMAR_AVJ -> allPlaylists.filter { it.channelTitle.contains("Vinay Kumar", ignoreCase = true) && !it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
+            YouTubeTabFilter.NEW_CREATION_CHURCH -> allPlaylists.filter { it.channelTitle.contains("Creation", ignoreCase = true) }.ifEmpty { allPlaylists }
+        }
+    }
 
     val openChannelInYouTube = { channelUrl: String ->
         try {
@@ -91,6 +108,8 @@ fun YouTubeScreen(
             // ignore
         }
     }
+
+    var showDefaultChannelDialog by remember { mutableStateOf(false) }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -103,31 +122,46 @@ fun YouTubeScreen(
         ) {
             // Header
             item {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "YouTube Channels & Media",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "YouTube Channels & Media",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
-                    Text(
-                        text = "Worship Songs, Sermons, Gospel & Fellowship Videos",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Text(
+                            text = "Worship Songs, Sermons, Gospel & Fellowship Videos",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
-                    )
+                    }
+
+                    OutlinedButton(
+                        onClick = { showDefaultChannelDialog = true },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("डिफ़ॉल्ट चैनल", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
 
-            // Segmented Tab Filter: ALL | AVJ WORSHIP | VINAY KUMAR AVJ
+            // Segmented Tab Filter: ALL | AVJ WORSHIP | VINAY KUMAR AVJ | NEW CREATION CHURCH
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -143,8 +177,7 @@ fun YouTubeScreen(
                         },
                         leadingIcon = if (selectedTab == YouTubeTabFilter.ALL) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null,
-                        modifier = Modifier.weight(1f)
+                        } else null
                     )
 
                     // AVJ Worship Tab
@@ -153,14 +186,13 @@ fun YouTubeScreen(
                         onClick = { selectedTab = YouTubeTabFilter.AVJ_WORSHIP },
                         label = {
                             Text(
-                                text = "AVJ Worship",
+                                text = "Worship",
                                 fontWeight = if (selectedTab == YouTubeTabFilter.AVJ_WORSHIP) FontWeight.Bold else FontWeight.Normal
                             )
                         },
                         leadingIcon = if (selectedTab == YouTubeTabFilter.AVJ_WORSHIP) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null,
-                        modifier = Modifier.weight(1.3f)
+                        } else null
                     )
 
                     // Vinay Kumar AVJ Tab
@@ -169,14 +201,28 @@ fun YouTubeScreen(
                         onClick = { selectedTab = YouTubeTabFilter.VINAY_KUMAR_AVJ },
                         label = {
                             Text(
-                                text = "Vinay Kumar",
+                                text = "Vinay Kumar AVJ",
                                 fontWeight = if (selectedTab == YouTubeTabFilter.VINAY_KUMAR_AVJ) FontWeight.Bold else FontWeight.Normal
                             )
                         },
                         leadingIcon = if (selectedTab == YouTubeTabFilter.VINAY_KUMAR_AVJ) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null,
-                        modifier = Modifier.weight(1.3f)
+                        } else null
+                    )
+
+                    // New Creation Church Tab
+                    FilterChip(
+                        selected = selectedTab == YouTubeTabFilter.NEW_CREATION_CHURCH,
+                        onClick = { selectedTab = YouTubeTabFilter.NEW_CREATION_CHURCH },
+                        label = {
+                            Text(
+                                text = "New Creation Church",
+                                fontWeight = if (selectedTab == YouTubeTabFilter.NEW_CREATION_CHURCH) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = if (selectedTab == YouTubeTabFilter.NEW_CREATION_CHURCH) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null
                     )
                 }
             }
@@ -187,6 +233,7 @@ fun YouTubeScreen(
                     YouTubeTabFilter.ALL -> null
                     YouTubeTabFilter.AVJ_WORSHIP -> PredefinedPlaylists.channelWorship
                     YouTubeTabFilter.VINAY_KUMAR_AVJ -> PredefinedPlaylists.channelMain
+                    YouTubeTabFilter.NEW_CREATION_CHURCH -> PredefinedPlaylists.channelNewCreationChurch
                 }
 
                 if (currentInfo != null) {
@@ -215,10 +262,15 @@ fun YouTubeScreen(
                                         .background(NavyPrimary),
                                     contentAlignment = Alignment.Center
                                 ) {
+                                    val initials = when (selectedTab) {
+                                        YouTubeTabFilter.AVJ_WORSHIP -> "AVJ"
+                                        YouTubeTabFilter.NEW_CREATION_CHURCH -> "NCC"
+                                        else -> "VK"
+                                    }
                                     Text(
-                                        text = if (selectedTab == YouTubeTabFilter.AVJ_WORSHIP) "AVJ" else "VK",
+                                        text = initials,
                                         color = GoldWarm,
-                                        fontSize = 18.sp,
+                                        fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -295,7 +347,7 @@ fun YouTubeScreen(
             // Section: Latest Videos (Newest -> Oldest)
             item {
                 SectionHeader(
-                    title = if (selectedTab == YouTubeTabFilter.ALL) "ALL VIDEOS (NEWEST FIRST)" else "LATEST VIDEOS",
+                    title = if (selectedTab == YouTubeTabFilter.ALL) "ALL VIDEOS (NEWEST FIRST / सभी वीडियो समय अनुसार)" else "LATEST VIDEOS",
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -347,6 +399,79 @@ fun YouTubeScreen(
                 }
             }
         }
+    }
+
+    // Default Channel Picker Dialog
+    if (showDefaultChannelDialog) {
+        AlertDialog(
+            onDismissRequest = { showDefaultChannelDialog = false },
+            icon = { Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("डिफ़ॉल्ट चैनल चुनें (Default Channel)") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "जब भी आप YouTube टैब खोलेंगे, तो कौन सा चैनल सबसे पहले खुलेगा:",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    listOf(
+                        YouTubeDefaultTab.ALL to "All Channels (सभी वीडियो समय अनुसार)",
+                        YouTubeDefaultTab.AVJ_WORSHIP to "AVJ Worship (आराधना गीत)",
+                        YouTubeDefaultTab.VINAY_KUMAR_AVJ to "Vinay Kumar AVJ (मुख्य चैनल / प्रचार)",
+                        YouTubeDefaultTab.NEW_CREATION_CHURCH to "New Creation Church (चर्च मिनिस्ट्री)"
+                    ).forEach { (tabOption, labelText) ->
+                        val isSelected = settings.youtubeDefaultTab == tabOption
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.updateYouTubeDefaultTab(tabOption)
+                                    selectedTab = when (tabOption) {
+                                        YouTubeDefaultTab.ALL -> YouTubeTabFilter.ALL
+                                        YouTubeDefaultTab.AVJ_WORSHIP -> YouTubeTabFilter.AVJ_WORSHIP
+                                        YouTubeDefaultTab.VINAY_KUMAR_AVJ -> YouTubeTabFilter.VINAY_KUMAR_AVJ
+                                        YouTubeDefaultTab.NEW_CREATION_CHURCH -> YouTubeTabFilter.NEW_CREATION_CHURCH
+                                    }
+                                    showDefaultChannelDialog = false
+                                    Toast.makeText(context, "डिफ़ॉल्ट चैनल सेट किया गया", Toast.LENGTH_SHORT).show()
+                                },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = {
+                                        viewModel.updateYouTubeDefaultTab(tabOption)
+                                        selectedTab = when (tabOption) {
+                                            YouTubeDefaultTab.ALL -> YouTubeTabFilter.ALL
+                                            YouTubeDefaultTab.AVJ_WORSHIP -> YouTubeTabFilter.AVJ_WORSHIP
+                                            YouTubeDefaultTab.VINAY_KUMAR_AVJ -> YouTubeTabFilter.VINAY_KUMAR_AVJ
+                                            YouTubeDefaultTab.NEW_CREATION_CHURCH -> YouTubeTabFilter.NEW_CREATION_CHURCH
+                                        }
+                                        showDefaultChannelDialog = false
+                                        Toast.makeText(context, "डिफ़ॉल्ट चैनल सेट किया गया", Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = labelText,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDefaultChannelDialog = false }) {
+                    Text("बंद करें")
+                }
+            }
+        )
     }
 }
 

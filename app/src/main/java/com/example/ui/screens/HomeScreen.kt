@@ -48,6 +48,7 @@ fun HomeScreen(
     onViewAllVideos: () -> Unit,
     onViewGallery: () -> Unit,
     onReadVerse: ((bookId: Int, chapter: Int, verse: Int) -> Unit)? = null,
+    onSongBookClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -62,8 +63,11 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isOffline by viewModel.isOffline.collectAsState()
     val strings = appStrings()
+    val allPlaylists by viewModel.youtubePlaylists.collectAsState()
 
-    val featuredPlaylists = PredefinedPlaylists.items.take(4)
+    val featuredPlaylists = remember(allPlaylists) {
+        allPlaylists.take(6)
+    }
     val previewPhotos = galleryPhotos.take(6)
 
     // Today's verse
@@ -109,6 +113,15 @@ fun HomeScreen(
                                 selected = false,
                                 onClick = onUpcomingEventsClick,
                                 label = { Text("${strings.chipEvents} (${upcomingEvents.size})", fontWeight = FontWeight.SemiBold) }
+                            )
+                        }
+                    }
+                    if (onSongBookClick != null) {
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = onSongBookClick,
+                                label = { Text("🎵 गीत पुस्तक", fontWeight = FontWeight.SemiBold) }
                             )
                         }
                     }

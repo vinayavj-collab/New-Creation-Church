@@ -125,20 +125,14 @@ fun BibleHomeScreen(
                 ) {
                     AssistChip(
                         onClick = {
-                            val next = when (selectedTranslation.id) {
-                                com.example.data.bible.model.BibleTranslation.HINDI_IRV.id -> com.example.data.bible.model.BibleTranslation.ENGLISH_KJV
-                                com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id -> com.example.data.bible.model.BibleTranslation.PARALLEL_HI_EN
-                                else -> com.example.data.bible.model.BibleTranslation.HINDI_IRV
-                            }
-                            viewModel.selectTranslation(next)
+                            val all = com.example.data.bible.model.BibleTranslation.ALL
+                            val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
+                            val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
+                            viewModel.selectTranslation(all[nextIndex])
                         },
                         label = {
                             Text(
-                                text = when (selectedTranslation.id) {
-                                    com.example.data.bible.model.BibleTranslation.HINDI_IRV.id -> "📖 हिन्दी"
-                                    com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id -> "📖 English"
-                                    else -> "📖 एक साथ (HI+EN)"
-                                },
+                                text = "📖 ${selectedTranslation.nameHindi}",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         },
