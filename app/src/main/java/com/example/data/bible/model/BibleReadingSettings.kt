@@ -96,6 +96,6 @@ data class BibleReadingSettings(
     // Version 21 & 22 Settings
     val showTodaysScriptureOnHome: Boolean = false, // By default hidden on Bible main navigation page
     val showActivatedPlansOnHome: Boolean = true, // Show activated plans on Bible main navigation page
-    val activatedPlanIds: Set<String> = setOf("gospels_30"), // Set of activated reading plan IDs
+    val activatedPlanIds: Set<String> = emptySet(), // Set of activated reading plan IDs
     val manualPlansJson: String = "" // Serialized manual reading plans
 )

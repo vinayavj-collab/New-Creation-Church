@@ -47,6 +47,8 @@ class MainViewModel(
     val appUpdateManager = com.example.util.AppUpdateManager.getInstance(application)
     val updateState = appUpdateManager.updateState
 
+    val welcomeSpeechManager = com.example.util.WelcomeSpeechManager.getInstance(application)
+
     init {
         viewModelScope.launch {
             appUpdateManager.checkForUpdates(force = false)
@@ -487,6 +489,35 @@ class MainViewModel(
     fun updateGitHubRepoPath(newPath: String) {
         appUpdateManager.updateCustomRepoPath(newPath)
     }
+
+    fun triggerWelcomeSpeechOnLaunch() {
+        val s = settings.value
+        val todayVerse = com.example.data.bible.model.VerseOfTheDay.getTodayVerse()
+        welcomeSpeechManager.speakOnAppOpen(
+            userName = s.userName,
+            enableWelcomeSpeech = s.enableWelcomeSpeech,
+            enableVerseSpeech = s.enableVerseSpeechOnLaunch,
+            welcomeOncePerDay = s.welcomeSpeechOncePerDay,
+            verseOncePerDay = s.verseSpeechOncePerDay,
+            todaysVerseText = "${todayVerse.referenceHindi} - ${todayVerse.textHindi}"
+        )
+    }
+
+    fun testWelcomeSpeech() {
+        val s = settings.value
+        val todayVerse = com.example.data.bible.model.VerseOfTheDay.getTodayVerse()
+        welcomeSpeechManager.testSpeech(
+            userName = s.userName,
+            todaysVerseText = "${todayVerse.referenceHindi} - ${todayVerse.textHindi}"
+        )
+    }
+
+    fun updateUserName(name: String) = preferencesManager.updateUserName(name)
+    fun updateEnableWelcomeSpeech(enabled: Boolean) = preferencesManager.updateEnableWelcomeSpeech(enabled)
+    fun updateEnableVerseSpeechOnLaunch(enabled: Boolean) = preferencesManager.updateEnableVerseSpeechOnLaunch(enabled)
+    fun updateWelcomeSpeechOncePerDay(oncePerDay: Boolean) = preferencesManager.updateWelcomeSpeechOncePerDay(oncePerDay)
+    fun updateVerseSpeechOncePerDay(oncePerDay: Boolean) = preferencesManager.updateVerseSpeechOncePerDay(oncePerDay)
+    fun updateWelcomeDialogDismissed(dismissed: Boolean) = preferencesManager.updateWelcomeDialogDismissed(dismissed)
 
     class Factory(private val app: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")

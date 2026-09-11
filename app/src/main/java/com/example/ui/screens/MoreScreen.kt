@@ -354,6 +354,12 @@ fun MoreScreen(
                     }
                 }
             }
+
+            // Section 6: App Updates (Moved to bottom of More screen)
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                com.example.ui.components.AppUpdateSection(viewModel = viewModel)
+            }
         }
     }
 }

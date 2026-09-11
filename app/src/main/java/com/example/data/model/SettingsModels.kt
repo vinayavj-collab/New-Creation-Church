@@ -92,9 +92,16 @@ data class UserSettings(
     val bloggerPhotoLayout: BloggerPhotoLayout = BloggerPhotoLayout.GRID_2,
     val lastReadPostId: String? = null,
     val navTabsOrder: List<String> = listOf("HOME", "BLOGS", "YOUTUBE", "FOURTH_TAB", "MORE"),
-    val activePlanIds: Set<String> = setOf("gospels_30"),
+    val activePlanIds: Set<String> = emptySet(),
     val planBehindColorHex: String = "#EF4444",   // Red for behind schedule
     val planOnTrackColorHex: String = "#EAB308",  // Yellow for on track
-    val planCompletedColorHex: String = "#10B981" // Green for daily completed
+    val planCompletedColorHex: String = "#10B981", // Green for daily completed
+    // Welcome Customization & TTS Settings
+    val userName: String = "",
+    val enableWelcomeSpeech: Boolean = true,
+    val enableVerseSpeechOnLaunch: Boolean = true,
+    val welcomeSpeechOncePerDay: Boolean = true,
+    val verseSpeechOncePerDay: Boolean = true,
+    val welcomeDialogDismissed: Boolean = false
 )
 

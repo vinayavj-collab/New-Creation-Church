@@ -108,7 +108,7 @@ class PreferencesManager(context: Context) {
         val navOrderStr = prefs.getString("nav_tabs_order", "HOME,BLOGS,YOUTUBE,FOURTH_TAB,MORE") ?: "HOME,BLOGS,YOUTUBE,FOURTH_TAB,MORE"
         val navTabsOrder = navOrderStr.split(",").filter { it.isNotBlank() }
 
-        val activePlans = prefs.getStringSet("active_plan_ids", setOf("gospels_30")) ?: setOf("gospels_30")
+        val activePlans = prefs.getStringSet("active_plan_ids", emptySet()) ?: emptySet()
         val behindColor = prefs.getString("plan_behind_color", "#EF4444") ?: "#EF4444"
         val onTrackColor = prefs.getString("plan_ontrack_color", "#EAB308") ?: "#EAB308"
         val completedColor = prefs.getString("plan_completed_color", "#10B981") ?: "#10B981"
@@ -140,7 +140,13 @@ class PreferencesManager(context: Context) {
             activePlanIds = activePlans,
             planBehindColorHex = behindColor,
             planOnTrackColorHex = onTrackColor,
-            planCompletedColorHex = completedColor
+            planCompletedColorHex = completedColor,
+            userName = prefs.getString("user_name", "") ?: "",
+            enableWelcomeSpeech = prefs.getBoolean("enable_welcome_speech", true),
+            enableVerseSpeechOnLaunch = prefs.getBoolean("enable_verse_speech_launch", true),
+            welcomeSpeechOncePerDay = prefs.getBoolean("welcome_speech_once_day", true),
+            verseSpeechOncePerDay = prefs.getBoolean("verse_speech_once_day", true),
+            welcomeDialogDismissed = prefs.getBoolean("welcome_dialog_dismissed", false)
         )
     }
 
@@ -284,6 +290,36 @@ class PreferencesManager(context: Context) {
             planOnTrackColorHex = onTrackHex,
             planCompletedColorHex = completedHex
         )
+    }
+
+    fun updateUserName(name: String) {
+        prefs.edit().putString("user_name", name.trim()).apply()
+        _settings.value = _settings.value.copy(userName = name.trim())
+    }
+
+    fun updateEnableWelcomeSpeech(enabled: Boolean) {
+        prefs.edit().putBoolean("enable_welcome_speech", enabled).apply()
+        _settings.value = _settings.value.copy(enableWelcomeSpeech = enabled)
+    }
+
+    fun updateEnableVerseSpeechOnLaunch(enabled: Boolean) {
+        prefs.edit().putBoolean("enable_verse_speech_launch", enabled).apply()
+        _settings.value = _settings.value.copy(enableVerseSpeechOnLaunch = enabled)
+    }
+
+    fun updateWelcomeSpeechOncePerDay(oncePerDay: Boolean) {
+        prefs.edit().putBoolean("welcome_speech_once_day", oncePerDay).apply()
+        _settings.value = _settings.value.copy(welcomeSpeechOncePerDay = oncePerDay)
+    }
+
+    fun updateVerseSpeechOncePerDay(oncePerDay: Boolean) {
+        prefs.edit().putBoolean("verse_speech_once_day", oncePerDay).apply()
+        _settings.value = _settings.value.copy(verseSpeechOncePerDay = oncePerDay)
+    }
+
+    fun updateWelcomeDialogDismissed(dismissed: Boolean) {
+        prefs.edit().putBoolean("welcome_dialog_dismissed", dismissed).apply()
+        _settings.value = _settings.value.copy(welcomeDialogDismissed = dismissed)
     }
 }
 

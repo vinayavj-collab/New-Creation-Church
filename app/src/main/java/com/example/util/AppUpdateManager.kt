@@ -25,8 +25,8 @@ import java.util.Date
 import java.util.Locale
 
 data class AppUpdateState(
-    val repoPath: String = "vinayavj000/VinayKumarAVJ",
-    val apiUrl: String = "https://api.github.com/repos/vinayavj000/VinayKumarAVJ/releases/latest",
+    val repoPath: String = "vinayavj-collab/New-Creation-Church",
+    val apiUrl: String = "https://api.github.com/repos/vinayavj-collab/New-Creation-Church/releases/latest",
     val currentVersionCode: Int = BuildConfig.VERSION_CODE,
     val currentVersionName: String = BuildConfig.VERSION_NAME,
     val latestVersionCode: Int = 0,
@@ -74,41 +74,12 @@ class AppUpdateManager private constructor(private val context: Context) {
         }
 
         fun detectGitHubRepo(context: Context): String {
-            // 1. SharedPreferences saved override if any
-            val prefs = context.getSharedPreferences("app_update_prefs", Context.MODE_PRIVATE)
-            val savedRepo = prefs.getString("custom_github_repo", null)
-            if (!savedRepo.isNullOrBlank()) {
-                return savedRepo.trim()
-            }
-
-            // 2. Try parsing .git/config if present in project workspace
-            try {
-                val gitConfigFile = File(".git/config")
-                if (gitConfigFile.exists()) {
-                    val content = gitConfigFile.readText()
-                    val match = Regex("""url\s*=\s*.*github\.com[/:]([^/\s]+\/[^\s\.]+)(?:\.git)?""").find(content)
-                    if (match != null) {
-                        val repo = match.groupValues[1].trim()
-                        if (repo.isNotBlank()) return repo
-                    }
-                }
-            } catch (e: Exception) {
-                Log.d("AppUpdateManager", "No .git/config found: ${e.message}")
-            }
-
-            // 3. Environment variable GITHUB_REPOSITORY
-            val envRepo = System.getenv("GITHUB_REPOSITORY")
-            if (!envRepo.isNullOrBlank()) {
-                return envRepo.trim()
-            }
-
-            // 4. Default repository for Vinay Kumar AVJ App
-            return "vinayavj000/VinayKumarAVJ"
+            return "vinayavj-collab/New-Creation-Church"
         }
     }
 
     private fun loadCachedState(): AppUpdateState {
-        val repoPath = prefs.getString("repo_path", detectGitHubRepo(context)) ?: "vinayavj000/VinayKumarAVJ"
+        val repoPath = "vinayavj-collab/New-Creation-Church"
         val apiUrl = "https://api.github.com/repos/$repoPath/releases/latest"
         val lastChecked = prefs.getLong("last_checked", 0L)
         val latestCode = prefs.getInt("latest_code", 0)

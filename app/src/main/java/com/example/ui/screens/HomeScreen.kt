@@ -73,6 +73,26 @@ fun HomeScreen(
     // Today's verse
     val todaysVerse = remember { VerseOfTheDay.getTodayVerse() }
 
+    // Welcome Customisation Dialog State
+    var showWelcomeDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        // Trigger welcome speech on app open
+        viewModel.triggerWelcomeSpeechOnLaunch()
+
+        // Show welcome dialog on first launch if name is blank and dialog not dismissed
+        if (settings.userName.isBlank() && !settings.welcomeDialogDismissed) {
+            showWelcomeDialog = true
+        }
+    }
+
+    if (showWelcomeDialog) {
+        WelcomeCustomizationDialog(
+            viewModel = viewModel,
+            onDismiss = { showWelcomeDialog = false }
+        )
+    }
+
     // Prioritize fellowship posts matching favorite categories if set
     val prioritizedFellowshipPosts = remember(fellowshipPosts, settings.favoriteCategories) {
         if (settings.favoriteCategories.isEmpty()) {
