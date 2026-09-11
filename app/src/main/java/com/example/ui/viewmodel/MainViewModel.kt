@@ -44,6 +44,15 @@ class MainViewModel(
 
     val settings: StateFlow<UserSettings> = preferencesManager.settings
 
+    val appUpdateManager = com.example.util.AppUpdateManager.getInstance(application)
+    val updateState = appUpdateManager.updateState
+
+    init {
+        viewModelScope.launch {
+            appUpdateManager.checkForUpdates(force = false)
+        }
+    }
+
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
@@ -461,6 +470,22 @@ class MainViewModel(
 
     fun clearErrorMessage() {
         _errorMessage.value = null
+    }
+
+    fun checkForAppUpdates(force: Boolean = true) {
+        viewModelScope.launch {
+            appUpdateManager.checkForUpdates(force)
+        }
+    }
+
+    fun downloadAndInstallAppUpdate() {
+        viewModelScope.launch {
+            appUpdateManager.downloadAndInstallApk()
+        }
+    }
+
+    fun updateGitHubRepoPath(newPath: String) {
+        appUpdateManager.updateCustomRepoPath(newPath)
     }
 
     class Factory(private val app: Application) : ViewModelProvider.Factory {
