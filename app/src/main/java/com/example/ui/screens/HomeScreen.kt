@@ -66,7 +66,7 @@ fun HomeScreen(
     val allPlaylists by viewModel.youtubePlaylists.collectAsState()
 
     val featuredPlaylists = remember(allPlaylists) {
-        allPlaylists.take(6)
+        allPlaylists.filter { it.title.isNotBlank() && it.id.isNotBlank() }.take(6)
     }
     val previewPhotos = galleryPhotos.take(6)
 
@@ -277,12 +277,18 @@ fun HomeScreen(
                                     )
                                 }
 
-                                items(featuredPlaylists, key = { "PL_${it.id}" }) { playlist ->
-                                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                                        PlaylistCard(
-                                            playlist = playlist,
-                                            onClick = { onPlaylistClick(playlist) }
-                                        )
+                                item(key = "SEC_PLAYLISTS_ROW") {
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.padding(vertical = 6.dp)
+                                    ) {
+                                        items(featuredPlaylists, key = { "PL_${it.id}" }) { playlist ->
+                                            PlaylistCard(
+                                                playlist = playlist,
+                                                onClick = { onPlaylistClick(playlist) }
+                                            )
+                                        }
                                     }
                                 }
                             }

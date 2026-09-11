@@ -25,6 +25,21 @@ enum class YouTubeDefaultTab(val displayName: String) {
     NEW_CREATION_CHURCH("New Creation Church")
 }
 
+enum class CustomFourthTab(val titleHindi: String, val titleEnglish: String) {
+    PHOTOS("फ़ोटो (Photos)", "Photos"),
+    BIBLE("बाइबिल (Bible)", "Bible"),
+    READING_PLAN("रीडिंग प्लान (Reading Plan)", "Reading Plan"),
+    SONG_BOOK("मसीही गीत (Song Book)", "Song Book"),
+    NOTES("माई स्टडी नोट्स (Notes)", "Notes")
+}
+
+enum class BloggerPhotoLayout(val columns: Int, val titleHindi: String, val titleEnglish: String) {
+    SINGLE(1, "1 बड़ा फ़ोटो (1 Full)", "1 Full"),
+    GRID_2(2, "2 ग्रिड (2 Grid)", "2 Columns"),
+    GRID_3(3, "3 ग्रिड (3 Grid)", "3 Columns"),
+    GRID_4(4, "4 ग्रिड (4 Grid)", "4 Columns")
+}
+
 enum class HomeSectionType(val id: String, val defaultTitle: String) {
     TODAYS_VERSE("verse", "Today's Bible Verse / आज का वचन"),
     UPCOMING_EVENTS("upcoming", "Upcoming Events"),
@@ -73,6 +88,13 @@ data class UserSettings(
         HomeSectionType.PHOTOS,
         HomeSectionType.LATEST_EVENTS
     ),
-    val lastReadPostId: String? = null
+    val customFourthTab: CustomFourthTab = CustomFourthTab.PHOTOS,
+    val bloggerPhotoLayout: BloggerPhotoLayout = BloggerPhotoLayout.GRID_2,
+    val lastReadPostId: String? = null,
+    val navTabsOrder: List<String> = listOf("HOME", "BLOGS", "YOUTUBE", "FOURTH_TAB", "MORE"),
+    val activePlanIds: Set<String> = setOf("gospels_30"),
+    val planBehindColorHex: String = "#EF4444",   // Red for behind schedule
+    val planOnTrackColorHex: String = "#EAB308",  // Yellow for on track
+    val planCompletedColorHex: String = "#10B981" // Green for daily completed
 )
 

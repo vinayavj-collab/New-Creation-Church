@@ -66,7 +66,9 @@ class BibleRepository(
         translationId: String,
         bookId: Int,
         chapter: Int,
-        coroutineScope: CoroutineScope
+        coroutineScope: CoroutineScope,
+        dualHindiId: String = com.example.data.bible.model.BibleTranslation.HINDI_IRV.id,
+        dualEnglishId: String = com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id
     ): Flow<List<BibleVerse>> {
         val bookmarksFlow = localDataSource.getAllBookmarks()
         val favoritesFlow = localDataSource.getAllFavorites()
@@ -74,8 +76,28 @@ class BibleRepository(
         val notesFlow = localDataSource.getNotesForChapter(bookId, chapter)
 
         if (translationId == com.example.data.bible.model.BibleTranslation.PARALLEL_HI_EN.id) {
-            val hinVersesFlow = localDataSource.getVersesForChapter(com.example.data.bible.model.BibleTranslation.HINDI_IRV.id, bookId, chapter)
-            val engVersesFlow = localDataSource.getVersesForChapter(com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id, bookId, chapter)
+            // Asynchronously fetch both chosen Hindi and English translations if not present locally
+            coroutineScope.launch(Dispatchers.IO) {
+                // Check Hindi
+                val localHin = localDataSource.getVersesForChapterSync(dualHindiId, bookId, chapter)
+                if (!isVerseSequenceComplete(localHin)) {
+                    val remoteHin = remoteDataSource.fetchChapterVerses(dualHindiId, bookId, chapter)
+                    if (!remoteHin.isNullOrEmpty()) {
+                        localDataSource.replaceChapterVerses(dualHindiId, bookId, chapter, remoteHin)
+                    }
+                }
+                // Check English
+                val localEng = localDataSource.getVersesForChapterSync(dualEnglishId, bookId, chapter)
+                if (!isVerseSequenceComplete(localEng)) {
+                    val remoteEng = remoteDataSource.fetchChapterVerses(dualEnglishId, bookId, chapter)
+                    if (!remoteEng.isNullOrEmpty()) {
+                        localDataSource.replaceChapterVerses(dualEnglishId, bookId, chapter, remoteEng)
+                    }
+                }
+            }
+
+            val hinVersesFlow = localDataSource.getVersesForChapter(dualHindiId, bookId, chapter)
+            val engVersesFlow = localDataSource.getVersesForChapter(dualEnglishId, bookId, chapter)
 
             return combine(hinVersesFlow, engVersesFlow, bookmarksFlow, favoritesFlow, highlightsFlow, notesFlow) { args: Array<Any> ->
                 @Suppress("UNCHECKED_CAST")
@@ -106,16 +128,23 @@ class BibleRepository(
                 val book = BibleBookDefinitions.getBookById(bookId)
                 val combinedBookName = "${book?.nameHindi ?: ""} (${book?.nameEnglish ?: ""})"
 
-                hinVerses.sortedBy { it.verseNumber }.map { hin ->
-                    val eng = engMap[hin.verseNumber]
-                    hin.copy(
+                // If Hindi verses are available, iterate them; if not yet, iterate English verses
+                val baseList = if (hinVerses.isNotEmpty()) hinVerses else engVerses
+
+                baseList.sortedBy { it.verseNumber }.map { base ->
+                    val secondary = if (hinVerses.isNotEmpty()) engMap[base.verseNumber] else null
+                    val primaryText = base.text
+                    val secondaryText = secondary?.text
+
+                    base.copy(
                         bookName = combinedBookName,
                         translationId = com.example.data.bible.model.BibleTranslation.PARALLEL_HI_EN.id,
-                        secondaryText = eng?.text,
-                        isBookmarked = bookmarkedSet.contains(hin.verseNumber),
-                        isFavorite = favoriteSet.contains(hin.verseNumber),
-                        highlightColor = highlightMap[hin.verseNumber],
-                        note = noteMap[hin.verseNumber]
+                        text = primaryText,
+                        secondaryText = secondaryText,
+                        isBookmarked = bookmarkedSet.contains(base.verseNumber),
+                        isFavorite = favoriteSet.contains(base.verseNumber),
+                        highlightColor = highlightMap[base.verseNumber],
+                        note = noteMap[base.verseNumber]
                     )
                 }
             }
@@ -129,6 +158,20 @@ class BibleRepository(
                 val remoteVerses = remoteDataSource.fetchChapterVerses(translationId, bookId, chapter)
                 if (!remoteVerses.isNullOrEmpty()) {
                     localDataSource.replaceChapterVerses(translationId, bookId, chapter, remoteVerses)
+                } else {
+                    // Fallback to local default translation if remote is unavailable
+                    val fallbackId = if (translationId.startsWith("ENG")) {
+                        com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id
+                    } else {
+                        com.example.data.bible.model.BibleTranslation.HINDI_IRV.id
+                    }
+                    val fallbackLocal = localDataSource.getVersesForChapterSync(fallbackId, bookId, chapter)
+                    if (fallbackLocal.isNotEmpty()) {
+                        val mappedEntities = fallbackLocal.map { entity ->
+                            entity.copy(translationId = translationId)
+                        }
+                        localDataSource.replaceChapterVerses(translationId, bookId, chapter, mappedEntities)
+                    }
                 }
             }
         }

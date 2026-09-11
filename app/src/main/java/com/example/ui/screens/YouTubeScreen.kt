@@ -40,6 +40,7 @@ import com.example.data.model.YouTubePlaylist
 import com.example.data.model.YouTubeVideo
 import com.example.data.model.YouTubeDefaultTab
 import com.example.ui.components.PlaylistCard
+import com.example.ui.components.RandomVideoCard
 import com.example.ui.components.YouTubeVideoCard
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyPrimary
@@ -88,16 +89,37 @@ fun YouTubeScreen(
         }
     }
 
-    val latestVideos = displayVideos.take(16)
+    var visibleVideoCount by remember(selectedTab, displayVideos.size) { mutableStateOf(20) }
+    val latestVideos = remember(displayVideos, visibleVideoCount) {
+        displayVideos.take(visibleVideoCount)
+    }
+
+    // Random Video Suggestion
+    var randomChannelFilter by remember { mutableStateOf("ALL") }
+    var randomVideoSeed by remember { mutableStateOf(0) }
+    val suggestedVideo = remember(allVideos, randomChannelFilter, randomVideoSeed) {
+        val candidateList = when (randomChannelFilter) {
+            "WORSHIP" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelWorship.id }
+            "MAIN" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelMain.id }
+            "CHURCH" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }
+            else -> allVideos
+        }.ifEmpty { allVideos }
+        if (candidateList.isNotEmpty()) candidateList.random() else null
+    }
+
     val allPlaylists by viewModel.youtubePlaylists.collectAsState()
 
-    val playlists = remember(allPlaylists, selectedTab) {
+    val rawPlaylists = remember(allPlaylists, selectedTab) {
         when (selectedTab) {
             YouTubeTabFilter.ALL -> allPlaylists
             YouTubeTabFilter.AVJ_WORSHIP -> allPlaylists.filter { it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
             YouTubeTabFilter.VINAY_KUMAR_AVJ -> allPlaylists.filter { it.channelTitle.contains("Vinay Kumar", ignoreCase = true) && !it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
             YouTubeTabFilter.NEW_CREATION_CHURCH -> allPlaylists.filter { it.channelTitle.contains("Creation", ignoreCase = true) }.ifEmpty { allPlaylists }
         }
+    }
+    // Skip empty / invalid playlists
+    val playlists = remember(rawPlaylists) {
+        rawPlaylists.filter { it.title.isNotBlank() && it.id.isNotBlank() }
     }
 
     val openChannelInYouTube = { channelUrl: String ->
@@ -344,11 +366,47 @@ fun YouTubeScreen(
                 }
             }
 
+            // Section: Random Video Suggestion Widget
+            item {
+                RandomVideoCard(
+                    video = suggestedVideo,
+                    onPlayClick = onVideoClick,
+                    onShuffleClick = { randomVideoSeed++ },
+                    onChannelSelect = { randomChannelFilter = it },
+                    selectedChannelFilter = randomChannelFilter,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            // Section: Playlists (Skipped if empty)
+            if (playlists.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = "FEATURED PLAYLISTS",
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
+
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(playlists) { playlist ->
+                            PlaylistCard(
+                                playlist = playlist,
+                                onClick = { onPlaylistClick(playlist) }
+                            )
+                        }
+                    }
+                }
+            }
+
             // Section: Latest Videos (Newest -> Oldest)
             item {
                 SectionHeader(
                     title = if (selectedTab == YouTubeTabFilter.ALL) "ALL VIDEOS (NEWEST FIRST / सभी वीडियो समय अनुसार)" else "LATEST VIDEOS",
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 16.dp)
                 )
             }
 
@@ -375,26 +433,31 @@ fun YouTubeScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }
-            }
 
-            // Section: Playlists
-            item {
-                SectionHeader(
-                    title = "FEATURED PLAYLISTS",
-                    modifier = Modifier.padding(top = 16.dp)
-                )
-            }
-
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(playlists) { playlist ->
-                        PlaylistCard(
-                            playlist = playlist,
-                            onClick = { onPlaylistClick(playlist) }
-                        )
+                // Load More Button if more videos exist
+                if (displayVideos.size > latestVideos.size) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Showing ${latestVideos.size} of ${displayVideos.size} videos",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { visibleVideoCount += 20 },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("और वीडियो लोड करें (Load More)")
+                            }
+                        }
                     }
                 }
             }

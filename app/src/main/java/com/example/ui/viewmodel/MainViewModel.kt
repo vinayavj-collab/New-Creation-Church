@@ -412,6 +412,26 @@ class MainViewModel(
         preferencesManager.updateYouTubeDefaultTab(tab)
     }
 
+    fun updateCustomFourthTab(tab: CustomFourthTab) {
+        preferencesManager.updateCustomFourthTab(tab)
+    }
+
+    fun updateBloggerPhotoLayout(layout: BloggerPhotoLayout) {
+        preferencesManager.updateBloggerPhotoLayout(layout)
+    }
+
+    fun updateNavTabsOrder(order: List<String>) {
+        preferencesManager.updateNavTabsOrder(order)
+    }
+
+    fun updateActivePlanIds(ids: Set<String>) {
+        preferencesManager.updateActivePlanIds(ids)
+    }
+
+    fun updateReadingPlanColors(behindHex: String, onTrackHex: String, completedHex: String) {
+        preferencesManager.updateReadingPlanColors(behindHex, onTrackHex, completedHex)
+    }
+
     fun updateDataSaver(enabled: Boolean) {
         preferencesManager.updateDataSaverEnabled(enabled)
     }

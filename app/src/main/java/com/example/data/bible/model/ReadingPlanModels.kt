@@ -195,3 +195,84 @@ object PredefinedReadingPlans {
         return allPlans.find { it.id == id }
     }
 }
+
+data class ManualPlanData(
+    val id: String,
+    val titleHindi: String,
+    val titleEnglish: String,
+    val descriptionHindi: String,
+    val descriptionEnglish: String,
+    val totalDays: Int,
+    val category: String = "कस्टम प्लान (Custom Plan)"
+) {
+    fun toReadingPlanInfo(): ReadingPlanInfo {
+        val daysList = (1..totalDays).map { day ->
+            val portion = ReadingPlanPortion(
+                bookId = 40,
+                bookNameHindi = "मत्ती (Gospels)",
+                bookNameEnglish = "Gospels",
+                startChapter = ((day - 1) % 28) + 1,
+                endChapter = ((day - 1) % 28) + 1
+            )
+            ReadingPlanDay(
+                dayNumber = day,
+                title = "Day $day",
+                portions = listOf(portion)
+            )
+        }
+        return ReadingPlanInfo(
+            id = id,
+            titleHindi = titleHindi,
+            titleEnglish = titleEnglish,
+            descriptionHindi = if (descriptionHindi.isBlank()) "कस्टम बाइबल रीडिंग प्लान ($totalDays दिन)" else descriptionHindi,
+            descriptionEnglish = if (descriptionEnglish.isBlank()) "Custom Bible Reading Plan ($totalDays days)" else descriptionEnglish,
+            totalDays = totalDays,
+            category = category,
+            days = daysList
+        )
+    }
+
+    companion object {
+        fun serializeList(list: List<ManualPlanData>): String {
+            val array = org.json.JSONArray()
+            for (item in list) {
+                val obj = org.json.JSONObject()
+                obj.put("id", item.id)
+                obj.put("titleHindi", item.titleHindi)
+                obj.put("titleEnglish", item.titleEnglish)
+                obj.put("descriptionHindi", item.descriptionHindi)
+                obj.put("descriptionEnglish", item.descriptionEnglish)
+                obj.put("totalDays", item.totalDays)
+                obj.put("category", item.category)
+                array.put(obj)
+            }
+            return array.toString()
+        }
+
+        fun deserializeList(jsonStr: String): List<ManualPlanData> {
+            if (jsonStr.isBlank()) return emptyList()
+            return try {
+                val array = org.json.JSONArray(jsonStr)
+                val list = mutableListOf<ManualPlanData>()
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    list.add(
+                        ManualPlanData(
+                            id = obj.optString("id", "manual_$i"),
+                            titleHindi = obj.optString("titleHindi", "कस्टम प्लान"),
+                            titleEnglish = obj.optString("titleEnglish", "Custom Plan"),
+                            descriptionHindi = obj.optString("descriptionHindi", ""),
+                            descriptionEnglish = obj.optString("descriptionEnglish", ""),
+                            totalDays = obj.optInt("totalDays", 30),
+                            category = obj.optString("category", "कस्टम प्लान (Custom Plan)")
+                        )
+                    )
+                }
+                list
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
+}
+

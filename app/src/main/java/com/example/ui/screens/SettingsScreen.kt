@@ -310,7 +310,142 @@ fun SettingsScreen(
                 }
             }
 
-            // 5. Data Saver Mode (Requirement 28)
+            // 5. Main Navigation Bar Customization (User Request 4)
+            item {
+                SettingsSectionHeader(title = "मुख्य नेविगेशन बार (BOTTOM NAVIGATION)", icon = Icons.Default.Navigation)
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "4th Tab चयन (Choose 4th Navigation Tab)",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "नीचे मुख्य नेविगेशन बार में 4थी जगह क्या दिखाना चाहते हैं:",
+                            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = settings.customFourthTab == CustomFourthTab.PHOTOS,
+                                onClick = { viewModel.updateCustomFourthTab(CustomFourthTab.PHOTOS) },
+                                label = { Text("📸 Photos") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = settings.customFourthTab == CustomFourthTab.BIBLE,
+                                onClick = { viewModel.updateCustomFourthTab(CustomFourthTab.BIBLE) },
+                                label = { Text("📖 Bible") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = settings.customFourthTab == CustomFourthTab.READING_PLAN,
+                                onClick = { viewModel.updateCustomFourthTab(CustomFourthTab.READING_PLAN) },
+                                label = { Text("📅 Reading Plan") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = settings.customFourthTab == CustomFourthTab.SONG_BOOK,
+                                onClick = { viewModel.updateCustomFourthTab(CustomFourthTab.SONG_BOOK) },
+                                label = { Text("🎵 Songs") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = settings.customFourthTab == CustomFourthTab.NOTES,
+                                onClick = { viewModel.updateCustomFourthTab(CustomFourthTab.NOTES) },
+                                label = { Text("📝 Study Notes") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+
+            // 6. Blogger Photo Grid Layout Customization (User Request 3)
+            item {
+                SettingsSectionHeader(title = "ब्लॉगर फ़ोटो लेआउट (BLOG PHOTO GRID)", icon = Icons.Default.GridView)
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "आर्टिकल में फ़ोटो प्रदर्शन (Photos in Line)",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "ब्लॉग आर्टिकल में फ़ोटो को एक लाइन में ग्रिड (1, 2, 3, 4) के अनुसार दिखाएं ताकि कम स्पेस में ज्यादा फ़ोटो दिख सकें:",
+                            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = settings.bloggerPhotoLayout == BloggerPhotoLayout.SINGLE,
+                                onClick = { viewModel.updateBloggerPhotoLayout(BloggerPhotoLayout.SINGLE) },
+                                label = { Text("1 (Single)") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = settings.bloggerPhotoLayout == BloggerPhotoLayout.GRID_2,
+                                onClick = { viewModel.updateBloggerPhotoLayout(BloggerPhotoLayout.GRID_2) },
+                                label = { Text("2 (Grid 2)") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = settings.bloggerPhotoLayout == BloggerPhotoLayout.GRID_3,
+                                onClick = { viewModel.updateBloggerPhotoLayout(BloggerPhotoLayout.GRID_3) },
+                                label = { Text("3 (Grid 3)") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = settings.bloggerPhotoLayout == BloggerPhotoLayout.GRID_4,
+                                onClick = { viewModel.updateBloggerPhotoLayout(BloggerPhotoLayout.GRID_4) },
+                                label = { Text("4 (Grid 4)") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 7. Data Saver Mode (Requirement 28)
             item {
                 SettingsSectionHeader(title = "DATA USAGE & MEDIA", icon = Icons.Default.DataUsage)
             }

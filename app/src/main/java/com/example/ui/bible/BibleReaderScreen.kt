@@ -12,6 +12,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -63,6 +65,7 @@ fun BibleReaderScreen(
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit,
     onSavedClick: () -> Unit,
+    onReadingPlanClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -80,12 +83,14 @@ fun BibleReaderScreen(
     var showQuickFontSheet by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showNavigatorModal by remember { mutableStateOf(false) }
+    var showTranslationPickerDialog by remember { mutableStateOf(false) }
 
     // YouVersion Multi-verse selection state
     var selectedVerseNumbers by remember { mutableStateOf(setOf<Int>()) }
     var showCompareDialog by remember { mutableStateOf(false) }
     var verseForNoteDialog by remember { mutableStateOf<BibleVerse?>(null) }
     var verseForPhotoDialog by remember { mutableStateOf<BibleVerse?>(null) }
+    var verseForDetailsSheet by remember { mutableStateOf<BibleVerse?>(null) }
     var activeFootnoteSheet by remember { mutableStateOf<Pair<String, List<FootnoteItem>>?>(null) }
 
     val listState = rememberLazyListState()
@@ -93,7 +98,13 @@ fun BibleReaderScreen(
     var currentTargetVerse by remember { mutableStateOf(targetVerse) }
 
     val activeAudioVerse by viewModel.audioManager.currentVerseNumber.collectAsState()
-    val effectiveTargetVerse = activeAudioVerse ?: currentTargetVerse
+    val effectiveTargetVerse = currentTargetVerse ?: activeAudioVerse
+
+    LaunchedEffect(activeAudioVerse) {
+        if (activeAudioVerse != null && viewModel.audioManager.isPlaying.value) {
+            currentTargetVerse = activeAudioVerse
+        }
+    }
 
     // Keep Screen On based on settings
     DisposableEffect(readingSettings.screenTimeoutMinutes) {
@@ -278,33 +289,62 @@ fun BibleReaderScreen(
         }
     }
 
-    // YouVersion Themes Canvas Colors
+    // Themes Canvas Colors
     val canvasBgColor = when (readingSettings.theme) {
-        BibleTheme.LIGHT -> Color(0xFFFCFCFC)
-        BibleTheme.SEPIA -> Color(0xFFFBF0D9)
-        BibleTheme.DARK -> Color(0xFF1E293B)
+        BibleTheme.PAPER -> Color(0xFFFBF6EE)
+        BibleTheme.WOOD -> Color(0xFFF3E8D3)
+        BibleTheme.EYE_PROTECTION, BibleTheme.SEPIA -> Color(0xFFFEF3E2)
+        BibleTheme.LIGHT -> Color(0xFFFFFFFF)
+        BibleTheme.NIGHT -> Color(0xFF1F2937)
+        BibleTheme.DARK -> Color(0xFF0F172A)
         BibleTheme.AMOLED -> Color(0xFF000000)
+        BibleTheme.EMERALD -> Color(0xFFEBF2EC)
         BibleTheme.SYSTEM -> MaterialTheme.colorScheme.background
     }
 
-    val canvasTextColor = when (readingSettings.theme) {
+    val defaultTextColor = when (readingSettings.theme) {
+        BibleTheme.PAPER -> Color(0xFF2C241E)
+        BibleTheme.WOOD -> Color(0xFF3B2B20)
+        BibleTheme.EYE_PROTECTION, BibleTheme.SEPIA -> Color(0xFF2E2519)
         BibleTheme.LIGHT -> Color(0xFF1E293B)
-        BibleTheme.SEPIA -> Color(0xFF382D20)
-        BibleTheme.DARK -> Color(0xFFF1F5F9)
-        BibleTheme.AMOLED -> Color(0xFFE2E8F0)
+        BibleTheme.NIGHT -> Color(0xFFF3F4F6)
+        BibleTheme.DARK -> Color(0xFFE2E8F0)
+        BibleTheme.AMOLED -> Color(0xFFFFFFFF)
+        BibleTheme.EMERALD -> Color(0xFF143522)
         BibleTheme.SYSTEM -> MaterialTheme.colorScheme.onBackground
     }
 
-    val activeFontFamily = if (readingSettings.useSerifFont) FontFamily.Serif else FontFamily.SansSerif
+    val canvasTextColor = readingSettings.customTextColorHex?.let {
+        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { defaultTextColor }
+    } ?: defaultTextColor
+
+    val customHeadingColor = readingSettings.customHeadingColorHex?.let {
+        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
+    }
+
+    val customSubHeadingColor = readingSettings.customSubHeadingColorHex?.let {
+        try { Color(android.graphics.Color.parseColor(it)) } catch (e: Exception) { null }
+    }
+
+    val activeFontFamily = when (readingSettings.fontStyle) {
+        BibleFontFamilyType.SYSTEM_DEFAULT -> FontFamily.SansSerif
+        BibleFontFamilyType.CLASSIC_SERIF -> FontFamily.Serif
+        BibleFontFamilyType.MODERN_POPPINS -> FontFamily.SansSerif
+        BibleFontFamilyType.ELEGANT_ROZHA -> FontFamily.Serif
+        BibleFontFamilyType.TRADITIONAL_BOOK -> FontFamily.Serif
+        BibleFontFamilyType.MONOSPACE_STUDY -> FontFamily.Monospace
+    }
+
+    var showTopOverflowMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    // YouVersion Style Book & Chapter Pill
+                    // Spacious Book & Chapter selector with ample room
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
                         modifier = Modifier.clickable { showNavigatorModal = true }
                     ) {
                         Row(
@@ -316,7 +356,8 @@ fun BibleReaderScreen(
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.2.sp
-                                )
+                                ),
+                                maxLines = 1
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(
@@ -333,16 +374,27 @@ fun BibleReaderScreen(
                     }
                 },
                 actions = {
-                    // Translation Switcher Chip (IRV / BSI / ERV / ULB / KJV / WEB / HI+EN)
+                    // Translation Quick Indicator Chip
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                         modifier = Modifier
-                            .clickable {
-                                val all = BibleTranslation.ALL
-                                val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
-                                val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
-                                viewModel.selectTranslation(all[nextIndex])
+                            .pointerInput(selectedTranslation, readingSettings.translationToggleBehavior) {
+                                detectTapGestures(
+                                    onTap = {
+                                        if (readingSettings.translationToggleBehavior == TranslationToggleBehavior.SINGLE_TAP_SHOW_ALL) {
+                                            showTranslationPickerDialog = true
+                                        } else {
+                                            val all = BibleTranslation.ALL
+                                            val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
+                                            val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
+                                            viewModel.selectTranslation(all[nextIndex])
+                                        }
+                                    },
+                                    onLongPress = {
+                                        showTranslationPickerDialog = true
+                                    }
+                                )
                             }
                             .padding(horizontal = 2.dp)
                     ) {
@@ -354,29 +406,19 @@ fun BibleReaderScreen(
                                 BibleTranslation.HINDI_ULB.id -> "ULB"
                                 BibleTranslation.ENGLISH_KJV.id -> "KJV"
                                 BibleTranslation.ENGLISH_WEB.id -> "WEB"
+                                BibleTranslation.ENGLISH_BBE.id -> "BBE"
                                 else -> "HI+EN"
                             },
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontSize = 12.sp
+                                fontSize = 11.sp
                             ),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                         )
                     }
 
-                    // YouVersion 'aA' Quick Font & Display Sheet
-                    IconButton(onClick = { showQuickFontSheet = true }) {
-                        Text(
-                            text = "aA",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        )
-                    }
-
-                    // Audio Button
+                    // Audio Button (Kept right here as requested!)
                     IconButton(onClick = {
                         viewModel.toggleAudioPlayer(!readingSettings.showAudioPlayer)
                     }) {
@@ -387,11 +429,69 @@ fun BibleReaderScreen(
                         )
                     }
 
-                    IconButton(onClick = onSearchClick) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                    }
-                    IconButton(onClick = onSavedClick) {
-                        Icon(Icons.Default.BookmarkBorder, contentDescription = "Saved")
+                    // 3-Dots / Customization & Extra Icons Shifted Here
+                    Box {
+                        IconButton(onClick = { showTopOverflowMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Options & Settings")
+                        }
+
+                        DropdownMenu(
+                            expanded = showTopOverflowMenu,
+                            onDismissRequest = { showTopOverflowMenu = false },
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("पठन एवं थीम अनुकूलन (Display & Themes)") },
+                                leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                onClick = {
+                                    showTopOverflowMenu = false
+                                    showQuickFontSheet = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("खोजें (Search Scripture)") },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                onClick = {
+                                    showTopOverflowMenu = false
+                                    onSearchClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("सहेजे गए (Bookmarks & Notes)") },
+                                leadingIcon = { Icon(Icons.Default.BookmarkBorder, contentDescription = null) },
+                                onClick = {
+                                    showTopOverflowMenu = false
+                                    onSavedClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("रीडिंग प्लान (Reading Plan)") },
+                                leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                onClick = {
+                                    showTopOverflowMenu = false
+                                    onReadingPlanClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("अनुवाद बदलें (Switch Translation)") },
+                                leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null) },
+                                onClick = {
+                                    showTopOverflowMenu = false
+                                    val all = BibleTranslation.ALL
+                                    val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
+                                    val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
+                                    viewModel.selectTranslation(all[nextIndex])
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("सम्पूर्ण सेटिंग्स (Full Settings)") },
+                                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                                onClick = {
+                                    showTopOverflowMenu = false
+                                    showSettingsDialog = true
+                                }
+                            )
+                        }
                     }
                 }
             )
@@ -827,7 +927,7 @@ fun BibleReaderScreen(
                                     )
                                 }
 
-                                is BibleReaderItem.ProseParagraphBlock -> {
+                                 is BibleReaderItem.ProseParagraphBlock -> {
                                     val versesMap = remember(verses) { verses.associateBy { it.verseNumber } }
                                     YouVersionProseParagraph(
                                         verseItems = item.verses,
@@ -838,12 +938,23 @@ fun BibleReaderScreen(
                                         fontFamily = activeFontFamily,
                                         textColor = canvasTextColor,
                                         isNewTestament = currentBook.id >= 40,
-                                        onVerseToggle = { vNum ->
+                                        onVerseSingleTap = { vNum ->
+                                            currentTargetVerse = vNum
+                                            selectedVerseNumbers = emptySet()
+                                            viewModel.audioManager.setCurrentVerseNumber(vNum)
+                                            if (viewModel.audioManager.isPlaying.value) {
+                                                viewModel.audioManager.playFromVerse(vNum, currentBook.id, currentChapter, verses)
+                                            }
+                                        },
+                                        onVerseLongPress = { vNum ->
                                             selectedVerseNumbers = if (vNum in selectedVerseNumbers) {
                                                 selectedVerseNumbers - vNum
                                             } else {
                                                 selectedVerseNumbers + vNum
                                             }
+                                        },
+                                        onAttachmentClick = { vNum ->
+                                            verseForDetailsSheet = versesMap[vNum]
                                         },
                                         onFootnoteClick = { vItem, fn ->
                                             activeFootnoteSheet = Pair("वचन ${vItem.verseNumber}", vItem.footnotes)
@@ -863,12 +974,23 @@ fun BibleReaderScreen(
                                         fontFamily = activeFontFamily,
                                         textColor = canvasTextColor,
                                         isNewTestament = currentBook.id >= 40,
-                                        onVerseToggle = { vNum ->
+                                        onVerseSingleTap = { vNum ->
+                                            currentTargetVerse = vNum
+                                            selectedVerseNumbers = emptySet()
+                                            viewModel.audioManager.setCurrentVerseNumber(vNum)
+                                            if (viewModel.audioManager.isPlaying.value) {
+                                                viewModel.audioManager.playFromVerse(vNum, currentBook.id, currentChapter, verses)
+                                            }
+                                        },
+                                        onVerseLongPress = { vNum ->
                                             selectedVerseNumbers = if (vNum in selectedVerseNumbers) {
                                                 selectedVerseNumbers - vNum
                                             } else {
                                                 selectedVerseNumbers + vNum
                                             }
+                                        },
+                                        onAttachmentClick = { vNum ->
+                                            verseForDetailsSheet = versesMap[vNum]
                                         },
                                         onFootnoteClick = { lineItem, fn ->
                                             val refStr = if (lineItem.verseNumber != null) "वचन ${lineItem.verseNumber}" else "टिप्पणी"
@@ -894,6 +1016,7 @@ fun BibleReaderScreen(
                                 }
 
                                 is BibleReaderItem.Paragraph -> {
+                                    val versesMap = remember(verses) { verses.associateBy { it.verseNumber } }
                                     YouVersionStandardParagraph(
                                         verses = item.verses,
                                         selectedVerseNumbers = selectedVerseNumbers,
@@ -902,12 +1025,23 @@ fun BibleReaderScreen(
                                         fontFamily = activeFontFamily,
                                         textColor = canvasTextColor,
                                         isNewTestament = currentBook.id >= 40,
-                                        onVerseToggle = { vNum ->
+                                        onVerseSingleTap = { vNum ->
+                                            currentTargetVerse = vNum
+                                            selectedVerseNumbers = emptySet()
+                                            viewModel.audioManager.setCurrentVerseNumber(vNum)
+                                            if (viewModel.audioManager.isPlaying.value) {
+                                                viewModel.audioManager.playFromVerse(vNum, currentBook.id, currentChapter, verses)
+                                            }
+                                        },
+                                        onVerseLongPress = { vNum ->
                                             selectedVerseNumbers = if (vNum in selectedVerseNumbers) {
                                                 selectedVerseNumbers - vNum
                                             } else {
                                                 selectedVerseNumbers + vNum
                                             }
+                                        },
+                                        onAttachmentClick = { vNum ->
+                                            verseForDetailsSheet = versesMap[vNum] ?: item.verses.find { it.verseNumber == vNum }
                                         },
                                         modifier = Modifier.padding(bottom = 16.dp)
                                     )
@@ -920,14 +1054,18 @@ fun BibleReaderScreen(
         }
     }
 
-    // YouVersion Quick Reading Options Sheet
+    // Quick Reading Options Sheet
     if (showQuickFontSheet) {
         YouVersionQuickFontSheet(
             settings = readingSettings,
             onFontSizeChange = { viewModel.updateFontSize(it) },
             onLineSpacingChange = { viewModel.updateLineSpacing(it) },
+            onFontStyleChange = { viewModel.updateFontStyle(it) },
             onThemeChange = { viewModel.updateTheme(it) },
-            onToggleSerif = { viewModel.toggleSerifFont(it) },
+            onScreenTimeoutChange = { viewModel.setScreenTimeout(it) },
+            onCustomTextColorChange = { viewModel.updateCustomTextColor(it) },
+            onCustomHeadingColorChange = { viewModel.updateCustomHeadingColor(it) },
+            onCustomSubHeadingColorChange = { viewModel.updateCustomSubHeadingColor(it) },
             onToggleOriginalFormat = { viewModel.toggleOriginalFormatMode(it) },
             onToggleJesusWordsInRed = { viewModel.toggleJesusWordsInRed(it) },
             onToggleJustify = { viewModel.toggleJustifyBibleText(it) },
@@ -994,12 +1132,19 @@ fun BibleReaderScreen(
             selectedTranslation = selectedTranslation,
             onFontSizeChange = { viewModel.updateFontSize(it) },
             onLineSpacingChange = { viewModel.updateLineSpacing(it) },
+            onFontStyleChange = { viewModel.updateFontStyle(it) },
             onShowVerseNumbersChange = { viewModel.toggleVerseNumbers(it) },
             onShowSubheadingsChange = { viewModel.toggleSubheadings(it) },
             onShowParagraphAndIndentsChange = { viewModel.toggleParagraphAndIndents(it) },
             onOriginalFormatModeChange = { viewModel.toggleOriginalFormatMode(it) },
             onShowJesusWordsInRedChange = { viewModel.toggleJesusWordsInRed(it) },
             onJesusWordsColorChange = { viewModel.updateJesusWordsColor(it) },
+            onCustomTextColorChange = { viewModel.updateCustomTextColor(it) },
+            onCustomHeadingColorChange = { viewModel.updateCustomHeadingColor(it) },
+            onCustomSubHeadingColorChange = { viewModel.updateCustomSubHeadingColor(it) },
+            onDualBibleConfigChange = { enabled, hId, eId, mode ->
+                viewModel.configureDualBible(enabled, hId, eId, mode)
+            },
             onShowFavoritesHintChange = { viewModel.toggleFavoritesHint(it) },
             onShowBookmarkHintChange = { viewModel.toggleBookmarkHint(it) },
             onShowHighlightsChange = { viewModel.toggleHighlights(it) },
@@ -1012,7 +1157,20 @@ fun BibleReaderScreen(
             onResetToDefault = { viewModel.resetReadingSettings() },
             onThemeChange = { viewModel.updateTheme(it) },
             onTranslationChange = { viewModel.selectTranslation(it) },
+            onTranslationToggleBehaviorChange = { viewModel.updateTranslationToggleBehavior(it) },
+            onVerseTapSelectionModeChange = { viewModel.updateVerseTapSelectionMode(it) },
             onDismiss = { showSettingsDialog = false }
+        )
+    }
+
+    if (showTranslationPickerDialog) {
+        TranslationPickerDialog(
+            selectedTranslation = selectedTranslation,
+            onTranslationSelect = { translation ->
+                viewModel.selectTranslation(translation)
+                showTranslationPickerDialog = false
+            },
+            onDismiss = { showTranslationPickerDialog = false }
         )
     }
 
@@ -1072,6 +1230,252 @@ fun BibleReaderScreen(
             }
         }
     }
+
+    // Interactive Verse Attachments (Notes, Bookmark, Favorite Details) Modal Bottom Sheet
+    if (verseForDetailsSheet != null) {
+        val verse = verseForDetailsSheet!!
+        val verseRefLabel = "$bookName $currentChapter:${verse.verseNumber}"
+
+        ModalBottomSheet(
+            onDismissRequest = { verseForDetailsSheet = null },
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.MenuBook,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = verseRefLabel,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                    IconButton(onClick = { verseForDetailsSheet = null }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                // Scripture preview text
+                Text(
+                    text = "“${verse.text}”",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // 1. Attached Note Section
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (!verse.note.isNullOrBlank()) Color(0xFFFFFBEB) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "📝 आपका नोट (Note)",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+                                )
+                            }
+
+                            Row {
+                                if (!verse.note.isNullOrBlank()) {
+                                    IconButton(
+                                        onClick = {
+                                            viewModel.deleteNote(verse.bookId, verse.chapter, verse.verseNumber)
+                                            Toast.makeText(context, "नोट हटाया गया", Toast.LENGTH_SHORT).show()
+                                            verseForDetailsSheet = null
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Note", tint = Color(0xFF991B1B), modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        if (!verse.note.isNullOrBlank()) {
+                            Text(
+                                text = verse.note,
+                                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF334155))
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                onClick = {
+                                    val target = verse
+                                    verseForDetailsSheet = null
+                                    verseForNoteDialog = target
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("नोट खोलें व संपादित करें (Edit Note)")
+                            }
+                        } else {
+                            Text(
+                                text = "इस वचन पर अभी कोई व्यक्तिगत नोट नहीं लिखा गया है।",
+                                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    val target = verse
+                                    verseForDetailsSheet = null
+                                    verseForNoteDialog = target
+                                },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.AddComment, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("नया नोट लिखें (Add Note)")
+                            }
+                        }
+                    }
+                }
+
+                // 2. Bookmark & Favorite Status Badges
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Bookmark Card
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (verse.isBookmarked) Color(0xFFEFF6FF) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                viewModel.toggleBookmark(verse)
+                                Toast.makeText(context, if (verse.isBookmarked) "बुकमार्क हटाया गया" else "बुकमार्क जोड़ा गया", Toast.LENGTH_SHORT).show()
+                                verseForDetailsSheet = verse.copy(isBookmarked = !verse.isBookmarked)
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (verse.isBookmarked) "🔖 बुकमार्क है" else "🔖 बुकमार्क करें",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (verse.isBookmarked) Color(0xFF1D4ED8) else MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+                    }
+
+                    // Favorite Card
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (verse.isFavorite) Color(0xFFFEF3C7) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                viewModel.toggleFavorite(verse)
+                                Toast.makeText(context, if (verse.isFavorite) "पसंदीदा हटाया गया" else "पसंदीदा में जोड़ा गया", Toast.LENGTH_SHORT).show()
+                                verseForDetailsSheet = verse.copy(isFavorite = !verse.isFavorite)
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (verse.isFavorite) "⭐ पसंदीदा है" else "⭐ पसंदीदा बनाएं",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (verse.isFavorite) Color(0xFFB45309) else MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Quick Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    YouVersionActionItem(
+                        icon = Icons.Default.VolumeUp,
+                        label = "Audio",
+                        onClick = {
+                            viewModel.audioManager.playFromVerse(verse.verseNumber, verse.bookId, verse.chapter, verses)
+                            verseForDetailsSheet = null
+                        }
+                    )
+                    YouVersionActionItem(
+                        icon = Icons.Default.CompareArrows,
+                        label = "Compare",
+                        onClick = {
+                            selectedVerseNumbers = setOf(verse.verseNumber)
+                            showCompareDialog = true
+                            verseForDetailsSheet = null
+                        }
+                    )
+                    YouVersionActionItem(
+                        icon = Icons.Default.Image,
+                        label = "Photo",
+                        onClick = {
+                            verseForPhotoDialog = verse
+                            verseForDetailsSheet = null
+                        }
+                    )
+                    YouVersionActionItem(
+                        icon = Icons.Default.Share,
+                        label = "Share",
+                        onClick = {
+                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                val transName = if (selectedTranslation.language == "hi") selectedTranslation.nameHindi else selectedTranslation.nameEnglish
+                                putExtra(Intent.EXTRA_TEXT, "“${verse.text}”\n- $verseRefLabel ($transName)")
+                                type = "text/plain"
+                            }
+                            context.startActivity(Intent.createChooser(sendIntent, "Share Scripture"))
+                            verseForDetailsSheet = null
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
 }
 
 @Composable
@@ -1112,7 +1516,9 @@ private fun YouVersionStandardParagraph(
     fontFamily: FontFamily,
     textColor: Color,
     isNewTestament: Boolean,
-    onVerseToggle: (Int) -> Unit,
+    onVerseSingleTap: (Int) -> Unit,
+    onVerseLongPress: (Int) -> Unit,
+    onAttachmentClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val jesusColor = getJesusWordColor(settings, isNewTestament)
@@ -1130,6 +1536,7 @@ private fun YouVersionStandardParagraph(
 
                 // Subtle verse number
                 if (settings.showVerseNumbers) {
+                    pushStringAnnotation(tag = "VERSE_NUM_ONLY", annotation = "${verse.verseNumber}")
                     withStyle(
                         SpanStyle(
                             color = if (isSelected || isTarget) Color(0xFFD97706) else Color(0xFF64748B),
@@ -1140,6 +1547,7 @@ private fun YouVersionStandardParagraph(
                     ) {
                         append("${verse.verseNumber} ")
                     }
+                    pop()
                 }
 
                 // Background highlight or YouVersion selection effect
@@ -1163,21 +1571,41 @@ private fun YouVersionStandardParagraph(
                     append(verse.text)
                 }
 
-                // Indicators
+                if (!verse.secondaryText.isNullOrBlank()) {
+                    append("\n")
+                    withStyle(
+                        SpanStyle(
+                            color = (jesusColor ?: textColor).copy(alpha = 0.72f),
+                            fontSize = (fontSizeSp.value * 0.90f).sp,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            fontWeight = FontWeight.Normal
+                        )
+                    ) {
+                        append("🇬🇧 ${verse.secondaryText}\n")
+                    }
+                }
+
+                // Relatable Indicators with Attachment Click Trigger
                 if (settings.showFavoritesHint && verse.isFavorite) {
-                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                    pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${verse.verseNumber}")
+                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                         append(" ⭐")
                     }
+                    pop()
                 }
                 if (settings.showBookmarkHint && verse.isBookmarked) {
-                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                    pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${verse.verseNumber}")
+                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                         append(" 🔖")
                     }
+                    pop()
                 }
                 if (settings.showNoteHint && !verse.note.isNullOrBlank()) {
-                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                    pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${verse.verseNumber}")
+                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                         append(" 📝")
                     }
+                    pop()
                 }
 
                 pop() // Pop VERSE_NUM
@@ -1205,9 +1633,38 @@ private fun YouVersionStandardParagraph(
                     onTap = { pos ->
                         layoutResult?.let { layout ->
                             val offset = layout.getOffsetForPosition(pos)
+                            val attachAnnotation = annotatedString.getStringAnnotations(tag = "ATTACHMENT_CLICK", start = offset, end = offset).firstOrNull()
+                            if (attachAnnotation != null) {
+                                val vNum = attachAnnotation.item.toIntOrNull()
+                                if (vNum != null) {
+                                    onAttachmentClick(vNum)
+                                    return@detectTapGestures
+                                }
+                            }
+
+                            val numOnly = annotatedString.getStringAnnotations(tag = "VERSE_NUM_ONLY", start = offset, end = offset).firstOrNull()?.item?.toIntOrNull()
+                            val fullVerse = annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset).firstOrNull()?.item?.toIntOrNull()
+
+                            if (settings.verseTapSelectionMode == VerseTapSelectionMode.VERSE_NUMBER_ONLY) {
+                                if (numOnly != null) {
+                                    onVerseSingleTap(numOnly)
+                                } else if (fullVerse != null) {
+                                    onVerseLongPress(fullVerse)
+                                }
+                            } else {
+                                val vNum = fullVerse ?: numOnly
+                                if (vNum != null) {
+                                    onVerseSingleTap(vNum)
+                                }
+                            }
+                        }
+                    },
+                    onLongPress = { pos ->
+                        layoutResult?.let { layout ->
+                            val offset = layout.getOffsetForPosition(pos)
                             annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset)
                                 .firstOrNull()?.let { annotation ->
-                                    annotation.item.toIntOrNull()?.let { onVerseToggle(it) }
+                                    annotation.item.toIntOrNull()?.let { onVerseLongPress(it) }
                                 }
                         }
                     }
@@ -1226,7 +1683,9 @@ private fun YouVersionProseParagraph(
     fontFamily: FontFamily,
     textColor: Color,
     isNewTestament: Boolean,
-    onVerseToggle: (Int) -> Unit,
+    onVerseSingleTap: (Int) -> Unit,
+    onVerseLongPress: (Int) -> Unit,
+    onAttachmentClick: (Int) -> Unit,
     onFootnoteClick: (VerseItem, FootnoteItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1253,6 +1712,7 @@ private fun YouVersionProseParagraph(
                 }
 
                 if (vItem.verseNumber != null && settings.showVerseNumbers) {
+                    pushStringAnnotation(tag = "VERSE_NUM_ONLY", annotation = "$effectiveVNum")
                     withStyle(
                         SpanStyle(
                             color = if (isSelected || isTarget) Color(0xFFD97706) else Color(0xFF64748B),
@@ -1263,6 +1723,7 @@ private fun YouVersionProseParagraph(
                     ) {
                         append("${vItem.verseNumber} ")
                     }
+                    pop()
                 }
 
                 val highlightColor = if (isSelected) {
@@ -1285,6 +1746,20 @@ private fun YouVersionProseParagraph(
                     append(vItem.text)
                 }
 
+                if (!bibleVerse?.secondaryText.isNullOrBlank()) {
+                    append("\n")
+                    withStyle(
+                        SpanStyle(
+                            color = (jesusColor ?: textColor).copy(alpha = 0.72f),
+                            fontSize = (fontSizeSp.value * 0.90f).sp,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            fontWeight = FontWeight.Normal
+                        )
+                    ) {
+                        append("🇬🇧 ${bibleVerse.secondaryText}\n")
+                    }
+                }
+
                 if (vItem.footnotes.isNotEmpty()) {
                     pushStringAnnotation(tag = "FOOTNOTE", annotation = "${effectiveVNum ?: 0}")
                     withStyle(
@@ -1300,20 +1775,27 @@ private fun YouVersionProseParagraph(
                     pop()
                 }
 
+                // Relatable Indicators
                 if (settings.showFavoritesHint && bibleVerse?.isFavorite == true) {
-                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                    pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${effectiveVNum ?: 0}")
+                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                         append(" ⭐")
                     }
+                    pop()
                 }
                 if (settings.showBookmarkHint && bibleVerse?.isBookmarked == true) {
-                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                    pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${effectiveVNum ?: 0}")
+                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                         append(" 🔖")
                     }
+                    pop()
                 }
                 if (settings.showNoteHint && !bibleVerse?.note.isNullOrBlank()) {
-                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                    pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${effectiveVNum ?: 0}")
+                    withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                         append(" 📝")
                     }
+                    pop()
                 }
 
                 if (effectiveVNum != null) {
@@ -1353,9 +1835,38 @@ private fun YouVersionProseParagraph(
                                 }
                             }
 
+                            val attachAnnotation = annotatedString.getStringAnnotations(tag = "ATTACHMENT_CLICK", start = offset, end = offset).firstOrNull()
+                            if (attachAnnotation != null) {
+                                val vNum = attachAnnotation.item.toIntOrNull()
+                                if (vNum != null) {
+                                    onAttachmentClick(vNum)
+                                    return@detectTapGestures
+                                }
+                            }
+
+                            val numOnly = annotatedString.getStringAnnotations(tag = "VERSE_NUM_ONLY", start = offset, end = offset).firstOrNull()?.item?.toIntOrNull()
+                            val fullVerse = annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset).firstOrNull()?.item?.toIntOrNull()
+
+                            if (settings.verseTapSelectionMode == VerseTapSelectionMode.VERSE_NUMBER_ONLY) {
+                                if (numOnly != null) {
+                                    onVerseSingleTap(numOnly)
+                                } else if (fullVerse != null) {
+                                    onVerseLongPress(fullVerse)
+                                }
+                            } else {
+                                val vNum = fullVerse ?: numOnly
+                                if (vNum != null) {
+                                    onVerseSingleTap(vNum)
+                                }
+                            }
+                        }
+                    },
+                    onLongPress = { pos ->
+                        layoutResult?.let { layout ->
+                            val offset = layout.getOffsetForPosition(pos)
                             val verseAnnotation = annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset).firstOrNull()
                             if (verseAnnotation != null) {
-                                verseAnnotation.item.toIntOrNull()?.let { onVerseToggle(it) }
+                                verseAnnotation.item.toIntOrNull()?.let { onVerseLongPress(it) }
                             }
                         }
                     }
@@ -1374,7 +1885,9 @@ private fun YouVersionPoetryBlock(
     fontFamily: FontFamily,
     textColor: Color,
     isNewTestament: Boolean,
-    onVerseToggle: (Int) -> Unit,
+    onVerseSingleTap: (Int) -> Unit,
+    onVerseLongPress: (Int) -> Unit,
+    onAttachmentClick: (Int) -> Unit,
     onFootnoteClick: (PoetryLineItem, FootnoteItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1415,6 +1928,7 @@ private fun YouVersionPoetryBlock(
                     }
 
                     if (line.verseNumber != null && settings.showVerseNumbers) {
+                        pushStringAnnotation(tag = "VERSE_NUM_ONLY", annotation = "$effectiveVNum")
                         withStyle(
                             SpanStyle(
                                 color = if (isSelected || isTarget) Color(0xFFD97706) else Color(0xFF64748B),
@@ -1425,6 +1939,7 @@ private fun YouVersionPoetryBlock(
                         ) {
                             append("${line.verseNumber} ")
                         }
+                        pop()
                     }
 
                     withStyle(
@@ -1454,20 +1969,27 @@ private fun YouVersionPoetryBlock(
                         pop()
                     }
 
+                    // Relatable Indicators
                     if (settings.showFavoritesHint && bibleVerse?.isFavorite == true) {
-                        withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                        pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${effectiveVNum ?: 0}")
+                        withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                             append(" ⭐")
                         }
+                        pop()
                     }
                     if (settings.showBookmarkHint && bibleVerse?.isBookmarked == true) {
-                        withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                        pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${effectiveVNum ?: 0}")
+                        withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                             append(" 🔖")
                         }
+                        pop()
                     }
                     if (settings.showNoteHint && !bibleVerse?.note.isNullOrBlank()) {
-                        withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.7f).sp, baselineShift = BaselineShift(0.25f))) {
+                        pushStringAnnotation(tag = "ATTACHMENT_CLICK", annotation = "${effectiveVNum ?: 0}")
+                        withStyle(SpanStyle(fontSize = (settings.fontSize.sp * 0.75f).sp, baselineShift = BaselineShift(0.25f))) {
                             append(" 📝")
                         }
+                        pop()
                     }
 
                     if (effectiveVNum != null) {
@@ -1503,8 +2025,36 @@ private fun YouVersionPoetryBlock(
                                         }
                                     }
 
+                                    val attachAnnotation = annotatedString.getStringAnnotations(tag = "ATTACHMENT_CLICK", start = offset, end = offset).firstOrNull()
+                                    if (attachAnnotation != null) {
+                                        val vNum = attachAnnotation.item.toIntOrNull()
+                                        if (vNum != null) {
+                                            onAttachmentClick(vNum)
+                                            return@detectTapGestures
+                                        }
+                                    }
+
+                                    val numOnly = annotatedString.getStringAnnotations(tag = "VERSE_NUM_ONLY", start = offset, end = offset).firstOrNull()?.item?.toIntOrNull()
+                                    val fullVerse = annotatedString.getStringAnnotations(tag = "VERSE_NUM", start = offset, end = offset).firstOrNull()?.item?.toIntOrNull()
+
+                                    if (settings.verseTapSelectionMode == VerseTapSelectionMode.VERSE_NUMBER_ONLY) {
+                                        if (numOnly != null) {
+                                            onVerseSingleTap(numOnly)
+                                        } else if (effectiveVNum != null) {
+                                            onVerseLongPress(effectiveVNum)
+                                        }
+                                    } else {
+                                        val vNum = fullVerse ?: numOnly ?: effectiveVNum
+                                        if (vNum != null) {
+                                            onVerseSingleTap(vNum)
+                                        }
+                                    }
+                                }
+                            },
+                            onLongPress = { pos ->
+                                layoutResult?.let { layout ->
                                     if (effectiveVNum != null) {
-                                        onVerseToggle(effectiveVNum)
+                                        onVerseLongPress(effectiveVNum)
                                     }
                                 }
                             }
@@ -1513,4 +2063,76 @@ private fun YouVersionPoetryBlock(
             )
         }
     }
+}
+
+@Composable
+fun TranslationPickerDialog(
+    selectedTranslation: BibleTranslation,
+    onTranslationSelect: (BibleTranslation) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "बाइबल अनुवाद चुनें (Select Translation)",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "उपलब्ध सभी बाइबल अनुवाद:",
+                    style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                BibleTranslation.ALL.forEach { translation ->
+                    val isSelected = translation.id == selectedTranslation.id
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { onTranslationSelect(translation) }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = translation.nameHindi,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Text(
+                                    text = translation.nameEnglish,
+                                    style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("बंद करें (Close)")
+            }
+        }
+    )
 }

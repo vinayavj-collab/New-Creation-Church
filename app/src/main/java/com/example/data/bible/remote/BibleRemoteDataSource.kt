@@ -27,57 +27,61 @@ class BibleRemoteDataSource(
         bookId: Int,
         chapter: Int
     ): List<BibleVerseEntity>? = withContext(Dispatchers.IO) {
-        val bollsTranslation = when (translationId) {
-            BibleTranslation.HINDI_IRV.id -> "HIOV"
-            BibleTranslation.HINDI_BSI_OV.id -> "HIOV"
-            BibleTranslation.HINDI_ERV.id -> "HINERV"
-            BibleTranslation.HINDI_ULB.id -> "HINULB"
-            BibleTranslation.ENGLISH_KJV.id -> "KJV"
-            BibleTranslation.ENGLISH_WEB.id -> "WEB"
-            else -> "HIOV"
+        val candidateCodes = when (translationId) {
+            BibleTranslation.HINDI_IRV.id -> listOf("HIOV", "HIN")
+            BibleTranslation.HINDI_BSI_OV.id -> listOf("HIOV", "HIN")
+            BibleTranslation.HINDI_ERV.id -> listOf("HINERV", "HIERV", "ERV", "HIOV", "HIN")
+            BibleTranslation.HINDI_ULB.id -> listOf("HINULB", "ULBHI", "ULB", "HIOV", "HIN")
+            BibleTranslation.ENGLISH_KJV.id -> listOf("KJV")
+            BibleTranslation.ENGLISH_WEB.id -> listOf("WEB", "KJV")
+            BibleTranslation.ENGLISH_BBE.id -> listOf("BBE", "KJV", "WEB")
+            else -> listOf("HIOV", "KJV")
         }
 
-        val url = "https://bolls.life/get-chapter/$bollsTranslation/$bookId/$chapter/"
+        for (code in candidateCodes) {
+            val url = "https://bolls.life/get-chapter/$code/$bookId/$chapter/"
+            try {
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "VinayKumarAVJ-Fellowship-App/1.0")
+                    .build()
 
-        try {
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", "VinayKumarAVJ-Fellowship-App/1.0")
-                .build()
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string() ?: ""
+                        if (body.startsWith("[")) {
+                            val jsonArray = JSONArray(body)
+                            val results = mutableListOf<BibleVerseEntity>()
 
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext null
-                val body = response.body?.string() ?: return@withContext null
-                val jsonArray = JSONArray(body)
-                val results = mutableListOf<BibleVerseEntity>()
+                            for (i in 0 until jsonArray.length()) {
+                                val obj = jsonArray.getJSONObject(i)
+                                val verseNum = obj.optInt("verse", i + 1)
+                                val rawText = obj.optString("text", "")
+                                val finalText = com.example.data.bible.local.BibleLocalDataSource.decodeAndSanitizeVerseText(rawText)
 
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    val verseNum = obj.optInt("verse", i + 1)
-                    val rawText = obj.optString("text", "")
-                    
-                    val finalText = com.example.data.bible.local.BibleLocalDataSource.decodeAndSanitizeVerseText(rawText)
-
-                    if (finalText.isNotEmpty()) {
-                        results.add(
-                            BibleVerseEntity(
-                                translationId = translationId,
-                                bookId = bookId,
-                                chapter = chapter,
-                                verse = verseNum,
-                                text = finalText
-                            )
-                        )
+                                if (finalText.isNotEmpty()) {
+                                    results.add(
+                                        BibleVerseEntity(
+                                            translationId = translationId,
+                                            bookId = bookId,
+                                            chapter = chapter,
+                                            verse = verseNum,
+                                            text = finalText
+                                        )
+                                    )
+                                }
+                            }
+                            if (results.isNotEmpty()) {
+                                results.sortBy { it.verse }
+                                return@withContext results
+                            }
+                        }
                     }
                 }
-                if (results.isNotEmpty()) {
-                    results.sortBy { it.verse }
-                    results
-                } else null
+            } catch (e: Exception) {
+                Log.w("BibleRemoteDataSource", "Error fetching code $code for $translationId $bookId:$chapter: ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.e("BibleRemoteDataSource", "Online fetch error for $translationId $bookId:$chapter", e)
-            null
         }
+        null
     }
 }

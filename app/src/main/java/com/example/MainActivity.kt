@@ -11,11 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Article
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -132,6 +128,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) {
+    val settings by viewModel.settings.collectAsState()
     val strings = appStrings()
     var currentDestination by remember { mutableStateOf(MainDestination.HOME) }
     var currentRoute by remember { mutableStateOf<AppRoute>(AppRoute.Main) }
@@ -174,15 +171,36 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
                                 MainDestination.HOME -> strings.navHome
                                 MainDestination.BLOGS -> strings.navBlogs
                                 MainDestination.YOUTUBE -> strings.navYouTube
-                                MainDestination.PHOTOS -> strings.navPhotos
+                                MainDestination.PHOTOS -> when (settings.customFourthTab) {
+                                    com.example.data.model.CustomFourthTab.PHOTOS -> strings.navPhotos
+                                    com.example.data.model.CustomFourthTab.BIBLE -> "बाइबिल"
+                                    com.example.data.model.CustomFourthTab.READING_PLAN -> "रीडिंग प्लान"
+                                    com.example.data.model.CustomFourthTab.SONG_BOOK -> "मसीही गीत"
+                                    com.example.data.model.CustomFourthTab.NOTES -> "स्टडी नोट्स"
+                                    else -> strings.navPhotos
+                                }
                                 MainDestination.MORE -> strings.navMore
+                            }
+                            val iconVector = when (dest) {
+                                MainDestination.HOME -> Icons.Default.Home
+                                MainDestination.BLOGS -> Icons.Default.Article
+                                MainDestination.YOUTUBE -> Icons.Default.PlayCircle
+                                MainDestination.PHOTOS -> when (settings.customFourthTab) {
+                                    com.example.data.model.CustomFourthTab.PHOTOS -> Icons.Default.PhotoLibrary
+                                    com.example.data.model.CustomFourthTab.BIBLE -> Icons.Default.MenuBook
+                                    com.example.data.model.CustomFourthTab.READING_PLAN -> Icons.Default.CalendarMonth
+                                    com.example.data.model.CustomFourthTab.SONG_BOOK -> Icons.Default.MusicNote
+                                    com.example.data.model.CustomFourthTab.NOTES -> Icons.Default.EditNote
+                                    else -> Icons.Default.PhotoLibrary
+                                }
+                                MainDestination.MORE -> Icons.Default.MoreHoriz
                             }
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = { currentDestination = dest },
                                 icon = {
                                     Icon(
-                                        imageVector = dest.icon,
+                                        imageVector = iconVector,
                                         contentDescription = labelText
                                     )
                                 },
@@ -239,15 +257,57 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
                             )
                         }
                         MainDestination.PHOTOS -> {
-                            GalleryScreen(
-                                viewModel = viewModel,
-                                onPhotoClick = { idx ->
-                                    currentRoute = AppRoute.PhotoViewer(galleryPhotos, idx)
-                                },
-                                onAlbumClick = { albumPhotos, idx ->
-                                    currentRoute = AppRoute.PhotoViewer(albumPhotos, idx)
+                            when (settings.customFourthTab) {
+                                com.example.data.model.CustomFourthTab.PHOTOS -> {
+                                    GalleryScreen(
+                                        viewModel = viewModel,
+                                        onPhotoClick = { idx ->
+                                            currentRoute = AppRoute.PhotoViewer(galleryPhotos, idx)
+                                        },
+                                        onAlbumClick = { albumPhotos, idx ->
+                                            currentRoute = AppRoute.PhotoViewer(albumPhotos, idx)
+                                        }
+                                    )
                                 }
-                            )
+                                com.example.data.model.CustomFourthTab.BIBLE -> {
+                                    com.example.ui.bible.BibleHomeScreen(
+                                        viewModel = bibleViewModel,
+                                        onBackClick = { currentDestination = MainDestination.HOME },
+                                        onOpenReader = { b, c, v -> currentRoute = AppRoute.BibleReader(b, c, v) },
+                                        onSearchClick = { currentRoute = AppRoute.BibleSearch },
+                                        onSavedClick = { currentRoute = AppRoute.BibleSaved },
+                                        onReadingPlanClick = { currentRoute = AppRoute.BibleReadingPlan }
+                                    )
+                                }
+                                com.example.data.model.CustomFourthTab.READING_PLAN -> {
+                                    com.example.ui.bible.BibleReadingPlanScreen(
+                                        planRepository = viewModel.readingPlanRepository,
+                                        onBackClick = { currentDestination = MainDestination.HOME },
+                                        onOpenBible = { bId, ch -> currentRoute = AppRoute.BibleReader(bId, ch) },
+                                        behindColorHex = settings.planBehindColorHex,
+                                        onTrackColorHex = settings.planOnTrackColorHex,
+                                        completedColorHex = settings.planCompletedColorHex,
+                                        onUpdateColors = { b, t, c -> viewModel.updateReadingPlanColors(b, t, c) },
+                                        bibleViewModel = bibleViewModel
+                                    )
+                                }
+                                com.example.data.model.CustomFourthTab.SONG_BOOK -> {
+                                    LyricsScreen(
+                                        lyricsRepository = viewModel.lyricsRepository,
+                                        bibleRepository = viewModel.bibleRepository,
+                                        onBackClick = { currentDestination = MainDestination.HOME },
+                                        onOpenVerse = { bId, ch, v -> currentRoute = AppRoute.BibleReader(bId, ch, v) }
+                                    )
+                                }
+                                com.example.data.model.CustomFourthTab.NOTES -> {
+                                    DedicatedNotesScreen(
+                                        notesRepository = viewModel.dedicatedNotesRepository,
+                                        bibleRepository = viewModel.bibleRepository,
+                                        onBackClick = { currentDestination = MainDestination.HOME },
+                                        onOpenVerse = { bId, ch, v -> currentRoute = AppRoute.BibleReader(bId, ch, v) }
+                                    )
+                                }
+                            }
                         }
                         MainDestination.MORE -> {
                             MoreScreen(
@@ -425,7 +485,12 @@ fun AppNavigationHost(viewModel: MainViewModel, bibleViewModel: BibleViewModel) 
             com.example.ui.bible.BibleReadingPlanScreen(
                 planRepository = viewModel.readingPlanRepository,
                 onBackClick = { currentRoute = AppRoute.Main },
-                onOpenBible = { bId, ch -> currentRoute = AppRoute.BibleReader(bId, ch) }
+                onOpenBible = { bId, ch -> currentRoute = AppRoute.BibleReader(bId, ch) },
+                behindColorHex = settings.planBehindColorHex,
+                onTrackColorHex = settings.planOnTrackColorHex,
+                completedColorHex = settings.planCompletedColorHex,
+                onUpdateColors = { b, t, c -> viewModel.updateReadingPlanColors(b, t, c) },
+                bibleViewModel = bibleViewModel
             )
         }
 

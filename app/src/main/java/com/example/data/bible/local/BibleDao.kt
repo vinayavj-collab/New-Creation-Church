@@ -191,6 +191,12 @@ interface BibleDao {
     @Query("SELECT MAX(songNumber) FROM christian_songs")
     suspend fun getMaxSongNumber(): Int?
 
+    @Query("DELETE FROM christian_songs WHERE isUserCreated = 0")
+    suspend fun deleteAllNonCustomSongs()
+
+    @Query("DELETE FROM christian_songs")
+    suspend fun clearAllSongs()
+
     @Query("SELECT COUNT(*) FROM christian_songs")
     suspend fun getSongCount(): Int
 }

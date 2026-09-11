@@ -89,7 +89,29 @@ class PreferencesManager(context: Context) {
             list
         }
 
+        val fourthTabStr = prefs.getString("custom_fourth_tab", CustomFourthTab.PHOTOS.name) ?: CustomFourthTab.PHOTOS.name
+        val customFourthTab = try {
+            CustomFourthTab.valueOf(fourthTabStr)
+        } catch (e: Exception) {
+            CustomFourthTab.PHOTOS
+        }
+
+        val photoLayoutStr = prefs.getString("blogger_photo_layout", BloggerPhotoLayout.GRID_2.name) ?: BloggerPhotoLayout.GRID_2.name
+        val bloggerPhotoLayout = try {
+            BloggerPhotoLayout.valueOf(photoLayoutStr)
+        } catch (e: Exception) {
+            BloggerPhotoLayout.GRID_2
+        }
+
         val showVlog = personalVlogMode != PersonalVlogMode.HIDDEN
+
+        val navOrderStr = prefs.getString("nav_tabs_order", "HOME,BLOGS,YOUTUBE,FOURTH_TAB,MORE") ?: "HOME,BLOGS,YOUTUBE,FOURTH_TAB,MORE"
+        val navTabsOrder = navOrderStr.split(",").filter { it.isNotBlank() }
+
+        val activePlans = prefs.getStringSet("active_plan_ids", setOf("gospels_30")) ?: setOf("gospels_30")
+        val behindColor = prefs.getString("plan_behind_color", "#EF4444") ?: "#EF4444"
+        val onTrackColor = prefs.getString("plan_ontrack_color", "#EAB308") ?: "#EAB308"
+        val completedColor = prefs.getString("plan_completed_color", "#10B981") ?: "#10B981"
 
         return UserSettings(
             themeMode = themeMode,
@@ -111,7 +133,14 @@ class PreferencesManager(context: Context) {
             favoriteCategories = favCats,
             homeSectionsOrder = homeSectionsOrder,
             enabledHomeSections = enabledHomeSections,
-            lastReadPostId = prefs.getString("last_read_post_id", null)
+            customFourthTab = customFourthTab,
+            bloggerPhotoLayout = bloggerPhotoLayout,
+            lastReadPostId = prefs.getString("last_read_post_id", null),
+            navTabsOrder = navTabsOrder,
+            activePlanIds = activePlans,
+            planBehindColorHex = behindColor,
+            planOnTrackColorHex = onTrackColor,
+            planCompletedColorHex = completedColor
         )
     }
 
@@ -218,9 +247,43 @@ class PreferencesManager(context: Context) {
         _settings.value = _settings.value.copy(homeSectionsOrder = order)
     }
 
+    fun updateCustomFourthTab(tab: CustomFourthTab) {
+        prefs.edit().putString("custom_fourth_tab", tab.name).apply()
+        _settings.value = _settings.value.copy(customFourthTab = tab)
+    }
+
+    fun updateBloggerPhotoLayout(layout: BloggerPhotoLayout) {
+        prefs.edit().putString("blogger_photo_layout", layout.name).apply()
+        _settings.value = _settings.value.copy(bloggerPhotoLayout = layout)
+    }
+
     fun setLastReadPostId(postId: String) {
         prefs.edit().putString("last_read_post_id", postId).apply()
         _settings.value = _settings.value.copy(lastReadPostId = postId)
+    }
+
+    fun updateNavTabsOrder(order: List<String>) {
+        val str = order.joinToString(",")
+        prefs.edit().putString("nav_tabs_order", str).apply()
+        _settings.value = _settings.value.copy(navTabsOrder = order)
+    }
+
+    fun updateActivePlanIds(ids: Set<String>) {
+        prefs.edit().putStringSet("active_plan_ids", ids).apply()
+        _settings.value = _settings.value.copy(activePlanIds = ids)
+    }
+
+    fun updateReadingPlanColors(behindHex: String, onTrackHex: String, completedHex: String) {
+        prefs.edit()
+            .putString("plan_behind_color", behindHex)
+            .putString("plan_ontrack_color", onTrackHex)
+            .putString("plan_completed_color", completedHex)
+            .apply()
+        _settings.value = _settings.value.copy(
+            planBehindColorHex = behindHex,
+            planOnTrackColorHex = onTrackHex,
+            planCompletedColorHex = completedHex
+        )
     }
 }
 

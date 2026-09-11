@@ -37,7 +37,7 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
     private val _audioLanguage = MutableStateFlow("hi") // "hi" or "en"
     val audioLanguage: StateFlow<String> = _audioLanguage.asStateFlow()
 
-    private val _audioSourceType = MutableStateFlow(AudioSourceType.PRE_RECORDED)
+    private val _audioSourceType = MutableStateFlow(AudioSourceType.TTS_NARRATION)
     val audioSourceType: StateFlow<AudioSourceType> = _audioSourceType.asStateFlow()
 
     private val _playbackSpeed = MutableStateFlow(1.0f)
@@ -325,6 +325,16 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
             mediaPlayer?.let { player ->
                 val newPos = (player.currentPosition - 15000).coerceAtLeast(0)
                 seekTo(newPos.toLong())
+            }
+        }
+    }
+
+    fun setCurrentVerseNumber(vNum: Int?) {
+        _currentVerseNumber.value = vNum
+        if (vNum != null && currentVerseList.isNotEmpty()) {
+            val idx = currentVerseList.indexOfFirst { it.verseNumber == vNum }
+            if (idx >= 0) {
+                currentTtsVerseIndex = idx
             }
         }
     }

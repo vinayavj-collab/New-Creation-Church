@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +36,7 @@ fun BibleHomeScreen(
     onOpenReader: (bookId: Int, chapter: Int, targetVerse: Int?) -> Unit,
     onSearchClick: () -> Unit,
     onSavedClick: () -> Unit,
+    onReadingPlanClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val selectedTranslation by viewModel.selectedTranslation.collectAsState()
@@ -142,76 +144,88 @@ fun BibleHomeScreen(
                     )
 
                     AssistChip(
-                        onClick = onSearchClick,
-                        label = { Text("खोजें (Search)") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    )
-
-                    AssistChip(
-                        onClick = onSavedClick,
-                        label = { Text("सहेजे गए (Saved)") },
-                        leadingIcon = { Icon(Icons.Default.Bookmarks, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        onClick = onReadingPlanClick,
+                        label = { Text("रीडिंग प्लान (Plan)") },
+                        leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     )
                 }
             }
 
-            // Today's Verse Card ("आज का वचन")
-            item {
-                Card(
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 14.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "📖 आज का वचन",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
-                            FilledTonalButton(
-                                onClick = {
-                                    onOpenReader(todayVerse.bookId, todayVerse.chapter, todayVerse.verseNumber)
-                                },
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            // Reading Plan Quick Access Banner / Active Reading Plans
+            if (readingSettings.showActivatedPlansOnHome) {
+                val allPlans = viewModel.getAllPlansList()
+                val activatedPlans = allPlans.filter { it.id in readingSettings.activatedPlanIds }
+
+                if (activatedPlans.isNotEmpty()) {
+                    items(activatedPlans, key = { "home_plan_" + it.id }) { plan ->
+                        ActivatedPlanHomeCard(
+                            plan = plan,
+                            viewModel = viewModel,
+                            onClick = onReadingPlanClick
+                        )
+                    }
+                }
+            }
+
+            // Today's Verse Card ("आज का वचन") - Default Hidden, shown only if setting enabled
+            if (readingSettings.showTodaysScriptureOnHome) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 14.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("पढ़ें (Read)", style = MaterialTheme.typography.labelSmall)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "📖 आज का वचन",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                                FilledTonalButton(
+                                    onClick = {
+                                        onOpenReader(todayVerse.bookId, todayVerse.chapter, todayVerse.verseNumber)
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text("पढ़ें (Read)", style = MaterialTheme.typography.labelSmall)
+                                }
                             }
-                        }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                        Text(
-                            text = if (selectedTranslation.language == "hi") todayVerse.textHindi else todayVerse.textEnglish,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                lineHeight = 22.sp,
-                                fontWeight = FontWeight.Normal
-                            ),
-                            maxLines = 4,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = "— " + if (selectedTranslation.language == "hi") todayVerse.referenceHindi else todayVerse.referenceEnglish,
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Text(
+                                text = if (selectedTranslation.language == "hi") todayVerse.textHindi else todayVerse.textEnglish,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    lineHeight = 22.sp,
+                                    fontWeight = FontWeight.Normal
+                                ),
+                                maxLines = 4,
+                                overflow = TextOverflow.Ellipsis
                             )
-                        )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "— " + if (selectedTranslation.language == "hi") todayVerse.referenceHindi else todayVerse.referenceEnglish,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -338,6 +352,9 @@ fun BibleHomeScreen(
             onShowVerseNumbersChange = { viewModel.toggleVerseNumbers(it) },
             onThemeChange = { viewModel.updateTheme(it) },
             onTranslationChange = { viewModel.selectTranslation(it) },
+            onVerseTapSelectionModeChange = { viewModel.updateVerseTapSelectionMode(it) },
+            onShowTodaysScriptureOnHomeChange = { viewModel.toggleShowTodaysScriptureOnHome(it) },
+            onShowActivatedPlansOnHomeChange = { viewModel.toggleShowActivatedPlansOnHome(it) },
             onDismiss = { showSettingsDialog = false }
         )
     }
@@ -416,6 +433,111 @@ private fun BookRowItem(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ActivatedPlanHomeCard(
+    plan: com.example.data.bible.model.ReadingPlanInfo,
+    viewModel: BibleViewModel,
+    onClick: () -> Unit
+) {
+    var progressList by remember { mutableStateOf<List<com.example.data.bible.local.ReadingPlanProgressEntity>>(emptyList()) }
+    LaunchedEffect(plan.id) {
+        viewModel.readingPlanRepository.getPlanProgress(plan.id).collect { list ->
+            progressList = list
+        }
+    }
+    val completedCount = progressList.count { it.isCompleted }
+    val progressFraction = if (plan.totalDays > 0) completedCount.toFloat() / plan.totalDays.toFloat() else 0f
+    val percentText = (progressFraction * 100).toInt()
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f)
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = plan.titleHindi,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = plan.titleEnglish,
+                            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Open Plan",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "प्रोग्रेस: $completedCount / ${plan.totalDays} दिन",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    text = "$percentText%",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            LinearProgressIndicator(
+                progress = { progressFraction.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = Color(0xFF10B981)
+            )
         }
     }
 }

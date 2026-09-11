@@ -51,12 +51,20 @@ class BibleViewModel(
     val verses: StateFlow<List<BibleVerse>> = combine(
         _selectedTranslation,
         _currentBook,
-        _currentChapter
-    ) { translation, book, chapter ->
-        Triple(translation, book, chapter)
-    }.flatMapLatest { (translation, book, chapter) ->
-        repository.getChapterVerses(translation.id, book.id, chapter, viewModelScope)
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        _currentChapter,
+        _readingSettings
+    ) { translation, book, chapter, settings ->
+        val isDual = translation.id == BibleTranslation.PARALLEL_HI_EN.id || settings.isDualBibleEnabled
+        val effTranslationId = if (isDual) BibleTranslation.PARALLEL_HI_EN.id else translation.id
+        repository.getChapterVerses(
+            translationId = effTranslationId,
+            bookId = book.id,
+            chapter = chapter,
+            coroutineScope = viewModelScope,
+            dualHindiId = settings.dualHindiVersionId,
+            dualEnglishId = settings.dualEnglishVersionId
+        )
+    }.flatMapLatest { it }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val chapterHeadings: StateFlow<List<BibleSectionHeading>> = combine(
         _selectedTranslation,
@@ -71,11 +79,11 @@ class BibleViewModel(
     val structuredBlocks: StateFlow<List<BibleContentBlock>> = combine(
         _selectedTranslation,
         _currentBook,
-        _currentChapter
-    ) { translation, book, chapter ->
-        Triple(translation, book, chapter)
-    }.map { (translation, book, chapter) ->
-        if (translation.id.startsWith("HIN")) {
+        _currentChapter,
+        _readingSettings
+    ) { translation, book, chapter, settings ->
+        val isDual = translation.id == BibleTranslation.PARALLEL_HI_EN.id || settings.isDualBibleEnabled
+        if (!isDual && translation.id.startsWith("HIN")) {
             repository.getStructuredChapter(book.id, chapter)
         } else {
             emptyList()
@@ -397,8 +405,51 @@ class BibleViewModel(
         _readingSettings.value = _readingSettings.value.copy(theme = theme)
     }
 
+    fun updateFontStyle(fontStyle: BibleFontFamilyType) {
+        _readingSettings.value = _readingSettings.value.copy(
+            fontStyle = fontStyle,
+            useSerifFont = fontStyle == BibleFontFamilyType.CLASSIC_SERIF || fontStyle == BibleFontFamilyType.TRADITIONAL_BOOK
+        )
+    }
+
+    fun updateCustomTextColor(hex: String?) {
+        _readingSettings.value = _readingSettings.value.copy(customTextColorHex = hex)
+    }
+
+    fun updateCustomHeadingColor(hex: String?) {
+        _readingSettings.value = _readingSettings.value.copy(customHeadingColorHex = hex)
+    }
+
+    fun updateCustomSubHeadingColor(hex: String?) {
+        _readingSettings.value = _readingSettings.value.copy(customSubHeadingColorHex = hex)
+    }
+
+    fun updateTranslationToggleBehavior(behavior: TranslationToggleBehavior) {
+        _readingSettings.value = _readingSettings.value.copy(translationToggleBehavior = behavior)
+    }
+
+    fun configureDualBible(
+        enabled: Boolean,
+        hindiVersionId: String = _readingSettings.value.dualHindiVersionId,
+        englishVersionId: String = _readingSettings.value.dualEnglishVersionId,
+        viewMode: DualViewMode = _readingSettings.value.dualViewMode
+    ) {
+        _readingSettings.value = _readingSettings.value.copy(
+            isDualBibleEnabled = enabled,
+            dualHindiVersionId = hindiVersionId,
+            dualEnglishVersionId = englishVersionId,
+            dualViewMode = viewMode
+        )
+        if (enabled) {
+            _selectedTranslation.value = BibleTranslation.PARALLEL_HI_EN
+        }
+    }
+
     fun toggleSerifFont(useSerif: Boolean) {
-        _readingSettings.value = _readingSettings.value.copy(useSerifFont = useSerif)
+        _readingSettings.value = _readingSettings.value.copy(
+            useSerifFont = useSerif,
+            fontStyle = if (useSerif) BibleFontFamilyType.CLASSIC_SERIF else BibleFontFamilyType.SYSTEM_DEFAULT
+        )
     }
 
     fun toggleOriginalFormatMode(enabled: Boolean) {
@@ -418,6 +469,81 @@ class BibleViewModel(
 
     fun toggleRememberPosition(remember: Boolean) {
         _readingSettings.value = _readingSettings.value.copy(rememberLastReadingPosition = remember)
+    }
+
+    val readingPlanRepository = com.example.data.bible.repository.ReadingPlanRepository(
+        com.example.data.bible.local.BibleDatabase.getInstance(application).bibleDao()
+    )
+
+    fun toggleShowTodaysScriptureOnHome(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showTodaysScriptureOnHome = show)
+    }
+
+    fun toggleShowActivatedPlansOnHome(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showActivatedPlansOnHome = show)
+    }
+
+    fun updateVerseTapSelectionMode(mode: VerseTapSelectionMode) {
+        _readingSettings.value = _readingSettings.value.copy(verseTapSelectionMode = mode)
+    }
+
+    fun activateReadingPlan(planId: String) {
+        val currentSet = _readingSettings.value.activatedPlanIds
+        _readingSettings.value = _readingSettings.value.copy(activatedPlanIds = currentSet + planId)
+    }
+
+    fun deactivateReadingPlan(planId: String) {
+        val currentSet = _readingSettings.value.activatedPlanIds
+        _readingSettings.value = _readingSettings.value.copy(activatedPlanIds = currentSet - planId)
+    }
+
+    fun resetReadingPlanProgress(planId: String) {
+        viewModelScope.launch {
+            readingPlanRepository.resetPlan(planId)
+        }
+    }
+
+    fun addManualReadingPlan(
+        titleHindi: String,
+        titleEnglish: String,
+        totalDays: Int,
+        descriptionHindi: String = "",
+        descriptionEnglish: String = ""
+    ) {
+        val newPlan = com.example.data.bible.model.ManualPlanData(
+            id = "manual_" + System.currentTimeMillis(),
+            titleHindi = if (titleHindi.isBlank()) "कस्टम प्लान" else titleHindi,
+            titleEnglish = if (titleEnglish.isBlank()) "Custom Plan" else titleEnglish,
+            descriptionHindi = descriptionHindi,
+            descriptionEnglish = descriptionEnglish,
+            totalDays = if (totalDays <= 0) 30 else totalDays
+        )
+        val currentList = com.example.data.bible.model.ManualPlanData.deserializeList(_readingSettings.value.manualPlansJson)
+        val updatedList = currentList + newPlan
+        val newJson = com.example.data.bible.model.ManualPlanData.serializeList(updatedList)
+        val currentActivated = _readingSettings.value.activatedPlanIds
+        _readingSettings.value = _readingSettings.value.copy(
+            manualPlansJson = newJson,
+            activatedPlanIds = currentActivated + newPlan.id
+        )
+    }
+
+    fun deleteManualReadingPlan(planId: String) {
+        val currentList = com.example.data.bible.model.ManualPlanData.deserializeList(_readingSettings.value.manualPlansJson)
+        val updatedList = currentList.filter { it.id != planId }
+        val newJson = com.example.data.bible.model.ManualPlanData.serializeList(updatedList)
+        val currentActivated = _readingSettings.value.activatedPlanIds
+        _readingSettings.value = _readingSettings.value.copy(
+            manualPlansJson = newJson,
+            activatedPlanIds = currentActivated - planId
+        )
+        resetReadingPlanProgress(planId)
+    }
+
+    fun getAllPlansList(): List<com.example.data.bible.model.ReadingPlanInfo> {
+        val predefined = readingPlanRepository.getAllPlans()
+        val manual = com.example.data.bible.model.ManualPlanData.deserializeList(_readingSettings.value.manualPlansJson).map { it.toReadingPlanInfo() }
+        return predefined + manual
     }
 
     fun resetReadingSettings() {

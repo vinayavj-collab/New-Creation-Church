@@ -29,6 +29,19 @@ class ReadingPlanRepository(private val bibleDao: BibleDao) {
         bibleDao.resetPlan(planId)
     }
 
+    suspend fun syncPlanToCurrentDate(planId: String, targetDayNumber: Int) = withContext(Dispatchers.IO) {
+        for (day in 1 until targetDayNumber) {
+            bibleDao.setPlanDayCompleted(
+                ReadingPlanProgressEntity(
+                    planId = planId,
+                    dayNumber = day,
+                    isCompleted = true,
+                    completedTimestamp = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
     fun getAllPlans(): List<ReadingPlanInfo> = PredefinedReadingPlans.allPlans
 
     fun getPlan(planId: String): ReadingPlanInfo? = PredefinedReadingPlans.getPlanById(planId)

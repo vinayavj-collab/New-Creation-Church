@@ -82,17 +82,31 @@ data class BibleTranslation(
             isOfflineAvailable = false
         )
 
+        val ENGLISH_BBE = BibleTranslation(
+            id = "ENG_BBE",
+            nameHindi = "अंग्रेज़ी (BBE सरल अंग्रेज़ी)",
+            nameEnglish = "English (Bible in Basic English)",
+            language = "en",
+            license = "Public Domain",
+            attribution = "Bible in Basic English (Public Domain)",
+            isPublicDomain = true,
+            isOfflineAvailable = false
+        )
+
         val PARALLEL_HI_EN = BibleTranslation(
             id = "PARALLEL_HI_EN",
-            nameHindi = "एक साथ (हिन्दी + English)",
-            nameEnglish = "Parallel (Hindi + English)",
+            nameHindi = "द्विभाषी (हिन्दी + English)",
+            nameEnglish = "Bilingual (Hindi + English)",
             language = "hi-en",
             license = "Dual Translation",
-            attribution = "Hindi IRV + English KJV Verse by Verse",
+            attribution = "Hindi + English Verse by Verse / Side by Side",
             isPublicDomain = false,
             isOfflineAvailable = true
         )
 
-        val ALL = listOf(HINDI_IRV, HINDI_BSI_OV, HINDI_ERV, HINDI_ULB, ENGLISH_KJV, ENGLISH_WEB, PARALLEL_HI_EN)
+        val HINDI_TRANSLATIONS = listOf(HINDI_IRV, HINDI_BSI_OV, HINDI_ERV, HINDI_ULB)
+        val ENGLISH_TRANSLATIONS = listOf(ENGLISH_KJV, ENGLISH_WEB, ENGLISH_BBE)
+
+        val ALL = listOf(HINDI_IRV, HINDI_BSI_OV, HINDI_ERV, HINDI_ULB, ENGLISH_KJV, ENGLISH_WEB, ENGLISH_BBE, PARALLEL_HI_EN)
     }
 }

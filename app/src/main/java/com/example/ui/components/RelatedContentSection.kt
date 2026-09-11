@@ -39,6 +39,7 @@ fun RelatedContentSection(
     onVideoClick: (YouTubeVideo) -> Unit,
     onPlaylistClick: (YouTubePlaylist) -> Unit,
     onImageClick: (String) -> Unit,
+    showPostPhotos: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val postKeywords = remember(currentPost) {
@@ -74,7 +75,7 @@ fun RelatedContentSection(
         }.take(5)
     }
 
-    val hasAnyRelated = currentPost.allImages.isNotEmpty() ||
+    val hasAnyRelated = (showPostPhotos && currentPost.allImages.isNotEmpty()) ||
             relatedVideos.isNotEmpty() ||
             relatedPlaylists.isNotEmpty() ||
             relatedPosts.isNotEmpty()
@@ -97,8 +98,8 @@ fun RelatedContentSection(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
         )
 
-        // 1. Photos
-        if (currentPost.allImages.isNotEmpty()) {
+        // 1. Photos (By default OFF so same photos from article are not repeated)
+        if (showPostPhotos && currentPost.allImages.isNotEmpty()) {
             Text(
                 text = "📸 Photos (${currentPost.allImages.size})",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),

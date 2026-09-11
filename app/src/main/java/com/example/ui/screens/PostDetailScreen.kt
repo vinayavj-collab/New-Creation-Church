@@ -40,8 +40,16 @@ import com.example.ui.components.YouTubePlayerView
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.ArticleBlock
+import com.example.util.ArticleBlockParser
 import com.example.util.BloggerImageUtils
 import com.example.util.ReminderScheduler
+
+sealed class DisplayArticleBlock {
+    data class TextBlock(val html: String) : DisplayArticleBlock()
+    data class ImageRowBlock(val images: List<ArticleBlock.ImageBlock>) : DisplayArticleBlock()
+    data class VideoBlock(val videoId: String) : DisplayArticleBlock()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +71,47 @@ fun PostDetailScreen(
 
     val upcomingEvent = remember(post) { EventExtractor.extractUpcomingEvent(post) }
     var showReminderDialog by remember { mutableStateOf(false) }
+    var showPhotoLayoutMenu by remember { mutableStateOf(false) }
+
+    val articleBlocks = remember(post.contentHtml, post.plainTextExcerpt) {
+        ArticleBlockParser.parse(post.contentHtml, post.plainTextExcerpt)
+    }
+
+    val displayBlocks = remember(articleBlocks, settings.bloggerPhotoLayout) {
+        val result = mutableListOf<DisplayArticleBlock>()
+        val currentImageChunk = mutableListOf<ArticleBlock.ImageBlock>()
+        val maxCols = when (settings.bloggerPhotoLayout) {
+            BloggerPhotoLayout.SINGLE -> 1
+            BloggerPhotoLayout.GRID_2 -> 2
+            BloggerPhotoLayout.GRID_3 -> 3
+            BloggerPhotoLayout.GRID_4 -> 4
+        }
+
+        fun flushImages() {
+            if (currentImageChunk.isNotEmpty()) {
+                currentImageChunk.chunked(maxCols).forEach { chunk ->
+                    result.add(DisplayArticleBlock.ImageRowBlock(chunk))
+                }
+                currentImageChunk.clear()
+            }
+        }
+
+        for (block in articleBlocks) {
+            when (block) {
+                is ArticleBlock.ImageBlock -> currentImageChunk.add(block)
+                is ArticleBlock.TextBlock -> {
+                    flushImages()
+                    result.add(DisplayArticleBlock.TextBlock(block.html))
+                }
+                is ArticleBlock.VideoBlock -> {
+                    flushImages()
+                    result.add(DisplayArticleBlock.VideoBlock(block.videoId))
+                }
+            }
+        }
+        flushImages()
+        result
+    }
 
     // Record view in Recently Viewed
     LaunchedEffect(post.id) {
@@ -149,6 +198,73 @@ fun PostDetailScreen(
                     }
                 },
                 actions = {
+                    // Photo Layout Grid Customization Menu (User Request 3)
+                    Box {
+                        IconButton(onClick = { showPhotoLayoutMenu = true }) {
+                            Icon(
+                                imageVector = when (settings.bloggerPhotoLayout) {
+                                    BloggerPhotoLayout.SINGLE -> Icons.Default.CropSquare
+                                    BloggerPhotoLayout.GRID_2 -> Icons.Default.ViewAgenda
+                                    BloggerPhotoLayout.GRID_3 -> Icons.Default.GridView
+                                    BloggerPhotoLayout.GRID_4 -> Icons.Default.ViewModule
+                                },
+                                contentDescription = "Photo Layout",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showPhotoLayoutMenu,
+                            onDismissRequest = { showPhotoLayoutMenu = false },
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("1 फ़ोटो प्रति पंक्ति (Single)") },
+                                leadingIcon = { Icon(Icons.Default.CropSquare, contentDescription = null) },
+                                trailingIcon = if (settings.bloggerPhotoLayout == BloggerPhotoLayout.SINGLE) {
+                                    { Icon(Icons.Default.Check, contentDescription = null) }
+                                } else null,
+                                onClick = {
+                                    showPhotoLayoutMenu = false
+                                    viewModel.updateBloggerPhotoLayout(BloggerPhotoLayout.SINGLE)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("2 फ़ोटो प्रति पंक्ति (Grid 2)") },
+                                leadingIcon = { Icon(Icons.Default.ViewAgenda, contentDescription = null) },
+                                trailingIcon = if (settings.bloggerPhotoLayout == BloggerPhotoLayout.GRID_2) {
+                                    { Icon(Icons.Default.Check, contentDescription = null) }
+                                } else null,
+                                onClick = {
+                                    showPhotoLayoutMenu = false
+                                    viewModel.updateBloggerPhotoLayout(BloggerPhotoLayout.GRID_2)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("3 फ़ोटो प्रति पंक्ति (Grid 3)") },
+                                leadingIcon = { Icon(Icons.Default.GridView, contentDescription = null) },
+                                trailingIcon = if (settings.bloggerPhotoLayout == BloggerPhotoLayout.GRID_3) {
+                                    { Icon(Icons.Default.Check, contentDescription = null) }
+                                } else null,
+                                onClick = {
+                                    showPhotoLayoutMenu = false
+                                    viewModel.updateBloggerPhotoLayout(BloggerPhotoLayout.GRID_3)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("4 फ़ोटो प्रति पंक्ति (Grid 4)") },
+                                leadingIcon = { Icon(Icons.Default.ViewModule, contentDescription = null) },
+                                trailingIcon = if (settings.bloggerPhotoLayout == BloggerPhotoLayout.GRID_4) {
+                                    { Icon(Icons.Default.Check, contentDescription = null) }
+                                } else null,
+                                onClick = {
+                                    showPhotoLayoutMenu = false
+                                    viewModel.updateBloggerPhotoLayout(BloggerPhotoLayout.GRID_4)
+                                }
+                            )
+                        }
+                    }
+
                     // Bookmark / Save toggle
                     IconButton(
                         onClick = {
@@ -375,8 +491,157 @@ fun PostDetailScreen(
                 }
             }
 
-            // Embedded YouTube Videos
-            if (post.embeddedVideoIds.isNotEmpty()) {
+            // Interwoven Article Blocks (Text, Inline Photos in Grid, and Videos in natural order)
+            if (displayBlocks.isNotEmpty()) {
+                val rowHeight = when (settings.bloggerPhotoLayout) {
+                    BloggerPhotoLayout.SINGLE -> 240.dp
+                    BloggerPhotoLayout.GRID_2 -> 160.dp
+                    BloggerPhotoLayout.GRID_3 -> 115.dp
+                    BloggerPhotoLayout.GRID_4 -> 85.dp
+                }
+
+                displayBlocks.forEachIndexed { index, block ->
+                    when (block) {
+                        is DisplayArticleBlock.TextBlock -> {
+                            item(key = "text_block_$index") {
+                                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                                    AndroidView(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        factory = { ctx ->
+                                            TextView(ctx).apply {
+                                                textSize = 16f
+                                                setLineSpacing(8f, 1.25f)
+                                                setTextIsSelectable(true)
+                                            }
+                                        },
+                                        update = { textView ->
+                                            val textColor = if (textView.context.resources.configuration.uiMode and
+                                                android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                                                android.content.res.Configuration.UI_MODE_NIGHT_YES
+                                            ) {
+                                                android.graphics.Color.parseColor("#E2E8F0")
+                                            } else {
+                                                android.graphics.Color.parseColor("#1E293B")
+                                            }
+                                            textView.setTextColor(textColor)
+                                            textView.text = HtmlCompat.fromHtml(
+                                                block.html,
+                                                HtmlCompat.FROM_HTML_MODE_COMPACT
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        is DisplayArticleBlock.ImageRowBlock -> {
+                            item(key = "image_row_$index") {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        block.images.forEach { imgBlock ->
+                                            val optUrl = BloggerImageUtils.getOptimizedUrl(imgBlock.imageUrl, settings.dataSaverEnabled)
+                                            Card(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(rowHeight)
+                                                    .clickable { onImageClick(imgBlock.imageUrl) },
+                                                shape = RoundedCornerShape(10.dp),
+                                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                            ) {
+                                                Box(modifier = Modifier.fillMaxSize()) {
+                                                    AsyncImage(
+                                                        model = ImageRequest.Builder(context)
+                                                            .data(optUrl)
+                                                            .crossfade(true)
+                                                            .build(),
+                                                        contentDescription = imgBlock.caption ?: "Photo",
+                                                        contentScale = ContentScale.Crop,
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                    if (settings.bloggerPhotoLayout == BloggerPhotoLayout.SINGLE) {
+                                                        Surface(
+                                                            modifier = Modifier
+                                                                .align(Alignment.BottomEnd)
+                                                                .padding(8.dp),
+                                                            color = Color.Black.copy(alpha = 0.65f),
+                                                            shape = RoundedCornerShape(8.dp)
+                                                        ) {
+                                                            Row(
+                                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.ZoomIn,
+                                                                    contentDescription = "Zoom",
+                                                                    tint = Color.White,
+                                                                    modifier = Modifier.size(14.dp)
+                                                                )
+                                                                Spacer(modifier = Modifier.width(4.dp))
+                                                                Text(
+                                                                    text = "Tap to zoom",
+                                                                    color = Color.White,
+                                                                    fontSize = 11.sp
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // If single image has caption, show below
+                                    if (block.images.size == 1 && !block.images.first().caption.isNullOrBlank()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = block.images.first().caption.orEmpty(),
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        is DisplayArticleBlock.VideoBlock -> {
+                            item(key = "video_block_$index") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(220.dp)
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                ) {
+                                    YouTubePlayerView(videoId = block.videoId)
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Fallback text if no blocks
+                item {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Text(
+                            text = post.plainTextExcerpt,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+
+            // Standalone Embedded YouTube Videos (if not already embedded in blocks)
+            val embeddedInBlocks = articleBlocks.filterIsInstance<ArticleBlock.VideoBlock>().map { it.videoId }.toSet()
+            val remainingVideos = post.embeddedVideoIds.filterNot { embeddedInBlocks.contains(it) }
+            if (remainingVideos.isNotEmpty()) {
                 item {
                     Column(
                         modifier = Modifier
@@ -391,7 +656,7 @@ fun PostDetailScreen(
                             ),
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        post.embeddedVideoIds.forEach { vidId ->
+                        remainingVideos.forEach { vidId ->
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -406,45 +671,24 @@ fun PostDetailScreen(
                 }
             }
 
-            // Formatted Article Content (Supports Hindi, English, all scripts via HtmlCompat)
-            item {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    AndroidView(
-                        modifier = Modifier.fillMaxWidth(),
-                        factory = { ctx ->
-                            TextView(ctx).apply {
-                                textSize = 16f
-                                setLineSpacing(8f, 1.2f)
-                                setTextIsSelectable(true)
-                                setTextColor(android.graphics.Color.parseColor("#334155"))
-                            }
-                        },
-                        update = { textView ->
-                            val textColor = if (textView.context.resources.configuration.uiMode and
-                                android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
-                                android.content.res.Configuration.UI_MODE_NIGHT_YES
-                            ) {
-                                android.graphics.Color.parseColor("#E2E8F0")
-                            } else {
-                                android.graphics.Color.parseColor("#1E293B")
-                            }
-                            textView.setTextColor(textColor)
-                            // Remove raw img tags for clean text flow in TextView since images are rendered as Compose cards below
-                            val textOnlyHtml = post.contentHtml
-                                .replace(Regex("<img[^>]*>"), "")
-                                .ifEmpty { post.plainTextExcerpt }
-                            textView.text = HtmlCompat.fromHtml(
-                                textOnlyHtml,
-                                HtmlCompat.FROM_HTML_MODE_COMPACT
-                            )
-                        }
-                    )
-                }
-            }
-
-            // Article Photos Section (Renders all inline Blogger images)
-            if (post.allImages.isNotEmpty()) {
+            // Fallback gallery: if no images were found in the parsed blocks, but post.allImages has items
+            val imagesInBlocks = articleBlocks.filterIsInstance<ArticleBlock.ImageBlock>().map { it.imageUrl }.toSet()
+            val remainingImages = post.allImages.filterNot { imagesInBlocks.contains(it) || post.featuredImageUrl == it }
+            if (imagesInBlocks.isEmpty() && remainingImages.isNotEmpty()) {
                 item {
+                    val maxCols = when (settings.bloggerPhotoLayout) {
+                        BloggerPhotoLayout.SINGLE -> 1
+                        BloggerPhotoLayout.GRID_2 -> 2
+                        BloggerPhotoLayout.GRID_3 -> 3
+                        BloggerPhotoLayout.GRID_4 -> 4
+                    }
+                    val rowHeight = when (settings.bloggerPhotoLayout) {
+                        BloggerPhotoLayout.SINGLE -> 240.dp
+                        BloggerPhotoLayout.GRID_2 -> 160.dp
+                        BloggerPhotoLayout.GRID_3 -> 115.dp
+                        BloggerPhotoLayout.GRID_4 -> 85.dp
+                    }
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -458,66 +702,53 @@ fun PostDetailScreen(
                                 .padding(bottom = 8.dp)
                         ) {
                             Text(
-                                text = "📸 ARTICLE PHOTOS (${post.allImages.size})",
+                                text = "📸 ARTICLE PHOTOS (${remainingImages.size})",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             )
                             Text(
-                                text = "Tap photo to zoom",
+                                text = "Grid: ${settings.bloggerPhotoLayout.columns} per line • Tap to zoom",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = MaterialTheme.colorScheme.outline
                                 )
                             )
                         }
 
-                        post.allImages.forEachIndexed { index, rawUrl ->
-                            val optUrl = BloggerImageUtils.getOptimizedUrl(rawUrl, settings.dataSaverEnabled)
-                            Card(
+                        remainingImages.chunked(maxCols).forEach { chunk ->
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(260.dp)
-                                    .padding(vertical = 6.dp)
-                                    .clickable { onImageClick(rawUrl) },
-                                shape = RoundedCornerShape(16.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(context)
-                                            .data(optUrl)
-                                            .crossfade(true)
-                                            .build(),
-                                        contentDescription = "Photo ${index + 1}",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                    Surface(
+                                chunk.forEach { rawUrl ->
+                                    val optUrl = BloggerImageUtils.getOptimizedUrl(rawUrl, settings.dataSaverEnabled)
+                                    Card(
                                         modifier = Modifier
-                                            .align(Alignment.BottomEnd)
-                                            .padding(10.dp),
-                                        color = Color.Black.copy(alpha = 0.65f),
-                                        shape = RoundedCornerShape(8.dp)
+                                            .weight(1f)
+                                            .height(rowHeight)
+                                            .clickable { onImageClick(rawUrl) },
+                                        shape = RoundedCornerShape(10.dp),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.ZoomIn,
-                                                contentDescription = "Zoom",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(
-                                                text = "Photo ${index + 1} • Zoom",
-                                                color = Color.White,
-                                                fontSize = 11.sp
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            AsyncImage(
+                                                model = ImageRequest.Builder(context)
+                                                    .data(optUrl)
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentDescription = "Photo",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
                                             )
                                         }
                                     }
+                                }
+                                // Fill missing space if last row has fewer items
+                                repeat(maxCols - chunk.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }
@@ -532,6 +763,7 @@ fun PostDetailScreen(
                     allPosts = allPosts,
                     allVideos = allVideos,
                     playlists = PredefinedPlaylists.items,
+                    showPostPhotos = false,
                     onPostClick = onPostClick,
                     onVideoClick = { vid -> onVideoClick(vid.id) },
                     onPlaylistClick = onPlaylistClick,
