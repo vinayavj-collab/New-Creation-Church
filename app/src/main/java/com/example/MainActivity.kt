@@ -17,7 +17,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -32,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -59,6 +62,7 @@ import com.example.ui.bible.BibleSavedScreen
 import com.example.ui.bible.BibleSearchScreen
 import com.example.ui.bible.BibleViewModel
 import com.example.ui.components.AppUpdateModalDialog
+import com.example.ui.components.BibleMiniAudioPlayer
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
 import com.example.widget.BibleVerseWidgetProvider
@@ -494,6 +498,14 @@ fun AppNavigationHost(
     val updateState by viewModel.updateState.collectAsState()
     var showUpdateModalFromSidebar by remember { mutableStateOf(false) }
 
+    var showFeedbackDialog by remember { mutableStateOf(false) }
+
+    if (showFeedbackDialog) {
+        com.example.ui.components.FeedbackDialog(
+            onDismissRequest = { showFeedbackDialog = false }
+        )
+    }
+
     if (showUpdateModalFromSidebar) {
         AppUpdateModalDialog(
             viewModel = viewModel,
@@ -567,6 +579,7 @@ fun AppNavigationHost(
                                     "CUSTOMIZE_HOME" -> { currentRoute = AppRoute.HomeScreenSettings }
                                     "NOTIFICATIONS" -> { currentRoute = AppRoute.NotificationHistory }
                                     "SETTINGS" -> { currentRoute = AppRoute.Settings() }
+                                    "FEEDBACK" -> { showFeedbackDialog = true }
                                     "ABOUT" -> { currentRoute = AppRoute.About }
                                     "SHARE" -> {
                                         try {
@@ -636,6 +649,9 @@ fun AppNavigationHost(
                             onCheckUpdate = {
                                 viewModel.checkForAppUpdates(force = true)
                                 showUpdateModalFromSidebar = true
+                            },
+                            onOpenFeedback = {
+                                showFeedbackDialog = true
                             }
                         )
                     }
@@ -643,43 +659,51 @@ fun AppNavigationHost(
             }
         ) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                when (val route = currentRoute) {
-                    is AppRoute.Main -> {
-                        val mainTabs = remember {
-                            listOf(
-                                MainDestination.HOME,
-                                MainDestination.BLOGS,
-                                MainDestination.YOUTUBE,
-                                MainDestination.BIBLE,
-                                MainDestination.READING
-                            )
-                        }
-                        val mainPagerState = rememberPagerState(
-                            initialPage = mainTabs.indexOf(currentDestination).coerceAtLeast(0)
-                        ) { mainTabs.size }
-
-                        // Bi-directional synchronization: swiping pager updates selected bottom tab
-                        LaunchedEffect(mainPagerState.currentPage) {
-                            val targetDest = mainTabs.getOrNull(mainPagerState.currentPage)
-                            if (targetDest != null && targetDest != currentDestination) {
-                                currentDestination = targetDest
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when (val route = currentRoute) {
+                        is AppRoute.Main -> {
+                            val mainTabs = remember {
+                                listOf(
+                                    MainDestination.HOME,
+                                    MainDestination.BLOGS,
+                                    MainDestination.YOUTUBE,
+                                    MainDestination.BIBLE,
+                                    MainDestination.READING
+                                )
                             }
-                        }
+                            val mainPagerState = rememberPagerState(
+                                initialPage = mainTabs.indexOf(currentDestination).coerceAtLeast(0)
+                            ) { mainTabs.size }
 
-                        // Bi-directional synchronization: tapping bottom tab smoothly scrolls pager
-                        LaunchedEffect(currentDestination) {
-                            val targetIndex = mainTabs.indexOf(currentDestination)
-                            if (targetIndex >= 0 && targetIndex != mainPagerState.currentPage) {
-                                mainPagerState.animateScrollToPage(targetIndex)
+                            // Bi-directional synchronization: swiping pager updates selected bottom tab
+                            LaunchedEffect(mainPagerState.currentPage) {
+                                val targetDest = mainTabs.getOrNull(mainPagerState.currentPage)
+                                if (targetDest != null && targetDest != currentDestination) {
+                                    currentDestination = targetDest
+                                }
                             }
-                        }
 
-                        Scaffold(
-                            bottomBar = {
-                                NavigationBar(
-                                    tonalElevation = 6.dp,
-                                    modifier = Modifier.testTag("bottom_nav_bar")
-                                ) {
+                            // Bi-directional synchronization: tapping bottom tab smoothly scrolls pager
+                            LaunchedEffect(currentDestination) {
+                                val targetIndex = mainTabs.indexOf(currentDestination)
+                                if (targetIndex >= 0 && targetIndex != mainPagerState.currentPage) {
+                                    mainPagerState.animateScrollToPage(targetIndex)
+                                }
+                            }
+
+                            Scaffold(
+                                bottomBar = {
+                                    Column {
+                                        BibleMiniAudioPlayer(
+                                            audioManager = bibleViewModel.audioManager,
+                                            onOpenReader = { bId, chap, vNum ->
+                                                currentRoute = AppRoute.BibleReader(bId, chap, vNum, isReadingPlanMode = false)
+                                            }
+                                        )
+                                        NavigationBar(
+                                            tonalElevation = 6.dp,
+                                            modifier = Modifier.testTag("bottom_nav_bar")
+                                        ) {
                                     mainTabs.forEach { dest ->
                                         val selected = currentDestination == dest
                                         val labelText = when (dest) {
@@ -720,9 +744,10 @@ fun AppNavigationHost(
                                         )
                                     }
                                 }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        ) { innerPadding ->
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    ) { innerPadding ->
                             HorizontalPager(
                                 state = mainPagerState,
                                 userScrollEnabled = (currentRoute == AppRoute.Main),
@@ -1219,6 +1244,20 @@ fun AppNavigationHost(
             )
         }
     }
+
+    if (currentRoute !is AppRoute.Main && currentRoute !is AppRoute.BibleReader) {
+        BibleMiniAudioPlayer(
+            audioManager = bibleViewModel.audioManager,
+            onOpenReader = { bId, chap, vNum ->
+                currentRoute = AppRoute.BibleReader(bId, chap, vNum, isReadingPlanMode = false)
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 8.dp)
+        )
+    }
+}
 }
 }
 }

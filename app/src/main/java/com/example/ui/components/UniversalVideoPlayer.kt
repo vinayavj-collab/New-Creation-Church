@@ -31,6 +31,13 @@ fun UniversalVideoPlayer(
         contentAlignment = Alignment.Center
     ) {
         when (parsed.platform) {
+            VideoPlatform.DIRECT_STREAM -> {
+                DirectVideoPlayerView(
+                    videoUrl = parsed.originalUrl.ifBlank { videoUrlOrId },
+                    modifier = Modifier.fillMaxSize(),
+                    autoplay = autoplay
+                )
+            }
             VideoPlatform.DAILYMOTION -> {
                 DailymotionPlayerView(
                     videoId = parsed.videoId,

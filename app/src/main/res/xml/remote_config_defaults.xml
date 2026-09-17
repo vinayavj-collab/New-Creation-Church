@@ -36,4 +36,16 @@
         <key>update_apk_url</key>
         <value></value>
     </entry>
+    <entry>
+        <key>personal_vlog_password</key>
+        <value>9479</value>
+    </entry>
+    <entry>
+        <key>private_profile_password</key>
+        <value>Vin@122333</value>
+    </entry>
+    <entry>
+        <key>private_profile_enabled</key>
+        <value>true</value>
+    </entry>
 </defaultsMap>

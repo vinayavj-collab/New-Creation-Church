@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.prayer.model.DailyPrayerVerse
 import com.example.data.prayer.repository.DailyPrayerRepository
+import com.example.data.prayer.repository.FirebaseDailyPrayerManager
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyDark
 import com.example.ui.theme.NavyPrimary
@@ -49,20 +50,40 @@ fun DailyPrayerScreen(
     onOpenBible: (bookId: Int, chapter: Int, verse: Int) -> Unit
 ) {
     val context = LocalContext.current
+    val prayerManager = remember { FirebaseDailyPrayerManager.getInstance(context) }
+    val fbPrayers by prayerManager.firebasePrayers.collectAsState()
+    val customPrayers by prayerManager.customizedPrayers.collectAsState()
+
     val allPrayers = remember { DailyPrayerRepository.getAllPrayers() }
-    val todayPrayer = remember { DailyPrayerRepository.getTodayPrayer() }
+    val todayPrayer = remember { prayerManager.getEffectiveTodayPrayer() }
 
     var selectedPrayerId by remember {
         mutableIntStateOf(initialPrayerId ?: todayPrayer.id)
     }
 
-    val currentPrayer = remember(selectedPrayerId) {
-        DailyPrayerRepository.getPrayerById(selectedPrayerId)
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    val currentPrayer = remember(selectedPrayerId, fbPrayers, customPrayers, refreshTrigger) {
+        prayerManager.getEffectivePrayer(selectedPrayerId)
     }
 
+    var showCustomizeDialog by remember { mutableStateOf(false) }
     var showEnglishPrayer by remember { mutableStateOf(false) }
     var amenCount by remember { mutableIntStateOf(128 + currentPrayer.id * 7) }
     var hasAmened by remember { mutableStateOf(false) }
+
+    // Quick add name state inside card
+    var showQuickAddName by remember { mutableStateOf(false) }
+    var quickNameText by remember { mutableStateOf("") }
+
+    if (showCustomizeDialog) {
+        CustomizeDailyPrayerDialog(
+            prayer = currentPrayer,
+            prayerManager = prayerManager,
+            onDismissRequest = { showCustomizeDialog = false },
+            onSaved = { refreshTrigger++ }
+        )
+    }
 
     // Text to speech setup
     var ttsEngine by remember { mutableStateOf<TextToSpeech?>(null) }
@@ -162,6 +183,15 @@ fun DailyPrayerScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { showCustomizeDialog = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EditCalendar,
+                            contentDescription = "कस्टमाइज़ करें (Customize)",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     IconButton(
                         onClick = { speakPrayer() }
                     ) {
@@ -707,6 +737,265 @@ fun DailyPrayerScreen(
                                     ),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // 6. INTERCESSION & PRAYER LIST CARD: इनके लिए प्रार्थना करें
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Groups,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.tertiary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "इनके लिए प्रार्थना करें :",
+                                            style = MaterialTheme.typography.titleSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.tertiary
+                                            )
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = { showQuickAddName = !showQuickAddName },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (showQuickAddName) Icons.Default.Close else Icons.Default.AddCircleOutline,
+                                            contentDescription = "Add name",
+                                            tint = MaterialTheme.colorScheme.tertiary
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Quick add name field
+                                AnimatedVisibility(visible = showQuickAddName) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OutlinedTextField(
+                                            value = quickNameText,
+                                            onValueChange = { quickNameText = it },
+                                            placeholder = { Text("नया नाम या विषय लिखें...") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        FilledTonalIconButton(
+                                            onClick = {
+                                                if (quickNameText.isNotBlank()) {
+                                                    val updatedList = currentPrayer.customNamesList.toMutableList().apply {
+                                                        add(quickNameText.trim())
+                                                    }
+                                                    prayerManager.updateCustomPrayer(
+                                                        prayerId = currentPrayer.id,
+                                                        topic = currentPrayer.topic,
+                                                        sermonNotes = currentPrayer.sermonNotes,
+                                                        announcements = currentPrayer.announcements,
+                                                        customNames = updatedList,
+                                                        syncToFirebase = true
+                                                    )
+                                                    quickNameText = ""
+                                                    showQuickAddName = false
+                                                    refreshTrigger++
+                                                    Toast.makeText(context, "नाम जोड़ा गया!", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        ) {
+                                            Icon(Icons.Default.Check, contentDescription = "Save")
+                                        }
+                                    }
+                                }
+
+                                // Intercession list with bullets (* उनके नाम, * और नाम, ...)
+                                val names = currentPrayer.allIntercessionNames
+                                if (names.isEmpty()) {
+                                    Text(
+                                        text = "* बीमारों, परिवारों व कलीसिया के लिए प्रार्थना करें",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                } else {
+                                    names.forEach { name ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 3.dp),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            Text(
+                                                text = "* ",
+                                                style = MaterialTheme.typography.bodyLarge.copy(
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.tertiary
+                                                )
+                                            )
+                                            Text(
+                                                text = name,
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.Medium,
+                                                    lineHeight = 22.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(
+                                        onClick = { showCustomizeDialog = true },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "सूची कस्टमाइज़ करें (Edit List)",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 7. SERMON NOTES BOX (प्रवचन / संदेश नोट्स)
+                        if (currentPrayer.sermonNotes.isNotBlank() || currentPrayer.isCustomized) {
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.MenuBook,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "📜 प्रवचन व संदेश नोट्स (Sermon Notes)",
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = { showCustomizeDialog = true },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Edit,
+                                                contentDescription = "Edit Notes",
+                                                modifier = Modifier.size(14.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = currentPrayer.sermonNotes.ifBlank { "संदेश नोट्स जोड़ने के लिए कस्टमाइज़ बटन दबाएं।" },
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            lineHeight = 22.sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+
+                        // 8. ANNOUNCEMENTS BOX (घोषणाएं व विशेष सूचनाएं)
+                        if (currentPrayer.announcements.isNotBlank() || currentPrayer.isCustomized) {
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color(0xFFFEF3C7),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Campaign,
+                                                contentDescription = null,
+                                                tint = Color(0xFFB45309),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "📢 विशेष घोषणाएं व सूचनाएं (Announcements)",
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFFB45309)
+                                                )
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = { showCustomizeDialog = true },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Edit,
+                                                contentDescription = "Edit Announcements",
+                                                modifier = Modifier.size(14.dp),
+                                                tint = Color(0xFFB45309)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = currentPrayer.announcements.ifBlank { "घोषणाएं जोड़ने के लिए कस्टमाइज़ बटन दबाएं।" },
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            lineHeight = 22.sp,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = Color(0xFF78350F)
+                                    )
+                                }
                             }
                         }
 

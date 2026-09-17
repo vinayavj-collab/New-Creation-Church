@@ -33,8 +33,21 @@ object ProfileManager {
         _activeProfileFlow.value = AppProfile.DEFAULT
     }
 
+    fun isPrivateProfileEnabled(): Boolean {
+        val serverDbEnabled = com.example.data.repository.FirebaseDataRepository.getInstance().isPrivateProfileEnabled.value
+        val remoteConfigEnabled = RemoteConfigHelper.isPrivateProfileEnabled()
+        return serverDbEnabled && remoteConfigEnabled
+    }
+
     fun verifyPasswordForPrivateProfile(input: String): Boolean {
-        return input.trim() == AppProfile.PROFILE_B_PASSWORD
+        val fbPass = com.example.data.repository.FirebaseDataRepository.getInstance().privateProfilePassword.value.trim()
+        val rcPass = RemoteConfigHelper.getPrivateProfilePassword().trim()
+        val expectedPassword = when {
+            fbPass.isNotBlank() -> fbPass
+            rcPass.isNotBlank() -> rcPass
+            else -> AppProfile.PROFILE_B_PASSWORD
+        }
+        return input.trim() == expectedPassword
     }
 
     fun restartApp(activity: Activity) {

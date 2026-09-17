@@ -34,19 +34,89 @@ class YouTubeFeedService {
         channelTitle: String,
         pageToken: String? = null
     ): YouTubePaginatedResult = withContext(Dispatchers.IO) {
-        // Support feed fetching and page continuation
-        val url = if (!pageToken.isNullOrBlank()) {
-            "https://www.youtube.com/feeds/videos.xml?channel_id=$channelId&pageToken=$pageToken"
-        } else {
-            "https://www.youtube.com/feeds/videos.xml?channel_id=$channelId"
-        }
-        val list = fetchAndParseXml(url, channelId, channelTitle)
-        val nextToken = if (list.isNotEmpty() && pageToken == null) "token_${channelId}_p2" else null
+        // 1. Fetch from RSS feed
+        val xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=$channelId"
+        val xmlList = fetchAndParseXml(xmlUrl, channelId, channelTitle)
+
+        // 2. Fetch full videos from HTML channel /videos tab for unlimited scroll
+        val htmlVideos = fetchVideosFromChannelHtml(channelId, channelTitle)
+
+        val merged = (xmlList + htmlVideos).distinctBy { it.id }
         YouTubePaginatedResult(
-            videos = list,
-            nextPageToken = nextToken,
-            hasMore = list.isNotEmpty()
+            videos = if (merged.isNotEmpty()) merged else xmlList,
+            nextPageToken = null,
+            hasMore = false
         )
+    }
+
+    private fun fetchVideosFromChannelHtml(channelId: String, channelTitle: String): List<YouTubeVideo> {
+        val urls = listOf(
+            "https://www.youtube.com/channel/$channelId/videos",
+            "https://www.youtube.com/channel/$channelId/streams"
+        )
+        val result = mutableListOf<YouTubeVideo>()
+        val seenIds = mutableSetOf<String>()
+
+        for (url in urls) {
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept-Language", "en-US,en;q=0.9,hi;q=0.8")
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@use
+                    val html = response.body?.string() ?: return@use
+                    val parsed = parseVideosFromHtml(html, channelId, channelTitle)
+                    for (v in parsed) {
+                        if (seenIds.add(v.id)) {
+                            result.add(v)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore HTML parsing error
+            }
+        }
+        return result
+    }
+
+    private fun parseVideosFromHtml(html: String, channelId: String, channelTitle: String): List<YouTubeVideo> {
+        val result = mutableListOf<YouTubeVideo>()
+        val seen = mutableSetOf<String>()
+
+        val videoPattern = java.util.regex.Pattern.compile(
+            "\"videoId\"\\s*:\\s*\"([a-zA-Z0-9_-]{11})\".*?\"title\"\\s*:\\s*\\{\\s*(?:\"runs\"\\s*:\\s*\\[\\s*\\{\\s*\"text\"\\s*:\\s*\"(.*?)\"|\"simpleText\"\\s*:\\s*\"(.*?)\")",
+            java.util.regex.Pattern.DOTALL
+        )
+        val matcher = videoPattern.matcher(html)
+        while (matcher.find()) {
+            val videoId = matcher.group(1) ?: continue
+            val rawTitle = matcher.group(2) ?: matcher.group(3) ?: ""
+            val title = rawTitle
+                .replace("\\u0026", "&")
+                .replace("\\\"", "\"")
+                .replace("\\n", " ")
+                .trim()
+
+            if (videoId.isNotBlank() && title.isNotBlank() && seen.add(videoId)) {
+                result.add(
+                    YouTubeVideo(
+                        id = videoId,
+                        title = title,
+                        channelId = channelId,
+                        channelTitle = channelTitle,
+                        thumbnailUrl = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg",
+                        publishedAt = "Video",
+                        publishedTimestamp = System.currentTimeMillis() - (result.size * 86400000L),
+                        description = title,
+                        videoUrl = "https://www.youtube.com/watch?v=$videoId"
+                    )
+                )
+            }
+        }
+        return result
     }
 
     suspend fun fetchPlaylistVideos(playlistId: String, fallbackChannelTitle: String = "Vinay Kumar AVJ"): List<YouTubeVideo> = withContext(Dispatchers.IO) {

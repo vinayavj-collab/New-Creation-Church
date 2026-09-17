@@ -28,6 +28,9 @@ object RemoteConfigHelper {
     const val KEY_LATEST_VERSION_NAME = "latest_version_name"
     const val KEY_LATEST_VERSION_CODE = "latest_version_code"
     const val KEY_UPDATE_APK_URL = "update_apk_url"
+    const val KEY_PERSONAL_VLOG_PASSWORD = "personal_vlog_password"
+    const val KEY_PRIVATE_PROFILE_PASSWORD = "private_profile_password"
+    const val KEY_PRIVATE_PROFILE_ENABLED = "private_profile_enabled"
 
     // Default Fallbacks (TRUE to ensure app functionality when offline or unconfigured)
     private const val DEFAULT_VLOG_SERVER_ENABLED = true
@@ -39,9 +42,21 @@ object RemoteConfigHelper {
     private const val DEFAULT_LATEST_VERSION_NAME = ""
     private const val DEFAULT_LATEST_VERSION_CODE = 0
     private const val DEFAULT_UPDATE_APK_URL = ""
+    const val DEFAULT_PERSONAL_VLOG_PASSWORD = "9479"
+    const val DEFAULT_PRIVATE_PROFILE_PASSWORD = "Vin@122333"
+    private const val DEFAULT_PRIVATE_PROFILE_ENABLED = true
 
     private val _isVlogServerEnabled = MutableStateFlow(DEFAULT_VLOG_SERVER_ENABLED)
     val isVlogServerEnabled: StateFlow<Boolean> = _isVlogServerEnabled.asStateFlow()
+
+    private val _personalVlogPassword = MutableStateFlow(DEFAULT_PERSONAL_VLOG_PASSWORD)
+    val personalVlogPassword: StateFlow<String> = _personalVlogPassword.asStateFlow()
+
+    private val _privateProfilePassword = MutableStateFlow(DEFAULT_PRIVATE_PROFILE_PASSWORD)
+    val privateProfilePassword: StateFlow<String> = _privateProfilePassword.asStateFlow()
+
+    private val _isPrivateProfileEnabled = MutableStateFlow(DEFAULT_PRIVATE_PROFILE_ENABLED)
+    val isPrivateProfileEnabled: StateFlow<Boolean> = _isPrivateProfileEnabled.asStateFlow()
 
     private val _isSearchEnabled = MutableStateFlow(DEFAULT_SEARCH_ENABLED)
     val isSearchEnabled: StateFlow<Boolean> = _isSearchEnabled.asStateFlow()
@@ -163,11 +178,33 @@ object RemoteConfigHelper {
         return getBoolean(KEY_IS_VLOG_SERVER_ENABLED, DEFAULT_VLOG_SERVER_ENABLED)
     }
 
+    fun getPersonalVlogPassword(): String {
+        return try {
+            val remotePass = remoteConfigInstance?.getString(KEY_PERSONAL_VLOG_PASSWORD)?.trim().orEmpty()
+            if (remotePass.isNotBlank()) remotePass else _personalVlogPassword.value
+        } catch (e: Exception) {
+            _personalVlogPassword.value
+        }
+    }
+
+    fun getPrivateProfilePassword(): String {
+        return try {
+            val remotePass = remoteConfigInstance?.getString(KEY_PRIVATE_PROFILE_PASSWORD)?.trim().orEmpty()
+            if (remotePass.isNotBlank()) remotePass else _privateProfilePassword.value
+        } catch (e: Exception) {
+            _privateProfilePassword.value
+        }
+    }
+
+    fun isPrivateProfileEnabled(): Boolean {
+        return getBoolean(KEY_PRIVATE_PROFILE_ENABLED, DEFAULT_PRIVATE_PROFILE_ENABLED)
+    }
+
     /**
      * Master Override Logic:
      * Evaluates TWO conditions for Personal Vlog (Dailymotion ID x4sr8o4) content:
      * - Condition A (Local): [isVlogLocallyEnabled] (Boolean from SharedPreferences / App Settings)
-     * - Condition B (Server): [isVlogServerEnabled] (Boolean from Firebase Remote Config)
+     * - Condition B (Server): [isVlogServerEnabled] (Boolean from Firebase Remote Config & Database)
      *
      * Returns TRUE ONLY IF both conditions are true (`Condition A && Condition B`).
      * Firebase acts as the Supreme Master: If Condition B is FALSE, vlog content is completely suppressed.
@@ -188,6 +225,15 @@ object RemoteConfigHelper {
         try {
             _isVlogServerEnabled.value = config.getBoolean(KEY_IS_VLOG_SERVER_ENABLED)
             _isSearchEnabled.value = config.getBoolean(KEY_IS_SEARCH_ENABLED)
+            _isPrivateProfileEnabled.value = config.getBoolean(KEY_PRIVATE_PROFILE_ENABLED)
+            val vlogPass = config.getString(KEY_PERSONAL_VLOG_PASSWORD)
+            if (vlogPass.isNotBlank()) {
+                _personalVlogPassword.value = vlogPass
+            }
+            val profilePass = config.getString(KEY_PRIVATE_PROFILE_PASSWORD)
+            if (profilePass.isNotBlank()) {
+                _privateProfilePassword.value = profilePass
+            }
             val heading = config.getString(KEY_APP_NOTICE_HEADING)
             if (heading.isNotBlank()) {
                 _appNoticeHeading.value = heading

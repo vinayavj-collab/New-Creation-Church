@@ -74,19 +74,21 @@ class MainViewModel(
     val verseOfTheDayText: StateFlow<String> = com.example.util.RemoteConfigHelper.verseOfTheDayText
     val specialAnnouncementText: StateFlow<String> = com.example.util.RemoteConfigHelper.specialAnnouncementText
 
-    // Dual-Layer Vlog evaluation: Condition A (Local) && Condition B (Server)
-    val isPersonalVlogAllowed: StateFlow<Boolean> = combine(
-        settings,
-        com.example.util.RemoteConfigHelper.isVlogServerEnabled
-    ) { currentSettings, serverVlogEnabled ->
-        val conditionA = currentSettings.showPersonalVlog || currentSettings.personalVlogMode != com.example.data.model.PersonalVlogMode.HIDDEN
-        com.example.util.RemoteConfigHelper.isPersonalVlogAllowed(conditionA)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    // Firebase Realtime Database: Single String Values (Single Link Exemption: Remote overrides local fallback)
+    // Firebase Realtime Database: Single String Values & Dynamic Controls
     val firebaseDataRepository = com.example.data.repository.FirebaseDataRepository.getInstance()
     val songSpreadsheetUrl: StateFlow<String> = firebaseDataRepository.songSpreadsheetUrl
     val todayScripture: StateFlow<String> = firebaseDataRepository.todayScripture
+
+    // Dual-Layer Vlog evaluation: Condition A (Local) && Condition B (Server DB & RemoteConfig)
+    val isPersonalVlogAllowed: StateFlow<Boolean> = combine(
+        settings,
+        com.example.util.RemoteConfigHelper.isVlogServerEnabled,
+        firebaseDataRepository.isPersonalVlogEnabled
+    ) { currentSettings, remoteConfigEnabled, firebaseDbEnabled ->
+        val conditionA = currentSettings.showPersonalVlog || currentSettings.personalVlogMode != com.example.data.model.PersonalVlogMode.HIDDEN
+        val conditionB = remoteConfigEnabled && firebaseDbEnabled
+        conditionA && conditionB
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun isSearchFeatureEnabled(): Boolean = com.example.util.RemoteConfigManager.isSearchEnabled()
     fun getRemoteNoticeHeading(): String = com.example.util.RemoteConfigManager.getAppNoticeHeading()
@@ -533,10 +535,10 @@ class MainViewModel(
 
     /**
      * Endless Scroll / Pagination Logic:
-     * Initiates a background fetch for the next set of videos (YouTube & Dailymotion).
+     * Initiates a background fetch for the next set of videos (YouTube channels, Firebase, & Dailymotion).
      * Saves new items into Room Database / Merged Feed and invokes [onAppended].
      */
-    fun loadMoreVideos(onAppended: ((List<YouTubeVideo>) -> Unit)? = null) {
+    fun loadMoreVideos(targetChannelId: String? = null, onAppended: ((List<YouTubeVideo>) -> Unit)? = null) {
         if (_isLoadingMoreVideos.value) return
         if (!hasMoreYouTube && !hasMoreDailymotion) return
 
@@ -546,11 +548,11 @@ class MainViewModel(
 
             try {
                 // 1. Fetch Dailymotion Next Page using 'page' query parameter
-                if (hasMoreDailymotion) {
+                if (hasMoreDailymotion && (targetChannelId == null || targetChannelId.startsWith("dm_") || targetChannelId == "DAILYMOTION")) {
                     val isVlogAllowed = isPersonalVlogAllowed.value
                     val dmResult = youtubeRepository.fetchDailymotionPaginated(
                         page = dailymotionPage + 1,
-                        limit = 10,
+                        limit = 15,
                         includePersonalVlog = isVlogAllowed
                     )
                     if (dmResult.videos.isNotEmpty()) {
@@ -562,18 +564,38 @@ class MainViewModel(
                     }
                 }
 
-                // 2. Fetch YouTube Next Page using 'pageToken'
+                // 2. Fetch YouTube Next Page using channel list
                 if (hasMoreYouTube) {
-                    val ytResult = youtubeRepository.fetchMoreChannelVideos(
-                        channelId = _selectedChannel.value.id,
-                        channelTitle = _selectedChannel.value.name,
-                        pageToken = youtubePageToken
-                    )
-                    if (ytResult.videos.isNotEmpty()) {
-                        youtubePageToken = ytResult.nextPageToken
-                        hasMoreYouTube = ytResult.hasMore
-                        newlyFetched.addAll(ytResult.videos)
+                    val channelsToFetch = if (targetChannelId == null) {
+                        listOf(
+                            PredefinedPlaylists.channelWorship,
+                            PredefinedPlaylists.channelMain,
+                            PredefinedPlaylists.channelNewCreationChurch
+                        )
                     } else {
+                        val single = when (targetChannelId) {
+                            PredefinedPlaylists.channelWorship.id -> PredefinedPlaylists.channelWorship
+                            PredefinedPlaylists.channelNewCreationChurch.id -> PredefinedPlaylists.channelNewCreationChurch
+                            PredefinedPlaylists.channelMain.id -> PredefinedPlaylists.channelMain
+                            else -> _selectedChannel.value
+                        }
+                        listOf(single)
+                    }
+
+                    var anyFetched = false
+                    for (ch in channelsToFetch) {
+                        val ytResult = youtubeRepository.fetchMoreChannelVideos(
+                            channelId = ch.id,
+                            channelTitle = ch.name,
+                            pageToken = youtubePageToken
+                        )
+                        if (ytResult.videos.isNotEmpty()) {
+                            newlyFetched.addAll(ytResult.videos)
+                            anyFetched = true
+                        }
+                    }
+
+                    if (!anyFetched) {
                         hasMoreYouTube = false
                     }
                 }

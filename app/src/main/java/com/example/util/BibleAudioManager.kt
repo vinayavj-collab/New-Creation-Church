@@ -19,7 +19,18 @@ enum class AudioSourceType(val displayNameHindi: String, val displayNameEnglish:
     TTS_NARRATION("वॉइस वाचन (TTS)", "Speech Narration (TTS)")
 }
 
-class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListener {
+class BibleAudioManager private constructor(private val context: Context) : TextToSpeech.OnInitListener {
+
+    companion object {
+        @Volatile
+        private var instance: BibleAudioManager? = null
+
+        fun getInstance(context: Context): BibleAudioManager {
+            return instance ?: synchronized(this) {
+                instance ?: BibleAudioManager(context.applicationContext).also { instance = it }
+            }
+        }
+    }
 
     private var mediaPlayer: MediaPlayer? = null
     private var textToSpeech: TextToSpeech? = null
@@ -27,6 +38,18 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    private val _hasActiveSession = MutableStateFlow(false)
+    val hasActiveSession: StateFlow<Boolean> = _hasActiveSession.asStateFlow()
+
+    private val _currentBookIdFlow = MutableStateFlow(43) // Default John
+    val currentBookIdFlow: StateFlow<Int> = _currentBookIdFlow.asStateFlow()
+
+    private val _currentChapterFlow = MutableStateFlow(1)
+    val currentChapterFlow: StateFlow<Int> = _currentChapterFlow.asStateFlow()
+
+    private val _currentBookName = MutableStateFlow("पवित्र बाइबिल")
+    val currentBookName: StateFlow<String> = _currentBookName.asStateFlow()
 
     private val _isBuffering = MutableStateFlow(false)
     val isBuffering: StateFlow<Boolean> = _isBuffering.asStateFlow()
@@ -62,8 +85,8 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
 
     // Sleep tracking counters
     private var chaptersPlayedInSession: Int = 0
-    private var currentBookId: Int = 0
-    private var currentChapterNumber: Int = 0
+    private var currentBookId: Int = 43
+    private var currentChapterNumber: Int = 1
 
     private val handler = Handler(Looper.getMainLooper())
     private var progressRunnable: Runnable? = null
@@ -78,6 +101,16 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
     init {
         textToSpeech = TextToSpeech(context.applicationContext, this)
         setupProgressTracker()
+    }
+
+    fun setBookDetails(bookId: Int, chapter: Int, bookName: String) {
+        currentBookId = bookId
+        currentChapterNumber = chapter
+        _currentBookIdFlow.value = bookId
+        _currentChapterFlow.value = chapter
+        if (bookName.isNotBlank()) {
+            _currentBookName.value = bookName
+        }
     }
 
     fun configureAudioSettings(
@@ -149,7 +182,10 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
     private fun updateForegroundService() {
         if (!backgroundPlayEnabled) return
 
-        val bookTitle = if (_audioLanguage.value == "en") "Book $currentBookId Chapter $currentChapterNumber" else "पवित्र बाइबिल - अध्याय $currentChapterNumber"
+        val bName = _currentBookName.value.ifBlank {
+            if (_audioLanguage.value == "en") "Book $currentBookId" else "पवित्र बाइबिल"
+        }
+        val bookTitle = "$bName - अध्याय $currentChapterNumber"
         val vNum = _currentVerseNumber.value
         val subtitle = if (vNum != null) "वचन $vNum वाचन..." else "ऑडियो वाचन जारी है..."
 
@@ -244,6 +280,9 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
     fun playChapterAudio(bookId: Int, chapter: Int, verses: List<BibleVerse>, explicitTargetVerse: Int? = null) {
         currentBookId = bookId
         currentChapterNumber = chapter
+        _currentBookIdFlow.value = bookId
+        _currentChapterFlow.value = chapter
+        _hasActiveSession.value = true
         currentVerseList = verses.sortedBy { it.verseNumber }
 
         // Start Sleep Timer if configured
@@ -284,6 +323,9 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
     fun playFromVerse(targetVerseNum: Int, bookId: Int, chapter: Int, verses: List<BibleVerse>) {
         currentBookId = bookId
         currentChapterNumber = chapter
+        _currentBookIdFlow.value = bookId
+        _currentChapterFlow.value = chapter
+        _hasActiveSession.value = true
         currentVerseList = verses.sortedBy { it.verseNumber }
         val verseIndex = currentVerseList.indexOfFirst { it.verseNumber == targetVerseNum }
         _currentVerseNumber.value = targetVerseNum
@@ -445,6 +487,10 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
         onChapterCompletedListener?.invoke(currentChapterNumber + 1)
     }
 
+    fun togglePlayPause() {
+        playPause()
+    }
+
     fun playPause() {
         if (_audioSourceType.value == AudioSourceType.PRE_RECORDED) {
             mediaPlayer?.let { player ->
@@ -528,6 +574,7 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
             textToSpeech?.stop()
         }
         _isPlaying.value = false
+        _hasActiveSession.value = false
         _isBuffering.value = false
         _currentPositionMs.value = 0L
         cancelSleepTimer()

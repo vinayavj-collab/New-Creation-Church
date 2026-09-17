@@ -69,7 +69,7 @@ fun YouTubeScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val isLoadingMoreVideos by viewModel.isLoadingMoreVideos.collectAsStateWithLifecycle()
 
-    // Default tab comes from user settings (defaulting to AVJ Worship or ALL or user preference)
+    // Default tab comes from user settings (defaulting to ALL or user preference)
     var selectedTab by remember {
         mutableStateOf(
             when (settings.youtubeDefaultTab) {
@@ -81,13 +81,56 @@ fun YouTubeScreen(
         )
     }
 
-    // Filtered & sorted videos: newest -> oldest
-    val displayVideos = remember(allVideos, selectedTab) {
-        val sortedAll = allVideos
+    var dynamicMixSeed by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    // Filtered & sorted videos: Dynamic non-definite order for ALL tab (sometimes latest, sometimes mixed random across sources)
+    val displayVideos = remember(allVideos, selectedTab, dynamicMixSeed) {
+        val validVideos = allVideos
             .filter { !it.id.startsWith("local_vid") && !it.thumbnailUrl.contains("local_vid") }
-            .sortedByDescending { it.publishedTimestamp }
+        val sortedAll = validVideos.sortedByDescending { it.publishedTimestamp }
+
         when (selectedTab) {
-            YouTubeTabFilter.ALL -> sortedAll
+            YouTubeTabFilter.ALL -> {
+                val worshipVideos = validVideos.filter { it.channelId == PredefinedPlaylists.channelWorship.id }
+                val mainVideos = validVideos.filter { it.channelId == PredefinedPlaylists.channelMain.id }
+                val churchVideos = validVideos.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }
+                val otherSources = validVideos.filter {
+                    it.channelId != PredefinedPlaylists.channelWorship.id &&
+                    it.channelId != PredefinedPlaylists.channelMain.id &&
+                    it.channelId != PredefinedPlaylists.channelNewCreationChurch.id
+                }
+
+                // Dynamic generation: Seed-based alternation between Latest-On-Top and Multi-Source Randomized Interleaving
+                if (dynamicMixSeed % 2 == 0L) {
+                    // Strategy 1: Latest videos on top + Dynamic interleave for the rest
+                    val topLatest = sortedAll.take(5)
+                    val remainingPool = sortedAll.drop(5).shuffled()
+                    (topLatest + remainingPool).distinctBy { it.id }
+                } else {
+                    // Strategy 2: Multi-source randomized interleaving (no fixed single channel sequence)
+                    val shuffledSources = listOf(
+                        worshipVideos.shuffled(),
+                        mainVideos.shuffled(),
+                        churchVideos.shuffled(),
+                        otherSources.shuffled()
+                    ).filter { it.isNotEmpty() }
+
+                    val result = mutableListOf<YouTubeVideo>()
+                    var index = 0
+                    var hasMore = true
+                    while (hasMore) {
+                        hasMore = false
+                        for (source in shuffledSources.shuffled()) {
+                            if (index < source.size) {
+                                result.add(source[index])
+                                hasMore = true
+                            }
+                        }
+                        index++
+                    }
+                    if (result.isEmpty()) sortedAll else result.distinctBy { it.id }
+                }
+            }
             YouTubeTabFilter.AVJ_WORSHIP -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelWorship.id }.ifEmpty { sortedAll }
             YouTubeTabFilter.VINAY_KUMAR_AVJ -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelMain.id }.ifEmpty { sortedAll }
             YouTubeTabFilter.NEW_CREATION_CHURCH -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }.ifEmpty { sortedAll }
@@ -100,22 +143,12 @@ fun YouTubeScreen(
         }
     }
 
-    var visibleVideoCount by remember(selectedTab, displayVideos.size) { mutableStateOf(20) }
-    val latestVideos = remember(displayVideos, visibleVideoCount) {
-        displayVideos.take(visibleVideoCount)
-    }
-
-    // Random Video Suggestion
-    var randomChannelFilter by remember { mutableStateOf("ALL") }
-    var randomVideoSeed by remember { mutableStateOf(0) }
-    val suggestedVideo = remember(allVideos, randomChannelFilter, randomVideoSeed) {
-        val candidateList = when (randomChannelFilter) {
-            "WORSHIP" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelWorship.id }
-            "MAIN" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelMain.id }
-            "CHURCH" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }
-            else -> allVideos
-        }.ifEmpty { allVideos }
-        if (candidateList.isNotEmpty()) candidateList.random() else null
+    val targetChannelIdForTab = when (selectedTab) {
+        YouTubeTabFilter.ALL -> null
+        YouTubeTabFilter.AVJ_WORSHIP -> PredefinedPlaylists.channelWorship.id
+        YouTubeTabFilter.VINAY_KUMAR_AVJ -> PredefinedPlaylists.channelMain.id
+        YouTubeTabFilter.NEW_CREATION_CHURCH -> PredefinedPlaylists.channelNewCreationChurch.id
+        YouTubeTabFilter.DAILYMOTION -> "DAILYMOTION"
     }
 
     val allPlaylists by viewModel.youtubePlaylists.collectAsStateWithLifecycle()
@@ -154,28 +187,42 @@ fun YouTubeScreen(
 
     var showDefaultChannelDialog by remember { mutableStateOf(false) }
 
+    // Random Video Suggestion
+    var randomChannelFilter by remember { mutableStateOf("ALL") }
+    var randomVideoSeed by remember { mutableStateOf(0) }
+    val suggestedVideo = remember(allVideos, randomChannelFilter, randomVideoSeed) {
+        val candidateList = when (randomChannelFilter) {
+            "WORSHIP" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelWorship.id }
+            "MAIN" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelMain.id }
+            "CHURCH" -> allVideos.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }
+            else -> allVideos
+        }.ifEmpty { allVideos }
+        if (candidateList.isNotEmpty()) candidateList.random() else null
+    }
+
+    // Dynamic, smooth unlimited scrolling: auto-fetch more when reaching near the bottom
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
 
     val shouldLoadMore = remember {
         derivedStateOf {
             val total = listState.layoutInfo.totalItemsCount
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            total > 0 && lastVisible >= total - 3
+            total > 0 && lastVisible >= total - 4
         }
     }
 
     LaunchedEffect(shouldLoadMore.value) {
-        if (shouldLoadMore.value) {
-            if (visibleVideoCount < displayVideos.size) {
-                visibleVideoCount = (visibleVideoCount + 20).coerceAtMost(displayVideos.size)
-            }
-            viewModel.loadMoreVideos()
+        if (shouldLoadMore.value && !isLoadingMoreVideos) {
+            viewModel.loadMoreVideos(targetChannelIdForTab)
         }
     }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
-        onRefresh = { viewModel.refreshAll() },
+        onRefresh = {
+            dynamicMixSeed = System.currentTimeMillis()
+            viewModel.refreshAll()
+        },
         modifier = modifier.fillMaxSize()
     ) {
         LazyColumn(
@@ -231,7 +278,12 @@ fun YouTubeScreen(
                     // ALL Tab (First Tab)
                     FilterChip(
                         selected = selectedTab == YouTubeTabFilter.ALL,
-                        onClick = { selectedTab = YouTubeTabFilter.ALL },
+                        onClick = {
+                            if (selectedTab == YouTubeTabFilter.ALL) {
+                                dynamicMixSeed = System.currentTimeMillis()
+                            }
+                            selectedTab = YouTubeTabFilter.ALL
+                        },
                         label = {
                             Text(
                                 text = "ALL",
@@ -575,7 +627,7 @@ fun YouTubeScreen(
                 )
             }
 
-            if (latestVideos.isEmpty()) {
+            if (displayVideos.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier
@@ -592,7 +644,7 @@ fun YouTubeScreen(
                 }
             } else {
                 items(
-                    items = latestVideos,
+                    items = displayVideos,
                     key = { it.id }
                 ) { video ->
                     YouTubeVideoCard(
@@ -600,33 +652,6 @@ fun YouTubeScreen(
                         onClick = { onVideoClick(video) },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
-                }
-
-                // Load More Button if more videos exist
-                if (displayVideos.size > latestVideos.size) {
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Showing ${latestVideos.size} of ${displayVideos.size} videos",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(
-                                onClick = { visibleVideoCount += 20 },
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("और वीडियो लोड करें (Load More)")
-                            }
-                        }
-                    }
                 }
 
                 // Subtle loading spinner at the bottom while fetching next batch

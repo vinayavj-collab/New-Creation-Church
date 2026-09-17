@@ -83,11 +83,11 @@ class PreferencesManager(context: Context) {
             PersonalVlogMode.HIDDEN
         }
 
-        val ytTabStr = prefs.getString("youtube_default_tab", YouTubeDefaultTab.AVJ_WORSHIP.name) ?: YouTubeDefaultTab.AVJ_WORSHIP.name
+        val ytTabStr = prefs.getString("youtube_default_tab", YouTubeDefaultTab.ALL.name) ?: YouTubeDefaultTab.ALL.name
         val youtubeDefaultTab = try {
             YouTubeDefaultTab.valueOf(ytTabStr)
         } catch (e: Exception) {
-            YouTubeDefaultTab.AVJ_WORSHIP
+            YouTubeDefaultTab.ALL
         }
 
         val bibleStyleStr = prefs.getString("bible_reading_style", BibleReadingStyle.PRINTED_BIBLE.name) ?: BibleReadingStyle.PRINTED_BIBLE.name
@@ -187,7 +187,7 @@ class PreferencesManager(context: Context) {
             showShorts = prefs.getBoolean("show_shorts", true),
             youtubeDefaultTab = youtubeDefaultTab,
             bibleReadingStyle = bibleReadingStyle,
-            dataSaverEnabled = prefs.getBoolean("data_saver_enabled", false),
+            dataSaverEnabled = prefs.getBoolean("data_saver_enabled", true),
             notifyTodaysScripture = prefs.getBoolean("notify_todays_scripture", true),
             notifyReadingPlan = prefs.getBoolean("notify_reading_plan", true),
             notifyFellowshipEvents = prefs.getBoolean("notify_fellowship_events", true),

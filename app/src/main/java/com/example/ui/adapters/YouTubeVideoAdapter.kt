@@ -157,6 +157,11 @@ class YouTubeVideoAdapter(
             // Smart Routing: Analyze URL format (YouTube vs. Dailymotion)
             val parsed = VideoUrlParser.parse(if (video.videoUrl.isNotBlank()) video.videoUrl else video.id)
             when (parsed.platform) {
+                VideoPlatform.DIRECT_STREAM -> {
+                    platformTagView?.text = "MEDIA"
+                    platformTagView?.setBackgroundColor(Color.parseColor("#E65100"))
+                    channelView?.setTextColor(Color.parseColor("#E65100"))
+                }
                 VideoPlatform.DAILYMOTION -> {
                     platformTagView?.text = "DAILYMOTION"
                     platformTagView?.setBackgroundColor(Color.parseColor("#0066DC"))

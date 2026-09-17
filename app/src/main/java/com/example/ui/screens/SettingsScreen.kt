@@ -56,9 +56,16 @@ fun SettingsScreen(
     var showPasswordDialogForProfileB by remember { mutableStateOf(false) }
     var profilePasswordInput by remember { mutableStateOf("") }
     var profilePasswordVisible by remember { mutableStateOf(false) }
+    var profilePasswordError by remember { mutableStateOf<String?>(null) }
     var profileTapCount by remember { mutableIntStateOf(0) }
     var lastProfileTapTime by remember { mutableLongStateOf(0L) }
     var activeWarningToast by remember { mutableStateOf<Toast?>(null) }
+
+    var showVlogPasswordDialog by remember { mutableStateOf(false) }
+    var pendingVlogMode by remember { mutableStateOf<PersonalVlogMode?>(null) }
+    var vlogPasswordInput by remember { mutableStateOf("") }
+    var vlogPasswordVisible by remember { mutableStateOf(false) }
+    var vlogPasswordError by remember { mutableStateOf<String?>(null) }
 
     var showFavCategoriesDialog by remember { mutableStateOf(false) }
     var showWelcomeCustomizationDialog by remember { mutableStateOf(false) }
@@ -223,9 +230,14 @@ fun SettingsScreen(
                                     if (profileTapCount >= 3) {
                                         profileTapCount = 0
                                         activeWarningToast?.cancel()
-                                        profilePasswordInput = ""
-                                        profilePasswordVisible = false
-                                        showPasswordDialogForProfileB = true
+                                        if (!ProfileManager.isPrivateProfileEnabled()) {
+                                            Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            profilePasswordInput = ""
+                                            profilePasswordVisible = false
+                                            profilePasswordError = null
+                                            showPasswordDialogForProfileB = true
+                                        }
                                     } else {
                                         activeWarningToast?.cancel()
                                         activeWarningToast = Toast.makeText(
@@ -1084,16 +1096,35 @@ fun SettingsScreen(
 
                         PersonalVlogMode.entries.forEach { mode ->
                             val isSelected = settings.personalVlogMode == mode
+                            val onSelectMode = {
+                                if (mode == PersonalVlogMode.HIDDEN) {
+                                    viewModel.updatePersonalVlogMode(PersonalVlogMode.HIDDEN)
+                                    Toast.makeText(context, "Personal Vlog बंद किया गया", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    if (!com.example.util.PersonalVlogSecurity.isVlogServerAllowed()) {
+                                        Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
+                                    } else if (settings.personalVlogMode == mode) {
+                                        // Already active
+                                    } else {
+                                        pendingVlogMode = mode
+                                        vlogPasswordInput = ""
+                                        vlogPasswordError = null
+                                        vlogPasswordVisible = false
+                                        showVlogPasswordDialog = true
+                                    }
+                                }
+                            }
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { viewModel.updatePersonalVlogMode(mode) }
+                                    .clickable { onSelectMode() }
                                     .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(
                                     selected = isSelected,
-                                    onClick = { viewModel.updatePersonalVlogMode(mode) }
+                                    onClick = { onSelectMode() }
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
@@ -1494,7 +1525,23 @@ fun SettingsScreen(
                             title = strings.personalVlogNotify,
                             subtitle = strings.personalVlogNotifySub,
                             checked = settings.notifyPersonalVlog,
-                            onCheckedChange = { viewModel.updateNotifyPersonalVlog(it) }
+                            onCheckedChange = { isChecked ->
+                                if (isChecked) {
+                                    if (!com.example.util.PersonalVlogSecurity.isVlogServerAllowed()) {
+                                        Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
+                                    } else if (settings.personalVlogMode == PersonalVlogMode.HIDDEN) {
+                                        pendingVlogMode = PersonalVlogMode.SECONDARY
+                                        vlogPasswordInput = ""
+                                        vlogPasswordError = null
+                                        vlogPasswordVisible = false
+                                        showVlogPasswordDialog = true
+                                    } else {
+                                        viewModel.updateNotifyPersonalVlog(true)
+                                    }
+                                } else {
+                                    viewModel.updateNotifyPersonalVlog(false)
+                                }
+                            }
                         )
                     }
                 }
@@ -1614,9 +1661,12 @@ fun SettingsScreen(
                         value = profilePasswordInput,
                         onValueChange = {
                             profilePasswordInput = it
+                            profilePasswordError = null
                         },
                         label = { Text("पासवर्ड (Password)") },
                         singleLine = true,
+                        isError = profilePasswordError != null,
+                        supportingText = profilePasswordError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                         visualTransformation = if (profilePasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
@@ -1639,11 +1689,13 @@ fun SettingsScreen(
                             Toast.makeText(context, "प्रोफ़ाइल 'Vinay Kumar Avj' सक्रिय किया गया", Toast.LENGTH_SHORT).show()
                             showPasswordDialogForProfileB = false
                             profilePasswordInput = ""
+                            profilePasswordError = null
                             (context as? android.app.Activity)?.let {
                                 ProfileManager.restartApp(it)
                             }
                         } else {
-                            // गलत पासवर्ड डालने से कोई प्रतिक्रिया नहीं होना चाहिए (Zero reaction on wrong password)
+                            profilePasswordError = "अनुमति नहीं है।"
+                            Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
                         }
                     }
                 ) {
@@ -1654,6 +1706,91 @@ fun SettingsScreen(
                 TextButton(onClick = {
                     showPasswordDialogForProfileB = false
                     profilePasswordInput = ""
+                    profilePasswordError = null
+                }) {
+                    Text("रद्द करें")
+                }
+            }
+        )
+    }
+
+    if (showVlogPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showVlogPasswordDialog = false
+                vlogPasswordInput = ""
+                vlogPasswordError = null
+                pendingVlogMode = null
+            },
+            icon = {
+                Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            },
+            title = {
+                Text(
+                    text = "Personal Vlog अनलॉक करें",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Personal Vlog को ON करने के लिए 4-अंकों का पासवर्ड दर्ज करें:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    OutlinedTextField(
+                        value = vlogPasswordInput,
+                        onValueChange = {
+                            vlogPasswordInput = it
+                            vlogPasswordError = null
+                        },
+                        label = { Text("पासवर्ड (Password)") },
+                        singleLine = true,
+                        isError = vlogPasswordError != null,
+                        supportingText = vlogPasswordError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+                        visualTransformation = if (vlogPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { vlogPasswordVisible = !vlogPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (vlogPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (vlogPasswordVisible) "Hide password" else "Show password"
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (com.example.util.PersonalVlogSecurity.verifyPassword(vlogPasswordInput)) {
+                            pendingVlogMode?.let { mode ->
+                                viewModel.updatePersonalVlogMode(mode)
+                            }
+                            Toast.makeText(context, "Personal Vlog सक्रिय किया गया", Toast.LENGTH_SHORT).show()
+                            showVlogPasswordDialog = false
+                            vlogPasswordInput = ""
+                            vlogPasswordError = null
+                            pendingVlogMode = null
+                        } else {
+                            vlogPasswordError = "अनुमति नहीं है।"
+                            Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text("अनलॉक करें")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showVlogPasswordDialog = false
+                    vlogPasswordInput = ""
+                    vlogPasswordError = null
+                    pendingVlogMode = null
                 }) {
                     Text("रद्द करें")
                 }

@@ -82,9 +82,9 @@ data class UserSettings(
     val showPersonalVlog: Boolean = false, // Backwards-compatible flag
     val showYouTube: Boolean = true,
     val showShorts: Boolean = true,
-    val youtubeDefaultTab: YouTubeDefaultTab = YouTubeDefaultTab.AVJ_WORSHIP,
+    val youtubeDefaultTab: YouTubeDefaultTab = YouTubeDefaultTab.ALL,
     val bibleReadingStyle: BibleReadingStyle = BibleReadingStyle.PRINTED_BIBLE,
-    val dataSaverEnabled: Boolean = false,
+    val dataSaverEnabled: Boolean = true,
     val notifyTodaysScripture: Boolean = true,
     val notifyReadingPlan: Boolean = true,
     val notifyFellowshipEvents: Boolean = true,

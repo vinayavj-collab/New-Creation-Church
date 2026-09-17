@@ -6,6 +6,7 @@ import java.util.regex.Pattern
 enum class VideoPlatform {
     YOUTUBE,
     DAILYMOTION,
+    DIRECT_STREAM,
     UNKNOWN
 }
 
@@ -31,7 +32,25 @@ object VideoUrlParser {
             return ParsedVideoInfo(VideoPlatform.UNKNOWN, "", "")
         }
 
-        // 1. Check Dailymotion using dedicated DailymotionDataParser
+        // 1. Check for Direct Video Stream / Firebase Storage URL
+        val isDirectStream = trimmed.contains("firebasestorage.googleapis.com", ignoreCase = true) ||
+                trimmed.contains(".mp4", ignoreCase = true) ||
+                trimmed.contains(".m3u8", ignoreCase = true) ||
+                trimmed.contains(".webm", ignoreCase = true) ||
+                trimmed.contains(".mov", ignoreCase = true) ||
+                trimmed.contains("firebase", ignoreCase = true) && trimmed.startsWith("http") && !trimmed.contains("youtube") && !trimmed.contains("dailymotion")
+
+        if (isDirectStream) {
+            return ParsedVideoInfo(
+                platform = VideoPlatform.DIRECT_STREAM,
+                videoId = trimmed,
+                originalUrl = trimmed,
+                embedUrl = trimmed,
+                thumbnailUrl = ""
+            )
+        }
+
+        // 2. Check Dailymotion using dedicated DailymotionDataParser
         val dmMeta = DailymotionDataParser.extractVideoMetadata(trimmed)
         if (dmMeta != null) {
             return ParsedVideoInfo(
@@ -43,7 +62,7 @@ object VideoUrlParser {
             )
         }
 
-        // 2. Check YouTube patterns
+        // 3. Check YouTube patterns
         for (pattern in YOUTUBE_PATTERNS) {
             val matcher = pattern.matcher(trimmed)
             if (matcher.find()) {
@@ -58,7 +77,7 @@ object VideoUrlParser {
             }
         }
 
-        // 3. Check for standard 11-char YouTube ID
+        // 4. Check for standard 11-char YouTube ID
         if (trimmed.matches(Regex("^[a-zA-Z0-9_-]{11}$"))) {
             return ParsedVideoInfo(
                 platform = VideoPlatform.YOUTUBE,
@@ -69,7 +88,7 @@ object VideoUrlParser {
             )
         }
 
-        // 4. Check for Dailymotion fallback
+        // 5. Check for Dailymotion fallback
         if (DailymotionDataParser.isDailymotionSource(trimmed)) {
             val cleanId = trimmed.removePrefix("dm_").removePrefix("dm:").removePrefix("dailymotion:")
             return ParsedVideoInfo(
@@ -81,7 +100,20 @@ object VideoUrlParser {
             )
         }
 
-        // 5. Default fallback: Treat as YouTube
+        // 6. Generic HTTP(S) stream fallback
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            if (!trimmed.contains("youtube") && !trimmed.contains("youtu.be")) {
+                return ParsedVideoInfo(
+                    platform = VideoPlatform.DIRECT_STREAM,
+                    videoId = trimmed,
+                    originalUrl = trimmed,
+                    embedUrl = trimmed,
+                    thumbnailUrl = ""
+                )
+            }
+        }
+
+        // 7. Default fallback: Treat as YouTube
         return ParsedVideoInfo(
             platform = VideoPlatform.YOUTUBE,
             videoId = trimmed,
@@ -89,6 +121,10 @@ object VideoUrlParser {
             embedUrl = "https://www.youtube-nocookie.com/embed/$trimmed",
             thumbnailUrl = "https://i.ytimg.com/vi/$trimmed/hqdefault.jpg"
         )
+    }
+
+    fun isDirectStream(urlOrId: String): Boolean {
+        return parse(urlOrId).platform == VideoPlatform.DIRECT_STREAM
     }
 
     fun isDailymotion(urlOrId: String): Boolean {

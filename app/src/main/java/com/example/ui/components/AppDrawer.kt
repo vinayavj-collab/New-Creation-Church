@@ -41,6 +41,7 @@ fun SidebarContent(
     onToggleTheme: () -> Unit,
     onCheckUpdate: () -> Unit,
     onToggleSidebarPosition: () -> Unit = {},
+    onOpenFeedback: () -> Unit = {},
     isUpdateAvailable: Boolean = false,
     drawerPosition: String = "left",
     modifier: Modifier = Modifier
@@ -347,6 +348,17 @@ fun SidebarContent(
                 selected = currentRouteName == "ABOUT",
                 onClick = {
                     onNavigate("ABOUT")
+                    onCloseSidebar()
+                }
+            )
+
+            SidebarNavItem(
+                label = "प्रतिक्रिया व समस्या रिपोर्ट (Feedback)",
+                subtitle = "सुझाव, सुधार या बग रिपोर्ट भेजें",
+                icon = Icons.Default.Feedback,
+                selected = false,
+                onClick = {
+                    onOpenFeedback()
                     onCloseSidebar()
                 }
             )

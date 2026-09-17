@@ -17,8 +17,8 @@ android {
     applicationId = "com.vinay.newcreation.ncck"
     minSdk = 24
     targetSdk = 36
-    versionCode = 56
-    versionName = "56"
+    versionCode = 57
+    versionName = "57"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -107,8 +107,7 @@ dependencies {
   implementation(libs.firebase.messaging)
   implementation(libs.firebase.database)
   implementation(libs.firebase.config)
-  // Uncomment to use Firestore:
-  // implementation(libs.firebase.firestore)
+  implementation(libs.firebase.firestore)
 
   // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
   // Sign-In via Credential Manager:

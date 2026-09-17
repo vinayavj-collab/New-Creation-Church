@@ -688,7 +688,11 @@ fun YouTubeVideoCard(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(effectiveThumbnail)
-                        .crossfade(true)
+                        .crossfade(200)
+                        .allowHardware(true)
+                        .memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                        .diskCachePolicy(coil.request.CachePolicy.ENABLED)
+                        .networkCachePolicy(coil.request.CachePolicy.ENABLED)
                         .build(),
                     contentDescription = video.title,
                     contentScale = ContentScale.Crop,

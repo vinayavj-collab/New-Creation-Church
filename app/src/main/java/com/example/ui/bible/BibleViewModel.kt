@@ -207,9 +207,11 @@ class BibleViewModel(
     val lastReadingPosition: StateFlow<ReadingPositionEntity?> = repository.getReadingPosition()
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-    val audioManager = com.example.util.BibleAudioManager(application)
+    val audioManager = com.example.util.BibleAudioManager.getInstance(application)
 
     init {
+        // Sync initial book details with AudioManager
+        audioManager.setBookDetails(_currentBook.value.id, _currentChapter.value, _currentBook.value.nameHindi)
         try {
             val prefs = com.example.data.local.PreferencesManager(application)
             val savedPlans = prefs.settings.value.activePlanIds
@@ -275,6 +277,7 @@ class BibleViewModel(
         _currentBook.value = book
         _currentChapter.value = chapter.coerceIn(1, book.chapterCount)
         _targetVerse.value = targetVerse
+        audioManager.setBookDetails(book.id, _currentChapter.value, book.nameHindi)
         if (!isReadingPlan) {
             _planHighlightRange.value = null
         }
@@ -296,6 +299,7 @@ class BibleViewModel(
         val validChapter = chapter.coerceIn(1, book.chapterCount)
         _currentChapter.value = validChapter
         _targetVerse.value = null
+        audioManager.setBookDetails(book.id, validChapter, book.nameHindi)
         if (!isReadingPlan) {
             _planHighlightRange.value = null
         }

@@ -105,12 +105,24 @@ class FirebaseDataRepository private constructor() {
     private val _eventRsvps = MutableStateFlow<Map<String, List<com.example.data.model.EventRsvp>>>(emptyMap())
     val eventRsvps: StateFlow<Map<String, List<com.example.data.model.EventRsvp>>> = _eventRsvps.asStateFlow()
 
-    // --- 2. Single String Values (Single Link Exemption: Remote overrides local fallback directly) ---
+    // --- 2. Single String Values & Dynamic Remote Security (Remote overrides local fallback directly) ---
     private val _songSpreadsheetUrl = MutableStateFlow(PredefinedData.FALLBACK_SONG_SPREADSHEET_URL)
     val songSpreadsheetUrl: StateFlow<String> = _songSpreadsheetUrl.asStateFlow()
 
     private val _todayScripture = MutableStateFlow(getDefaultScriptureFallback())
     val todayScripture: StateFlow<String> = _todayScripture.asStateFlow()
+
+    private val _personalVlogPassword = MutableStateFlow("9479")
+    val personalVlogPassword: StateFlow<String> = _personalVlogPassword.asStateFlow()
+
+    private val _isPersonalVlogEnabled = MutableStateFlow(true)
+    val isPersonalVlogEnabled: StateFlow<Boolean> = _isPersonalVlogEnabled.asStateFlow()
+
+    private val _privateProfilePassword = MutableStateFlow("Vin@122333")
+    val privateProfilePassword: StateFlow<String> = _privateProfilePassword.asStateFlow()
+
+    private val _isPrivateProfileEnabled = MutableStateFlow(true)
+    val isPrivateProfileEnabled: StateFlow<Boolean> = _isPrivateProfileEnabled.asStateFlow()
 
     init {
         initFirebaseListeners()
@@ -128,6 +140,96 @@ class FirebaseDataRepository private constructor() {
     private fun initFirebaseListeners() {
         try {
             val database = FirebaseDatabase.getInstance()
+
+            // --- Dynamic Security & Overrides: Personal Vlog Password (Default: 9479) ---
+            database.getReference("personal_vlog_password").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val remotePass = snapshot.getValue(String::class.java)?.trim().orEmpty()
+                    if (remotePass.isNotBlank()) {
+                        Log.i(TAG, "Firebase personal_vlog_password override received: $remotePass")
+                        _personalVlogPassword.value = remotePass
+                    } else {
+                        _personalVlogPassword.value = "9479"
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.w(TAG, "personal_vlog_password cancelled: ${error.message}")
+                }
+            })
+
+            database.getReference("vlog_password").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val remotePass = snapshot.getValue(String::class.java)?.trim().orEmpty()
+                    if (remotePass.isNotBlank()) {
+                        _personalVlogPassword.value = remotePass
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+
+            // --- Dynamic Master Switch: is_vlog_server_enabled / personal_vlog_enabled ---
+            database.getReference("is_vlog_server_enabled").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val value = snapshot.getValue(Boolean::class.java)
+                        ?: (snapshot.getValue(String::class.java)?.toBoolean())
+                    if (value != null) {
+                        Log.i(TAG, "Firebase is_vlog_server_enabled override received: $value")
+                        _isPersonalVlogEnabled.value = value
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+
+            database.getReference("personal_vlog_enabled").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val value = snapshot.getValue(Boolean::class.java)
+                        ?: (snapshot.getValue(String::class.java)?.toBoolean())
+                    if (value != null) {
+                        Log.i(TAG, "Firebase personal_vlog_enabled override received: $value")
+                        _isPersonalVlogEnabled.value = value
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+
+            // --- Dynamic Security: Private Profile Password (Default: Vin@122333) ---
+            database.getReference("private_profile_password").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val remotePass = snapshot.getValue(String::class.java)?.trim().orEmpty()
+                    if (remotePass.isNotBlank()) {
+                        Log.i(TAG, "Firebase private_profile_password override received: $remotePass")
+                        _privateProfilePassword.value = remotePass
+                    } else {
+                        _privateProfilePassword.value = "Vin@122333"
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.w(TAG, "private_profile_password cancelled: ${error.message}")
+                }
+            })
+
+            database.getReference("profile_b_password").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val remotePass = snapshot.getValue(String::class.java)?.trim().orEmpty()
+                    if (remotePass.isNotBlank()) {
+                        _privateProfilePassword.value = remotePass
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+
+            // --- Dynamic Master Switch: private_profile_enabled ---
+            database.getReference("private_profile_enabled").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val value = snapshot.getValue(Boolean::class.java)
+                        ?: (snapshot.getValue(String::class.java)?.toBoolean())
+                    if (value != null) {
+                        Log.i(TAG, "Firebase private_profile_enabled override received: $value")
+                        _isPrivateProfileEnabled.value = value
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
 
             // --- Single String Value: song_spreadsheet_url (Exempt from list merging) ---
             database.getReference("song_spreadsheet_url").addValueEventListener(object : ValueEventListener {
@@ -211,42 +313,55 @@ class FirebaseDataRepository private constructor() {
                 }
             })
 
-            // --- List 3: YouTube Videos ---
+            // --- List 3: Firebase & YouTube Videos (Listening to firebase_videos, youtube_videos, videos, custom_videos) ---
+            val onVideosSnapshotUpdated = { snapshot: DataSnapshot, sourceNode: String ->
+                try {
+                    val remoteVideos = parseVideoSnapshot(snapshot)
+                    if (remoteVideos.isNotEmpty()) {
+                        val currentList = _videos.value
+                        val merged = mergeAndDeduplicate(
+                            remoteItems = remoteVideos,
+                            localHardcodedItems = currentList,
+                            keySelector = { it.id.ifBlank { it.videoUrl } },
+                            timestampSelector = { it.publishedTimestamp }
+                        )
+                        _videos.value = merged
+                        Log.i(TAG, "[$sourceNode] Merged Firebase videos: total ${merged.size} (node items: ${remoteVideos.size})")
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error updating videos from $sourceNode: ${e.message}")
+                }
+            }
+
+            database.getReference("firebase_videos").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    onVideosSnapshotUpdated(snapshot, "firebase_videos")
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.w(TAG, "firebase_videos cancelled: ${error.message}")
+                }
+            })
+
             database.getReference("youtube_videos").addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    val remoteVideos = parseVideoSnapshot(snapshot)
-                    val merged = mergeAndDeduplicate(
-                        remoteItems = remoteVideos,
-                        localHardcodedItems = PredefinedData.hardcodedVideos,
-                        keySelector = { it.id.ifBlank { it.videoUrl } },
-                        timestampSelector = { it.publishedTimestamp }
-                    )
-                    _videos.value = merged
-                    Log.i(TAG, "Merged YouTube videos: total ${merged.size} (remote: ${remoteVideos.size})")
+                    onVideosSnapshotUpdated(snapshot, "youtube_videos")
                 }
-
                 override fun onCancelled(error: DatabaseError) {
                     Log.w(TAG, "youtube_videos cancelled: ${error.message}")
                 }
             })
 
-            // Fallback node check for "videos"
             database.getReference("videos").addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists()) {
-                        val remoteVideos = parseVideoSnapshot(snapshot)
-                        if (remoteVideos.isNotEmpty()) {
-                            val merged = mergeAndDeduplicate(
-                                remoteItems = remoteVideos,
-                                localHardcodedItems = PredefinedData.hardcodedVideos,
-                                keySelector = { it.id.ifBlank { it.videoUrl } },
-                                timestampSelector = { it.publishedTimestamp }
-                            )
-                            _videos.value = merged
-                        }
-                    }
+                    onVideosSnapshotUpdated(snapshot, "videos")
                 }
+                override fun onCancelled(error: DatabaseError) {}
+            })
 
+            database.getReference("custom_videos").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    onVideosSnapshotUpdated(snapshot, "custom_videos")
+                }
                 override fun onCancelled(error: DatabaseError) {}
             })
 
@@ -427,22 +542,48 @@ class FirebaseDataRepository private constructor() {
         for (child in snapshot.children) {
             try {
                 val id = child.child("id").getValue(String::class.java)
+                    ?: child.child("videoId").getValue(String::class.java)
                     ?: child.key ?: continue
                 if (id.startsWith("local_vid") || id.startsWith("dm_x27lzjr_") || id.startsWith("dm_x4sr8o4_")) continue
-                val title = child.child("title").getValue(String::class.java).orEmpty()
+
+                val title = child.child("title").getValue(String::class.java)
+                    ?: child.child("name").getValue(String::class.java)
+                    ?: child.child("heading").getValue(String::class.java).orEmpty()
                 if (title.isBlank()) continue
 
-                val channelId = child.child("channelId").getValue(String::class.java).orEmpty()
-                val channelTitle = child.child("channelTitle").getValue(String::class.java).orEmpty()
-                val thumb = child.child("thumbnailUrl").getValue(String::class.java)
-                    ?: "https://i.ytimg.com/vi/$id/hqdefault.jpg"
+                val channelId = child.child("channelId").getValue(String::class.java) ?: "firebase_channel"
+                val channelTitle = child.child("channelTitle").getValue(String::class.java)
+                    ?: child.child("channel").getValue(String::class.java)
+                    ?: child.child("author").getValue(String::class.java)
+                    ?: "Firebase Media"
+
+                val videoUrl = child.child("videoUrl").getValue(String::class.java)
+                    ?: child.child("url").getValue(String::class.java)
+                    ?: child.child("streamUrl").getValue(String::class.java)
+                    ?: child.child("link").getValue(String::class.java)
+                    ?: if (id.length == 11 && !id.contains(".")) "https://www.youtube.com/watch?v=$id" else id
+
+                var thumb = child.child("thumbnailUrl").getValue(String::class.java)
+                    ?: child.child("thumbnail").getValue(String::class.java)
+                    ?: child.child("thumb").getValue(String::class.java)
+                    ?: child.child("imageUrl").getValue(String::class.java)
+                    ?: child.child("image").getValue(String::class.java)
+                    ?: child.child("poster").getValue(String::class.java).orEmpty()
+
+                if (thumb.isBlank()) {
+                    thumb = if (id.length == 11 && !id.contains(".")) {
+                        "https://i.ytimg.com/vi/$id/hqdefault.jpg"
+                    } else {
+                        "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80"
+                    }
+                }
+
                 val publishedAt = child.child("publishedAt").getValue(String::class.java).orEmpty()
                 val timestamp = child.child("publishedTimestamp").getValue(Long::class.java)
                     ?: child.child("timestamp").getValue(Long::class.java)
                     ?: System.currentTimeMillis()
-                val description = child.child("description").getValue(String::class.java).orEmpty()
-                val videoUrl = child.child("videoUrl").getValue(String::class.java)
-                    ?: "https://www.youtube.com/watch?v=$id"
+                val description = child.child("description").getValue(String::class.java)
+                    ?: child.child("desc").getValue(String::class.java).orEmpty()
 
                 list.add(
                     YouTubeVideo(

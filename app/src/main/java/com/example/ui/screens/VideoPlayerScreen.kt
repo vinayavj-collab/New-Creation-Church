@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import android.content.Intent
+import android.content.res.Configuration
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +26,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,8 +35,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,23 +43,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.YouTubeVideo
 import com.example.ui.components.UniversalVideoPlayer
 import com.example.ui.components.YouTubeVideoCard
 import com.example.ui.viewmodel.MainViewModel
-import com.example.util.VideoPlatform
-import com.example.util.VideoUrlParser
 
 /**
- * Universal Video Player Screen: Seamlessly plays YouTube and Dailymotion videos in-app
- * with native Picture-in-Picture (PiP) support and seamless dynamic UI hiding.
+ * Universal Video Player Screen:
+ * - Pinned video player at the top so scrolling never reloads or restarts the video.
+ * - Clean, distraction-free UI without redundant tech labels.
+ * - True immersive full-screen without banners or text overlays.
+ * - Dynamic, non-definite mix of related and random video thumbnails from across all sources.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,8 +76,12 @@ fun VideoPlayerScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val allVideos by viewModel.youtubeVideos.collectAsStateWithLifecycle()
-    val relatedVideos = remember(video, allVideos) {
+
+    // Dynamic, non-definite mixture of related & random videos from all sources
+    val relatedVideos = remember(video.id, allVideos) {
         val validVideos = allVideos.filter { candidate ->
             candidate.id != video.id &&
             !candidate.id.startsWith("local_vid") &&
@@ -84,24 +90,27 @@ fun VideoPlayerScreen(
             !candidate.thumbnailUrl.contains("local_vid") &&
             candidate.thumbnailUrl.isNotBlank()
         }
-        val sameChannel = validVideos.filter { it.channelId.isNotBlank() && it.channelId == video.channelId }
-        val otherChannels = validVideos.filter { it.channelId.isBlank() || it.channelId != video.channelId }
-        (sameChannel + otherChannels).distinctBy { it.id }.take(8)
-    }
+        if (validVideos.isEmpty()) return@remember emptyList()
 
-    val parsedVideo = remember(video) {
-        val target = if (video.videoUrl.isNotBlank()) video.videoUrl else video.id
-        VideoUrlParser.parse(target)
-    }
+        val sameChannel = validVideos.filter { it.channelId.isNotBlank() && it.channelId == video.channelId }.shuffled()
+        val otherSources = validVideos.filter { it.channelId.isBlank() || it.channelId != video.channelId }.shuffled()
 
-    val platformLabel = when (parsedVideo.platform) {
-        VideoPlatform.DAILYMOTION -> "Dailymotion"
-        VideoPlatform.YOUTUBE -> "YouTube"
-        VideoPlatform.UNKNOWN -> "Video"
+        val mixed = mutableListOf<YouTubeVideo>()
+        val maxCount = 20
+        val sameIter = sameChannel.iterator()
+        val otherIter = otherSources.iterator()
+
+        while ((sameIter.hasNext() || otherIter.hasNext()) && mixed.size < maxCount) {
+            if (sameIter.hasNext() && (mixed.size % 2 == 0 || !otherIter.hasNext())) {
+                mixed.add(sameIter.next())
+            } else if (otherIter.hasNext()) {
+                mixed.add(otherIter.next())
+            }
+        }
+        mixed.distinctBy { it.id }.shuffled()
     }
 
     var isDescriptionExpanded by remember { mutableStateOf(false) }
-
     val playTarget = if (video.videoUrl.isNotBlank()) video.videoUrl else video.id
 
     val shareVideo = {
@@ -114,11 +123,12 @@ fun VideoPlayerScreen(
         context.startActivity(shareIntent)
     }
 
-    // When in Picture-in-Picture mode, hide all chrome/toolbars/buttons/scrollbars and display purely the video stream
-    if (isInPictureInPictureMode) {
+    // Full Screen / Landscape / PiP: Pure uninterrupted video display without any top banner or text
+    if (isInPictureInPictureMode || isLandscape) {
         Box(
             modifier = modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
             UniversalVideoPlayer(
@@ -130,22 +140,18 @@ fun VideoPlayerScreen(
         return
     }
 
+    // Portrait Mode Layout
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "Universal Player",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Playing via $platformLabel",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = video.title.ifBlank { "Video" },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -178,163 +184,147 @@ fun VideoPlayerScreen(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 40.dp)
+                .padding(innerPadding)
         ) {
-            // Player Area - Embedded Universal Player (YouTube IFrame API & Dailymotion WebView)
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                ) {
-                    UniversalVideoPlayer(
-                        videoUrlOrId = playTarget,
-                        modifier = Modifier.fillMaxSize(),
-                        autoplay = true
-                    )
-                }
+            // FIXED Video Player at the Top: Never gets destroyed or reset when scrolling below!
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(Color.Black)
+            ) {
+                UniversalVideoPlayer(
+                    videoUrlOrId = playTarget,
+                    modifier = Modifier.fillMaxSize(),
+                    autoplay = true
+                )
             }
 
-            // Video Meta Details
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+            // Scrollable Content (Details + Dynamic Recommended Videos)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                // Video Meta Details
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                     ) {
-                        SuggestionChip(
-                            onClick = { },
-                            label = { Text(platformLabel) },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Default.VideoLibrary,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = if (parsedVideo.platform == VideoPlatform.DAILYMOTION) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.errorContainer
-                                }
-                            )
-                        )
-
-                        if (video.publishedAt.isNotBlank()) {
-                            Text(
-                                text = video.publishedAt,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = video.title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (video.channelTitle.isNotBlank()) {
                         Text(
-                            text = video.channelTitle,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
+                            text = video.title,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
                             )
                         )
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                    OutlinedButton(
-                        onClick = shareVideo,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Share Video")
-                    }
-
-                    // Description Box
-                    if (video.description.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { isDescriptionExpanded = !isDescriptionExpanded }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Description",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    )
-                                    Icon(
-                                        imageVector = if (isDescriptionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
+                            if (video.channelTitle.isNotBlank()) {
                                 Text(
-                                    text = video.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = if (isDescriptionExpanded) Int.MAX_VALUE else 3,
-                                    overflow = TextOverflow.Ellipsis
+                                    text = video.channelTitle,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                            }
+                            if (video.publishedAt.isNotBlank()) {
+                                Text(
+                                    text = video.publishedAt,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
                                 )
                             }
                         }
-                    }
 
-                    if (relatedVideos.isNotEmpty()) {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        Text(
-                            text = "MORE VIDEOS & PRAISES",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
+                        OutlinedButton(
+                            onClick = shareVideo,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Share Video")
+                        }
+
+                        // Expandable Description
+                        if (video.description.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { isDescriptionExpanded = !isDescriptionExpanded }
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "विवरण (Description)",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
+                                        Icon(
+                                            imageVector = if (isDescriptionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = video.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = if (isDescriptionExpanded) Int.MAX_VALUE else 3,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+
+                        if (relatedVideos.isNotEmpty()) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp))
+                            Text(
+                                text = "सुझाए गए वीडियो (Suggested Videos)",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                        }
                     }
                 }
-            }
 
-            // Related videos
-            if (relatedVideos.isNotEmpty()) {
-                items(relatedVideos, key = { it.id }) { itemVideo ->
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                        YouTubeVideoCard(
-                            video = itemVideo,
-                            onClick = { onRelatedVideoClick(itemVideo) }
-                        )
+                // Dynamic Recommended & Random Video List
+                if (relatedVideos.isNotEmpty()) {
+                    items(relatedVideos, key = { it.id }) { itemVideo ->
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                            YouTubeVideoCard(
+                                video = itemVideo,
+                                onClick = { onRelatedVideoClick(itemVideo) }
+                            )
+                        }
                     }
                 }
             }
