@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,12 +44,19 @@ fun BibleHomeScreen(
     val selectedTranslation by viewModel.selectedTranslation.collectAsState()
     val readingSettings by viewModel.readingSettings.collectAsState()
     val lastPosition by viewModel.lastReadingPosition.collectAsState()
-    val isOnline by viewModel.isOnline.collectAsState()
     val todayVerse = viewModel.todayVerse
 
     var selectedTab by remember { mutableIntStateOf(1) } // 0: Old Testament, 1: New Testament (default New Testament for easy gospel access)
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var showNavigatorModal by remember { mutableStateOf(false) }
     var bookForChapterPicker by remember { mutableStateOf<BibleBook?>(null) }
+    val context = LocalContext.current
+    var savedNavMode by remember { mutableStateOf(getSavedNavigatorMode(context)) }
+
+    // Sync on open
+    LaunchedEffect(Unit) {
+        savedNavMode = getSavedNavigatorMode(context)
+    }
 
     Scaffold(
         topBar = {
@@ -59,7 +68,7 @@ fun BibleHomeScreen(
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = "Read the Word of God",
+                            text = if (savedNavMode == BibleNavigatorMode.GRID) "ग्रिड नेविगेशन (Grid)" else "सूची नेविगेशन (List)",
                             style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                     }
@@ -70,31 +79,21 @@ fun BibleHomeScreen(
                     }
                 },
                 actions = {
-                    // Status Badge
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(end = 6.dp)
+                    // Consolidated Grid / List View Toggle Icon (Dynamically swaps icon to reflect current state)
+                    val isGrid = savedNavMode == BibleNavigatorMode.GRID
+                    IconButton(
+                        onClick = {
+                            val newMode = if (isGrid) BibleNavigatorMode.LIST else BibleNavigatorMode.GRID
+                            savedNavMode = newMode
+                            saveNavigatorMode(context, newMode)
+                        },
+                        modifier = Modifier.testTag("toggle_grid_list_view")
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isOnline) Color(0xFF10B981) else Color(0xFF3B82F6))
-                            )
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text(
-                                text = if (isOnline) "Online" else "Offline Ready",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 11.sp
-                                )
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isGrid) Icons.Default.GridView else Icons.Default.ViewList,
+                            contentDescription = if (isGrid) "ग्रिड मोड (सूची मोड में बदलें)" else "सूची मोड (ग्रिड मोड में बदलें)",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
 
                     IconButton(onClick = onSearchClick) {
@@ -111,219 +110,91 @@ fun BibleHomeScreen(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+                .padding(innerPadding)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
-            // Quick Tools Bar
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AssistChip(
-                        onClick = {
-                            val all = com.example.data.bible.model.BibleTranslation.ALL
-                            val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
-                            val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
-                            viewModel.selectTranslation(all[nextIndex])
-                        },
-                        label = {
-                            Text(
-                                text = "📖 ${selectedTranslation.nameHindi}",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                        )
-                    )
-
-                    AssistChip(
-                        onClick = onReadingPlanClick,
-                        label = { Text("रीडिंग प्लान (Plan)") },
-                        leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    )
-                }
-            }
-
-            // Reading Plan Quick Access Banner / Active Reading Plans
-            if (readingSettings.showActivatedPlansOnHome) {
-                val allPlans = viewModel.getAllPlansList()
-                val activatedPlans = allPlans.filter { it.id in readingSettings.activatedPlanIds }
-
-                if (activatedPlans.isNotEmpty()) {
-                    items(activatedPlans, key = { "home_plan_" + it.id }) { plan ->
-                        ActivatedPlanHomeCard(
-                            plan = plan,
-                            viewModel = viewModel,
-                            onClick = onReadingPlanClick
-                        )
-                    }
-                }
-            }
-
-            // Today's Verse Card ("आज का वचन") - Default Hidden, shown only if setting enabled
-            if (readingSettings.showTodaysScriptureOnHome) {
-                item {
-                    Card(
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 14.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "📖 आज का वचन",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    )
-                                }
-                                FilledTonalButton(
-                                    onClick = {
-                                        onOpenReader(todayVerse.bookId, todayVerse.chapter, todayVerse.verseNumber)
-                                    },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                                ) {
-                                    Text("पढ़ें (Read)", style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = if (selectedTranslation.language == "hi") todayVerse.textHindi else todayVerse.textEnglish,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    lineHeight = 22.sp,
-                                    fontWeight = FontWeight.Normal
-                                ),
-                                maxLines = 4,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = "— " + if (selectedTranslation.language == "hi") todayVerse.referenceHindi else todayVerse.referenceEnglish,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Continue Reading Card (if available)
-            if (lastPosition != null) {
-                item {
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "पढ़ना जारी रखें (Continue Reading)",
-                                    style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                                )
-                                Text(
-                                    text = "${lastPosition?.bookName} : अध्याय ${lastPosition?.chapter}",
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                            Button(
-                                onClick = {
-                                    val pos = lastPosition ?: return@Button
-                                    onOpenReader(pos.bookId, pos.chapter, pos.verse)
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                            ) {
-                                Text("जारी रखें")
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Tabs for Testament Selection
-            item {
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = {
-                            Text(
-                                text = "पुराना नियम (Old • 39)",
-                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = {
-                            Text(
-                                text = "नया नियम (New • 27)",
-                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
-                }
-            }
-
-            // Books List
-            val currentBooks = if (selectedTab == 0) {
-                BibleBookDefinitions.oldTestamentBooks
-            } else {
-                BibleBookDefinitions.newTestamentBooks
-            }
-
-            items(currentBooks, key = { it.id }) { book ->
-                BookRowItem(
-                    book = book,
-                    isHindi = selectedTranslation.language == "hi",
+            // Quick Tools Bar (Translation + Reading Plan)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AssistChip(
                     onClick = {
-                        bookForChapterPicker = book
-                    }
+                        val all = com.example.data.bible.model.BibleTranslation.ALL
+                        val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
+                        val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
+                        viewModel.selectTranslation(all[nextIndex])
+                    },
+                    label = {
+                        Text(
+                            text = "📖 ${selectedTranslation.nameHindi}",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    )
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+
+                AssistChip(
+                    onClick = onReadingPlanClick,
+                    label = { Text("रीडिंग प्लान (Plan)") },
+                    leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                )
+            }
+
+            // Dedicated Navigation Container showing ONLY the default style
+            val startBook = remember(lastPosition) {
+                BibleBookDefinitions.getBookById(lastPosition?.bookId ?: 40) ?: BibleBookDefinitions.books.first()
+            }
+
+            Box(modifier = Modifier.weight(1f)) {
+                if (savedNavMode == BibleNavigatorMode.GRID) {
+                    Bible3ColumnGridNavigatorContent(
+                        initialBook = startBook,
+                        initialChapter = lastPosition?.chapter ?: 1,
+                        initialVerse = lastPosition?.verse,
+                        isHindi = selectedTranslation.language == "hi",
+                        onNavigate = { book, chap, verse ->
+                            onOpenReader(book.id, chap, verse)
+                        }
+                    )
+                } else {
+                    BibleStepByStepListNavigatorContent(
+                        initialBook = startBook,
+                        initialChapter = lastPosition?.chapter ?: 1,
+                        initialVerse = lastPosition?.verse,
+                        initialStep = SelectorStep.BOOK,
+                        isHindi = selectedTranslation.language == "hi",
+                        onNavigate = { book, chap, verse ->
+                            onOpenReader(book.id, chap, verse)
+                        }
+                    )
+                }
             }
         }
+    }
+
+    // 3-Step Book -> Chapter -> Verse Selector Modal (Triggered via Grid Navigator button)
+    if (showNavigatorModal) {
+        val startBook = BibleBookDefinitions.getBookById(lastPosition?.bookId ?: 40) ?: BibleBookDefinitions.books.first()
+        BibleBookChapterVerseSelectorModal(
+            initialBook = startBook,
+            initialChapter = lastPosition?.chapter ?: 1,
+            initialVerse = lastPosition?.verse,
+            initialStep = SelectorStep.BOOK,
+            isHindi = selectedTranslation.language == "hi",
+            onDismiss = { showNavigatorModal = false },
+            onSelectionComplete = { book, chapter, verse ->
+                showNavigatorModal = false
+                onOpenReader(book.id, chapter, verse)
+            }
+        )
     }
 
     // 3-Step Book -> Chapter -> Verse Selector Modal
@@ -333,6 +204,7 @@ fun BibleHomeScreen(
             initialBook = activeBook,
             initialChapter = 1,
             initialVerse = null,
+            initialStep = SelectorStep.CHAPTER,
             isHindi = selectedTranslation.language == "hi",
             onDismiss = { bookForChapterPicker = null },
             onSelectionComplete = { book, chapter, verse ->
@@ -350,11 +222,22 @@ fun BibleHomeScreen(
             onFontSizeChange = { viewModel.updateFontSize(it) },
             onLineSpacingChange = { viewModel.updateLineSpacing(it) },
             onShowVerseNumbersChange = { viewModel.toggleVerseNumbers(it) },
+            onShowAudioPlayerChange = { viewModel.toggleAudioPlayer(it) },
+            onTtsSmartStartChange = { viewModel.toggleTtsSmartStart(it) },
+            onTtsBackgroundPlayChange = { viewModel.toggleTtsBackgroundPlay(it) },
+            onTtsSleepTimerMinutesChange = { viewModel.updateTtsSleepTimerMinutes(it) },
+            onTtsSleepChapterCountChange = { viewModel.updateTtsSleepChapterCount(it) },
+            onEnableDevotionalBgmChange = { viewModel.toggleDevotionalBgm(it) },
+            onTtsVolumeChange = { viewModel.updateTtsVolume(it) },
+            onBgmVolumeChange = { viewModel.updateBgmVolume(it) },
+            onSelectedBgmTrackChange = { viewModel.updateSelectedBgmTrack(it) },
             onThemeChange = { viewModel.updateTheme(it) },
             onTranslationChange = { viewModel.selectTranslation(it) },
             onVerseTapSelectionModeChange = { viewModel.updateVerseTapSelectionMode(it) },
             onShowTodaysScriptureOnHomeChange = { viewModel.toggleShowTodaysScriptureOnHome(it) },
             onShowActivatedPlansOnHomeChange = { viewModel.toggleShowActivatedPlansOnHome(it) },
+            onOpenReadingPlan = onReadingPlanClick,
+            onExternalFolderSelected = { viewModel.setExternalFolderPath(it) },
             onDismiss = { showSettingsDialog = false }
         )
     }

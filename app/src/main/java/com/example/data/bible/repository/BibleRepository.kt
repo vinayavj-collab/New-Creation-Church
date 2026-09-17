@@ -67,8 +67,8 @@ class BibleRepository(
         bookId: Int,
         chapter: Int,
         coroutineScope: CoroutineScope,
-        dualHindiId: String = com.example.data.bible.model.BibleTranslation.HINDI_IRV.id,
-        dualEnglishId: String = com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id
+        dualHindiId: String = com.example.data.bible.model.BibleTranslation.HIOV.id,
+        dualEnglishId: String = com.example.data.bible.model.BibleTranslation.ENGLISH_ESV.id
     ): Flow<List<BibleVerse>> {
         val bookmarksFlow = localDataSource.getAllBookmarks()
         val favoritesFlow = localDataSource.getAllFavorites()
@@ -160,10 +160,10 @@ class BibleRepository(
                     localDataSource.replaceChapterVerses(translationId, bookId, chapter, remoteVerses)
                 } else {
                     // Fallback to local default translation if remote is unavailable
-                    val fallbackId = if (translationId.startsWith("ENG")) {
-                        com.example.data.bible.model.BibleTranslation.ENGLISH_KJV.id
+                    val fallbackId = if (translationId.startsWith("ENG") || translationId.equals("ESV", ignoreCase = true)) {
+                        com.example.data.bible.model.BibleTranslation.ENGLISH_ESV.id
                     } else {
-                        com.example.data.bible.model.BibleTranslation.HINDI_IRV.id
+                        com.example.data.bible.model.BibleTranslation.HIOV.id
                     }
                     val fallbackLocal = localDataSource.getVersesForChapterSync(fallbackId, bookId, chapter)
                     if (fallbackLocal.isNotEmpty()) {
@@ -177,8 +177,9 @@ class BibleRepository(
         }
 
         val versesFlow = localDataSource.getVersesForChapter(translationId, bookId, chapter)
+        val commentariesFlow = localDataSource.getCommentariesForChapter(translationId, bookId, chapter)
 
-        return combine(versesFlow, bookmarksFlow, favoritesFlow, highlightsFlow, notesFlow) { args: Array<Any> ->
+        return combine(versesFlow, bookmarksFlow, favoritesFlow, highlightsFlow, notesFlow, commentariesFlow) { args: Array<Any> ->
             @Suppress("UNCHECKED_CAST")
             val verses = args[0] as List<BibleVerse>
             @Suppress("UNCHECKED_CAST")
@@ -189,6 +190,8 @@ class BibleRepository(
             val highlights = args[3] as List<BibleHighlightEntity>
             @Suppress("UNCHECKED_CAST")
             val notes = args[4] as List<BibleNoteEntity>
+            @Suppress("UNCHECKED_CAST")
+            val commentaries = args[5] as List<com.example.data.bible.local.BibleCommentaryEntity>
 
             val bookmarkedSet = bookmarks.filter { it.bookId == bookId && it.chapter == chapter }
                 .map { it.verse }
@@ -200,13 +203,17 @@ class BibleRepository(
 
             val highlightMap = highlights.associate { it.verse to it.colorHex }
             val noteMap = notes.associate { it.verse to it.noteText }
+            val commentaryMap = commentaries.groupBy { it.verseFrom }
 
             verses.sortedBy { it.verseNumber }.map { verse ->
+                val comms = commentaryMap[verse.verseNumber]
+                val commText = comms?.joinToString("\n\n") { it.text }
                 verse.copy(
                     isBookmarked = bookmarkedSet.contains(verse.verseNumber),
                     isFavorite = favoriteSet.contains(verse.verseNumber),
                     highlightColor = highlightMap[verse.verseNumber],
-                    note = noteMap[verse.verseNumber]
+                    note = noteMap[verse.verseNumber],
+                    commentaryText = commText
                 )
             }
         }
@@ -310,4 +317,11 @@ class BibleRepository(
     suspend fun getStructuredChapter(bookId: Int, chapter: Int): List<com.example.data.bible.model.BibleContentBlock> {
         return localDataSource.getStructuredChapter(bookId, chapter)
     }
+
+    // Commentaries
+    fun getCommentariesForChapter(translationId: String, bookId: Int, chapter: Int) =
+        localDataSource.getCommentariesForChapter(translationId, bookId, chapter)
+
+    fun getCommentariesForVerse(translationId: String, bookId: Int, chapter: Int, verse: Int) =
+        localDataSource.getCommentariesForVerse(translationId, bookId, chapter, verse)
 }

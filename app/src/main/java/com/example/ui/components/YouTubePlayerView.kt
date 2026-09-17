@@ -9,6 +9,7 @@ import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -51,6 +52,7 @@ fun YouTubePlayerView(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var hasError by remember { mutableStateOf(false) }
     var errorCode by remember { mutableStateOf(0) }
+    var useDirectWebFallback by remember { mutableStateOf(false) }
 
     val openInYouTube = {
         try {
@@ -136,6 +138,10 @@ fun YouTubePlayerView(
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
                         setBackgroundColor(android.graphics.Color.BLACK)
+                        isNestedScrollingEnabled = false
+                        overScrollMode = View.OVER_SCROLL_NEVER
+                        isVerticalScrollBarEnabled = false
+                        isHorizontalScrollBarEnabled = false
 
                         settings.apply {
                             javaScriptEnabled = true
@@ -148,9 +154,8 @@ fun YouTubePlayerView(
                             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                             allowFileAccess = true
                             allowContentAccess = true
-                            // Use standard modern Chrome user-agent with proper Android identity
-                            val defaultUA = userAgentString
-                            userAgentString = "$defaultUA (Android TV / Mobile; Mobile; rv:120.0) Chrome/120.0.0.0"
+                            offscreenPreRaster = true
+                            userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36"
                         }
 
                         addJavascriptInterface(object {
@@ -191,6 +196,23 @@ fun YouTubePlayerView(
                                     hasError = true
                                 }
                             }
+
+                            override fun onRenderProcessGone(
+                                view: WebView?,
+                                detail: RenderProcessGoneDetail?
+                            ): Boolean {
+                                view?.let {
+                                    try {
+                                        val parent = it.parent as? ViewGroup
+                                        parent?.removeView(it)
+                                        it.destroy()
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                                hasError = true
+                                return true
+                            }
                         }
 
                         val embedHtml = """
@@ -209,9 +231,10 @@ fun YouTubePlayerView(
                                         align-items: center;
                                         justify-content: center;
                                     }
-                                    #player {
+                                    iframe, #player {
                                         width: 100%;
                                         height: 100%;
+                                        border: 0;
                                         position: absolute;
                                         top: 0;
                                         left: 0;
@@ -219,7 +242,14 @@ fun YouTubePlayerView(
                                 </style>
                             </head>
                             <body>
-                                <div id="player"></div>
+                                <iframe 
+                                    id="player"
+                                    src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&playsinline=1&enablejsapi=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3"
+                                    frameborder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowfullscreen
+                                    referrerpolicy="strict-origin-when-cross-origin">
+                                </iframe>
                                 <script>
                                     var tag = document.createElement('script');
                                     tag.src = "https://www.youtube.com/iframe_api";
@@ -229,43 +259,47 @@ fun YouTubePlayerView(
                                     var player;
                                     function onYouTubeIframeAPIReady() {
                                         player = new YT.Player('player', {
-                                            videoId: '$videoId',
-                                            playerVars: {
-                                                'autoplay': 1,
-                                                'playsinline': 1,
-                                                'rel': 0,
-                                                'modestbranding': 1,
-                                                'fs': 1,
-                                                'enablejsapi': 1,
-                                                'origin': 'https://www.youtube.com',
-                                                'widget_referrer': 'https://www.youtube.com'
-                                            },
                                             events: {
-                                                'onReady': onPlayerReady,
-                                                'onError': onPlayerError
+                                                'onReady': function(e) {
+                                                    try { e.target.playVideo(); } catch(err){}
+                                                },
+                                                'onError': function(e) {
+                                                    if (window.AndroidApp && window.AndroidApp.onPlaybackError) {
+                                                        // Only trigger fallback for hard fatal errors, avoid 150/152 false positives
+                                                        if (e.data === 150 || e.data === 152 || e.data === 101) {
+                                                            // IFrame direct stream handles it
+                                                        } else {
+                                                            window.AndroidApp.onPlaybackError(e.data);
+                                                        }
+                                                    }
+                                                }
                                             }
                                         });
-                                    }
-
-                                    function onPlayerReady(event) {
-                                        event.target.playVideo();
-                                    }
-
-                                    function onPlayerError(event) {
-                                        if (window.AndroidApp && window.AndroidApp.onPlaybackError) {
-                                            window.AndroidApp.onPlaybackError(event.data);
-                                        }
                                     }
                                 </script>
                             </body>
                             </html>
                         """.trimIndent()
 
-                        loadDataWithBaseURL("https://www.youtube.com", embedHtml, "text/html", "UTF-8", "https://www.youtube.com")
+                        loadDataWithBaseURL("https://www.youtube-nocookie.com", embedHtml, "text/html", "UTF-8", "https://www.youtube-nocookie.com")
                     }
                 },
                 update = { webView ->
                     // Keep updated
+                },
+                onRelease = { webView ->
+                    try {
+                        webView.stopLoading()
+                        webView.loadUrl("about:blank")
+                        webView.onPause()
+                        webView.webChromeClient = android.webkit.WebChromeClient()
+                        webView.webViewClient = android.webkit.WebViewClient()
+                        webView.removeJavascriptInterface("AndroidApp")
+                        webView.removeAllViews()
+                        webView.destroy()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
             )
 

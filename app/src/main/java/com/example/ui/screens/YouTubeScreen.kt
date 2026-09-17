@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,7 +51,8 @@ enum class YouTubeTabFilter {
     ALL,
     AVJ_WORSHIP,
     VINAY_KUMAR_AVJ,
-    NEW_CREATION_CHURCH
+    NEW_CREATION_CHURCH,
+    DAILYMOTION
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,9 +64,10 @@ fun YouTubeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val allVideos by viewModel.youtubeVideos.collectAsState()
-    val settings by viewModel.settings.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val allVideos by viewModel.youtubeVideos.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val isLoadingMoreVideos by viewModel.isLoadingMoreVideos.collectAsStateWithLifecycle()
 
     // Default tab comes from user settings (defaulting to AVJ Worship or ALL or user preference)
     var selectedTab by remember {
@@ -80,12 +83,20 @@ fun YouTubeScreen(
 
     // Filtered & sorted videos: newest -> oldest
     val displayVideos = remember(allVideos, selectedTab) {
-        val sortedAll = allVideos.sortedByDescending { it.publishedTimestamp }
+        val sortedAll = allVideos
+            .filter { !it.id.startsWith("local_vid") && !it.thumbnailUrl.contains("local_vid") }
+            .sortedByDescending { it.publishedTimestamp }
         when (selectedTab) {
             YouTubeTabFilter.ALL -> sortedAll
             YouTubeTabFilter.AVJ_WORSHIP -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelWorship.id }.ifEmpty { sortedAll }
             YouTubeTabFilter.VINAY_KUMAR_AVJ -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelMain.id }.ifEmpty { sortedAll }
             YouTubeTabFilter.NEW_CREATION_CHURCH -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }.ifEmpty { sortedAll }
+            YouTubeTabFilter.DAILYMOTION -> sortedAll.filter {
+                com.example.util.VideoUrlParser.isDailymotion(it.videoUrl) ||
+                it.id.startsWith("dm_") ||
+                it.videoUrl.contains("dailymotion", ignoreCase = true) ||
+                it.videoUrl.contains("dai.ly", ignoreCase = true)
+            }
         }
     }
 
@@ -107,7 +118,7 @@ fun YouTubeScreen(
         if (candidateList.isNotEmpty()) candidateList.random() else null
     }
 
-    val allPlaylists by viewModel.youtubePlaylists.collectAsState()
+    val allPlaylists by viewModel.youtubePlaylists.collectAsStateWithLifecycle()
 
     val rawPlaylists = remember(allPlaylists, selectedTab) {
         when (selectedTab) {
@@ -115,11 +126,21 @@ fun YouTubeScreen(
             YouTubeTabFilter.AVJ_WORSHIP -> allPlaylists.filter { it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
             YouTubeTabFilter.VINAY_KUMAR_AVJ -> allPlaylists.filter { it.channelTitle.contains("Vinay Kumar", ignoreCase = true) && !it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
             YouTubeTabFilter.NEW_CREATION_CHURCH -> allPlaylists.filter { it.channelTitle.contains("Creation", ignoreCase = true) }.ifEmpty { allPlaylists }
+            YouTubeTabFilter.DAILYMOTION -> emptyList()
         }
     }
     // Skip empty / invalid playlists
     val playlists = remember(rawPlaylists) {
         rawPlaylists.filter { it.title.isNotBlank() && it.id.isNotBlank() }
+    }
+
+    val dmVideos = remember(allVideos) {
+        allVideos.filter {
+            com.example.util.VideoUrlParser.isDailymotion(it.videoUrl) ||
+            it.id.startsWith("dm_") ||
+            it.videoUrl.contains("dailymotion", ignoreCase = true) ||
+            it.videoUrl.contains("dai.ly", ignoreCase = true)
+        }
     }
 
     val openChannelInYouTube = { channelUrl: String ->
@@ -133,12 +154,32 @@ fun YouTubeScreen(
 
     var showDefaultChannelDialog by remember { mutableStateOf(false) }
 
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val total = listState.layoutInfo.totalItemsCount
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            total > 0 && lastVisible >= total - 3
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value) {
+            if (visibleVideoCount < displayVideos.size) {
+                visibleVideoCount = (visibleVideoCount + 20).coerceAtMost(displayVideos.size)
+            }
+            viewModel.loadMoreVideos()
+        }
+    }
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = { viewModel.refreshAll() },
         modifier = modifier.fillMaxSize()
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
@@ -246,26 +287,34 @@ fun YouTubeScreen(
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         } else null
                     )
+
+                    // Dailymotion Tab (डेली मोशन सेक्शन)
+                    FilterChip(
+                        selected = selectedTab == YouTubeTabFilter.DAILYMOTION,
+                        onClick = { selectedTab = YouTubeTabFilter.DAILYMOTION },
+                        label = {
+                            Text(
+                                text = "Dailymotion",
+                                fontWeight = if (selectedTab == YouTubeTabFilter.DAILYMOTION) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = if (selectedTab == YouTubeTabFilter.DAILYMOTION) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null
+                    )
                 }
             }
 
-            // Channel Hero Banner
+            // Channel Hero Banner / Dailymotion Section Banner
             item {
-                val currentInfo = when (selectedTab) {
-                    YouTubeTabFilter.ALL -> null
-                    YouTubeTabFilter.AVJ_WORSHIP -> PredefinedPlaylists.channelWorship
-                    YouTubeTabFilter.VINAY_KUMAR_AVJ -> PredefinedPlaylists.channelMain
-                    YouTubeTabFilter.NEW_CREATION_CHURCH -> PredefinedPlaylists.channelNewCreationChurch
-                }
-
-                if (currentInfo != null) {
+                if (selectedTab == YouTubeTabFilter.DAILYMOTION) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
                         )
                     ) {
                         Column(
@@ -281,17 +330,12 @@ fun YouTubeScreen(
                                     modifier = Modifier
                                         .size(52.dp)
                                         .clip(CircleShape)
-                                        .background(NavyPrimary),
+                                        .background(Color(0xFF0066DC)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    val initials = when (selectedTab) {
-                                        YouTubeTabFilter.AVJ_WORSHIP -> "AVJ"
-                                        YouTubeTabFilter.NEW_CREATION_CHURCH -> "NCC"
-                                        else -> "VK"
-                                    }
                                     Text(
-                                        text = initials,
-                                        color = GoldWarm,
+                                        text = "DM",
+                                        color = Color.White,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -301,13 +345,13 @@ fun YouTubeScreen(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = currentInfo.name,
+                                        text = "Dailymotion Media & Streams",
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold
                                         )
                                     )
                                     Text(
-                                        text = currentInfo.handle,
+                                        text = "डेली मोशन वीडियो एवं लाइव स्ट्रीम्स",
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -318,47 +362,124 @@ fun YouTubeScreen(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = currentInfo.description,
+                                text = "Dailymotion वीडियो लिंक सीधे ऐप में बिना किसी रुकावट के उच्च गुणवत्ता में देखे जा सकते हैं।",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                                ),
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
+                                )
                             )
+                        }
+                    }
+                } else {
+                    val currentInfo = when (selectedTab) {
+                        YouTubeTabFilter.ALL -> null
+                        YouTubeTabFilter.AVJ_WORSHIP -> PredefinedPlaylists.channelWorship
+                        YouTubeTabFilter.VINAY_KUMAR_AVJ -> PredefinedPlaylists.channelMain
+                        YouTubeTabFilter.NEW_CREATION_CHURCH -> PredefinedPlaylists.channelNewCreationChurch
+                        YouTubeTabFilter.DAILYMOTION -> null
+                    }
 
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    if (currentInfo != null) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
                             ) {
-                                Button(
-                                    onClick = { openChannelInYouTube(currentInfo.channelUrl) },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFCC0000)
-                                    )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Subscriptions,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Subscribe", fontWeight = FontWeight.Bold)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .clip(CircleShape)
+                                            .background(NavyPrimary),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val initials = when (selectedTab) {
+                                            YouTubeTabFilter.AVJ_WORSHIP -> "AVJ"
+                                            YouTubeTabFilter.NEW_CREATION_CHURCH -> "NCC"
+                                            else -> "VK"
+                                        }
+                                        Text(
+                                            text = initials,
+                                            color = GoldWarm,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(14.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = currentInfo.name,
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
+                                        Text(
+                                            text = currentInfo.handle,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        )
+                                    }
                                 }
 
-                                OutlinedButton(
-                                    onClick = { openChannelInYouTube(currentInfo.channelUrl) },
-                                    modifier = Modifier.weight(1f)
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Text(
+                                    text = currentInfo.description,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.OpenInNew,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Open Channel")
+                                    Button(
+                                        onClick = { openChannelInYouTube(currentInfo.channelUrl) },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFCC0000)
+                                        )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Subscriptions,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Subscribe", fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { openChannelInYouTube(currentInfo.channelUrl) },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.OpenInNew,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Open Channel")
+                                    }
                                 }
                             }
                         }
@@ -402,10 +523,54 @@ fun YouTubeScreen(
                 }
             }
 
+            // Section: Dailymotion Carousel (when on ALL tab and Dailymotion videos exist)
+            if (selectedTab == YouTubeTabFilter.ALL && dmVideos.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "DAILYMOTION STREAMS & VIDEOS (डेली मोशन)",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0066DC)
+                            )
+                        )
+                        TextButton(onClick = { selectedTab = YouTubeTabFilter.DAILYMOTION }) {
+                            Text("See All", fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(dmVideos) { dmVid ->
+                            Box(modifier = Modifier.width(280.dp)) {
+                                YouTubeVideoCard(
+                                    video = dmVid,
+                                    onClick = { onVideoClick(dmVid) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Section: Latest Videos (Newest -> Oldest)
             item {
                 SectionHeader(
-                    title = if (selectedTab == YouTubeTabFilter.ALL) "ALL VIDEOS (NEWEST FIRST / सभी वीडियो समय अनुसार)" else "LATEST VIDEOS",
+                    title = when (selectedTab) {
+                        YouTubeTabFilter.ALL -> "ALL VIDEOS (NEWEST FIRST / सभी वीडियो समय अनुसार)"
+                        YouTubeTabFilter.DAILYMOTION -> "DAILYMOTION VIDEOS & STREAMS (डेली मोशन वीडियो)"
+                        else -> "LATEST VIDEOS"
+                    },
                     modifier = Modifier.padding(top = 16.dp)
                 )
             }
@@ -426,7 +591,10 @@ fun YouTubeScreen(
                     }
                 }
             } else {
-                items(latestVideos) { video ->
+                items(
+                    items = latestVideos,
+                    key = { it.id }
+                ) { video ->
                     YouTubeVideoCard(
                         video = video,
                         onClick = { onVideoClick(video) },
@@ -457,6 +625,24 @@ fun YouTubeScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("और वीडियो लोड करें (Load More)")
                             }
+                        }
+                    }
+                }
+
+                // Subtle loading spinner at the bottom while fetching next batch
+                if (isLoadingMoreVideos) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(28.dp),
+                                strokeWidth = 2.5.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }

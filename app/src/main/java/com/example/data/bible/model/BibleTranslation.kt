@@ -16,97 +16,61 @@ data class BibleTranslation(
     val isOfflineAvailable: Boolean
 ) {
     companion object {
-        val HINDI_IRV = BibleTranslation(
-            id = "HIN_IRV",
-            nameHindi = "हिन्दी (IRV सरल भाषा)",
-            nameEnglish = "Hindi (Indian Revised Version)",
+        val HIOV = BibleTranslation(
+            id = "HIOV",
+            nameHindi = "हिन्दी (HIOV ओल्ड वर्शन)",
+            nameEnglish = "Hindi (HIOV Old Version)",
             language = "hi",
-            license = "Creative Commons CC BY-SA 4.0",
-            attribution = "Bridge Connectivity Solutions / Free Bibles India",
-            isPublicDomain = false,
-            isOfflineAvailable = true
-        )
-
-        val HINDI_BSI_OV = BibleTranslation(
-            id = "HIN_BSI_OV",
-            nameHindi = "हिन्दी (BSI पवित्र बाइबिल - OV)",
-            nameEnglish = "Hindi BSI (Old Version)",
-            language = "hi",
-            license = "Public Domain (Historical Text)",
-            attribution = "Bible Society of India / Public Domain",
-            isPublicDomain = true,
-            isOfflineAvailable = false
-        )
-
-        val HINDI_ERV = BibleTranslation(
-            id = "HIN_ERV",
-            nameHindi = "हिन्दी (ERV सरल हिन्दी बाइबिल)",
-            nameEnglish = "Hindi ERV (Easy-to-Read Version)",
-            language = "hi",
-            license = "World Bible Translation Center",
-            attribution = "WBTC India",
-            isPublicDomain = false,
-            isOfflineAvailable = false
-        )
-
-        val HINDI_ULB = BibleTranslation(
-            id = "HIN_ULB",
-            nameHindi = "हिन्दी (ULB मूलनिष्ठ अनुवाद)",
-            nameEnglish = "Hindi ULB (Unlocked Literal Bible)",
-            language = "hi",
-            license = "Creative Commons CC BY-SA 4.0",
-            attribution = "Door43 World Missions Community",
-            isPublicDomain = false,
-            isOfflineAvailable = false
-        )
-
-        val ENGLISH_KJV = BibleTranslation(
-            id = "ENG_KJV",
-            nameHindi = "अंग्रेज़ी (KJV)",
-            nameEnglish = "English (King James Version)",
-            language = "en",
             license = "Public Domain",
-            attribution = "Public Domain English Bible",
+            attribution = "Hindi Old Version (HIOV)",
             isPublicDomain = true,
             isOfflineAvailable = true
         )
 
-        val ENGLISH_WEB = BibleTranslation(
-            id = "ENG_WEB",
-            nameHindi = "अंग्रेज़ी (WEB Modern)",
-            nameEnglish = "English (World English Bible)",
+        val ENGLISH_ESV = BibleTranslation(
+            id = "ESV",
+            nameHindi = "अंग्रेज़ी (ESV)",
+            nameEnglish = "English (English Standard Version)",
             language = "en",
-            license = "Public Domain",
-            attribution = "World English Bible (ebible.org)",
+            license = "Standard Version",
+            attribution = "English Standard Version (ESV)",
             isPublicDomain = true,
-            isOfflineAvailable = false
-        )
-
-        val ENGLISH_BBE = BibleTranslation(
-            id = "ENG_BBE",
-            nameHindi = "अंग्रेज़ी (BBE सरल अंग्रेज़ी)",
-            nameEnglish = "English (Bible in Basic English)",
-            language = "en",
-            license = "Public Domain",
-            attribution = "Bible in Basic English (Public Domain)",
-            isPublicDomain = true,
-            isOfflineAvailable = false
+            isOfflineAvailable = true
         )
 
         val PARALLEL_HI_EN = BibleTranslation(
             id = "PARALLEL_HI_EN",
-            nameHindi = "द्विभाषी (हिन्दी + English)",
-            nameEnglish = "Bilingual (Hindi + English)",
+            nameHindi = "द्विभाषी (हिन्दी HIOV + English ESV)",
+            nameEnglish = "Bilingual (Hindi HIOV + English ESV)",
             language = "hi-en",
             license = "Dual Translation",
-            attribution = "Hindi + English Verse by Verse / Side by Side",
+            attribution = "Hindi HIOV + English ESV Verse by Verse",
             isPublicDomain = false,
             isOfflineAvailable = true
         )
 
-        val HINDI_TRANSLATIONS = listOf(HINDI_IRV, HINDI_BSI_OV, HINDI_ERV, HINDI_ULB)
-        val ENGLISH_TRANSLATIONS = listOf(ENGLISH_KJV, ENGLISH_WEB, ENGLISH_BBE)
+        // Compatibility aliases pointing directly to HIOV and ESV
+        val HINDI_IRV = HIOV
+        val HIND = HIOV
+        val HBSI = HIOV
+        val HIULB = HIOV
+        val HINDI_BSI_OV = HIOV
+        val HINDI_ULB = HIOV
+        val ENGLISH_KJV = ENGLISH_ESV
 
-        val ALL = listOf(HINDI_IRV, HINDI_BSI_OV, HINDI_ERV, HINDI_ULB, ENGLISH_KJV, ENGLISH_WEB, ENGLISH_BBE, PARALLEL_HI_EN)
+        val HINDI_TRANSLATIONS = listOf(HIOV)
+        val ENGLISH_TRANSLATIONS = listOf(ENGLISH_ESV)
+
+        val ALL = listOf(HIOV, ENGLISH_ESV, PARALLEL_HI_EN)
+
+        fun fromId(id: String): BibleTranslation {
+            return ALL.firstOrNull { 
+                it.id.equals(id, ignoreCase = true)
+            } ?: when {
+                id.startsWith("ENG", ignoreCase = true) || id.equals("ESV", ignoreCase = true) || id.equals("KJV", ignoreCase = true) -> ENGLISH_ESV
+                id.equals("PARALLEL_HI_EN", ignoreCase = true) -> PARALLEL_HI_EN
+                else -> HIOV
+            }
+        }
     }
 }

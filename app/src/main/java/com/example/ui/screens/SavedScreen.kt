@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,12 +44,13 @@ fun SavedScreen(
     onVideoClick: (YouTubeVideo) -> Unit,
     onPlaylistClick: (YouTubePlaylist) -> Unit,
     onBibleClick: (Int, Int) -> Unit,
+    onSongClick: (Long) -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val savedItems by viewModel.savedItems.collectAsState()
-    val allPosts by viewModel.allPosts.collectAsState()
-    val allVideos by viewModel.youtubeVideos.collectAsState()
+    val savedItems by viewModel.savedItems.collectAsStateWithLifecycle()
+    val allPosts by viewModel.allPosts.collectAsStateWithLifecycle()
+    val allVideos by viewModel.youtubeVideos.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var selectedTypeFilter by remember { mutableStateOf("ALL") }
@@ -89,6 +91,7 @@ fun SavedScreen(
             ) {
                 val filters = listOf(
                     "ALL" to "All (${savedItems.size})",
+                    "SONG" to "Songs (${savedItems.count { it.type == "SONG" }})",
                     "BLOG" to "Posts (${savedItems.count { it.type == "BLOG" }})",
                     "VIDEO" to "Videos (${savedItems.count { it.type == "VIDEO" }})",
                     "PLAYLIST" to "Playlists (${savedItems.count { it.type == "PLAYLIST" }})",
@@ -163,6 +166,14 @@ fun SavedScreen(
                                         val ch = parts.getOrNull(1)?.toIntOrNull() ?: 1
                                         onBibleClick(bId, ch)
                                     }
+                                    "SONG" -> {
+                                        val songId = item.extraDataJson?.toLongOrNull()
+                                            ?: item.id.removePrefix("SONG_").toLongOrNull()
+                                            ?: 0L
+                                        if (songId > 0) {
+                                            onSongClick(songId)
+                                        }
+                                    }
                                 }
                             },
                             onRemove = {
@@ -222,6 +233,20 @@ fun SavedItemRow(
                         .clip(RoundedCornerShape(8.dp))
                 )
                 Spacer(modifier = Modifier.width(12.dp))
+            } else if (item.type == "SONG") {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🎵",
+                        fontSize = 22.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
             }
 
             Column(modifier = Modifier.weight(1f)) {
@@ -231,11 +256,12 @@ fun SavedItemRow(
                         "BLOG" -> NavyPrimary
                         "VIDEO" -> Color(0xFFCC0000)
                         "PLAYLIST" -> GoldWarm
+                        "SONG" -> Color(0xFF7C3AED)
                         else -> Color(0xFF2E7D32)
                     }
                 ) {
                     Text(
-                        text = item.type,
+                        text = if (item.type == "SONG") "SONG BOOK" else item.type,
                         color = Color.White,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,

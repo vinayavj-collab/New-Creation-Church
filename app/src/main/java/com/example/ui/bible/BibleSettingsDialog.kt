@@ -1,5 +1,10 @@
 package com.example.ui.bible
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,21 +16,30 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.bible.model.*
+import com.example.util.DevotionalBgmManager
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -36,7 +50,10 @@ fun BibleSettingsDialog(
     onLineSpacingChange: (BibleLineSpacing) -> Unit,
     onFontStyleChange: (BibleFontFamilyType) -> Unit = {},
     onShowVerseNumbersChange: (Boolean) -> Unit,
+    onVerseNumberSizeChange: (VerseNumberSize) -> Unit = {},
     onShowSubheadingsChange: (Boolean) -> Unit = {},
+    onShowChapterOutlineChange: (Boolean) -> Unit = {},
+    onShowHeadingVerseRangesChange: (Boolean) -> Unit = {},
     onShowParagraphAndIndentsChange: (Boolean) -> Unit = {},
     onOriginalFormatModeChange: (Boolean) -> Unit = {},
     onShowJesusWordsInRedChange: (Boolean) -> Unit = {},
@@ -52,6 +69,16 @@ fun BibleSettingsDialog(
     onJustifyBibleTextChange: (Boolean) -> Unit = {},
     onSuggestVerseSelectionChange: (Boolean) -> Unit = {},
     onShowAudioPlayerChange: (Boolean) -> Unit = {},
+    onTtsSmartStartChange: (Boolean) -> Unit = {},
+    onTtsBackgroundPlayChange: (Boolean) -> Unit = {},
+    onTtsSleepTimerMinutesChange: (Int) -> Unit = {},
+    onTtsSleepChapterCountChange: (Int) -> Unit = {},
+    onEnableDevotionalBgmChange: (Boolean) -> Unit = {},
+    onTtsVolumeChange: (Float) -> Unit = {},
+    onBgmVolumeChange: (Float) -> Unit = {},
+    onSelectedBgmTrackChange: (String) -> Unit = {},
+    onCustomBgmFileSelected: (uri: String, fileName: String) -> Unit = { _, _ -> },
+    onCustomBgmUrlSubmitted: (url: String) -> Unit = {},
     onScreenTimeoutChange: (Int) -> Unit = {},
     onRememberPositionChange: (Boolean) -> Unit = {},
     onResetToDefault: () -> Unit = {},
@@ -61,10 +88,69 @@ fun BibleSettingsDialog(
     onVerseTapSelectionModeChange: (VerseTapSelectionMode) -> Unit = {},
     onShowTodaysScriptureOnHomeChange: (Boolean) -> Unit = {},
     onShowActivatedPlansOnHomeChange: (Boolean) -> Unit = {},
+    onOpenReadingPlan: () -> Unit = {},
+    onExternalFolderSelected: (String) -> Unit = {},
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     var showLicenseInfo by remember { mutableStateOf(false) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
+    var customUrlInput by remember { mutableStateOf(if (settings.selectedBgmTrackId == "custom_url") settings.customBgmUri else "") }
+    val previewingTrackId by DevotionalBgmManager.previewingTrackId.collectAsState()
+
+    // SAF Folder picker launcher
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (e: Exception) {}
+
+            try {
+                val rootDoc = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, uri)
+                rootDoc?.let { root ->
+                    if (root.findFile("Bibles") == null) root.createDirectory("Bibles")
+                    if (root.findFile("Commentaries") == null) root.createDirectory("Commentaries")
+                }
+            } catch (e: Exception) {}
+
+            onExternalFolderSelected(uri.toString())
+        }
+    }
+
+    // Launcher for user to pick an audio file from device storage
+    val audioPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                // Some providers do not support persistable permissions
+            }
+
+            var displayName = "डिवाइस ऑडियो (Device Audio)"
+            try {
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1 && cursor.moveToFirst()) {
+                        displayName = cursor.getString(nameIndex)
+                    }
+                }
+            } catch (e: Exception) {
+                // Fallback
+            }
+
+            onCustomBgmFileSelected(uri.toString(), displayName)
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -148,6 +234,46 @@ fun BibleSettingsDialog(
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
                 ) {
+                    // SECTION: SAF EXTERNAL FOLDER & MODULES
+                    SettingsSectionHeader("बाहरी स्टोरेज एवं मॉड्यूल फोल्डर (SAF External Storage)")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "SAF स्टोरेज एक्सेस फ्रेमवर्क (Persistent Access)",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = if (settings.externalFolderPath.isNotBlank())
+                                    "चयनित फोल्डर (Selected): ${settings.externalFolderPath.substringAfterLast("%3A")}"
+                                else
+                                    "कोई फोल्डर चयनित नहीं है। 'Bibles' और 'Commentaries' उप-फोल्डर स्वतः बनाए जाएंगे।",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { folderPickerLauncher.launch(null) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("फोल्डर चुनें और सिंक करें (Select Folder)")
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "समर्थित प्रारूप (Supported): SQLite3, .bblx, .bbli, .mybible, .topx, .dctx, .dct.mybible, .bok.mybible, .jor.mynmbible, .zip",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     // SECTION 1: TRANSLATION & DUAL BIBLE
                     SettingsSectionHeader("अनुवाद एवं द्विभाषी (Translation & Dual Bible)")
 
@@ -170,14 +296,10 @@ fun BibleSettingsDialog(
                                 label = {
                                     Text(
                                         when (translation.id) {
-                                            BibleTranslation.HINDI_IRV.id -> "हिन्दी (IRV)"
-                                            BibleTranslation.HINDI_BSI_OV.id -> "हिन्दी (BSI Old)"
-                                            BibleTranslation.HINDI_ERV.id -> "हिन्दी (ERV सरल)"
-                                            BibleTranslation.HINDI_ULB.id -> "हिन्दी (ULB मूलनिष्ठ)"
-                                            BibleTranslation.ENGLISH_KJV.id -> "English (KJV)"
-                                            BibleTranslation.ENGLISH_WEB.id -> "English (WEB)"
-                                            BibleTranslation.ENGLISH_BBE.id -> "English (BBE)"
-                                            else -> "द्विभाषी (HI+EN)"
+                                            BibleTranslation.HIOV.id -> "हिन्दी (HIOV)"
+                                            BibleTranslation.ENGLISH_ESV.id -> "English (ESV)"
+                                            BibleTranslation.PARALLEL_HI_EN.id -> "द्विभाषी (HIOV + ESV)"
+                                            else -> translation.nameHindi
                                         },
                                         fontSize = 11.sp
                                     )
@@ -227,6 +349,35 @@ fun BibleSettingsDialog(
                                 label = { Text(mode.titleHindi, fontSize = 11.sp) }
                             )
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "डिफ़ॉल्ट नेविगेटर शैली (Default Navigation Style):",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    var currentNavMode by remember { mutableStateOf(getSavedNavigatorMode(context)) }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilterChip(
+                            selected = currentNavMode == BibleNavigatorMode.GRID,
+                            onClick = {
+                                currentNavMode = BibleNavigatorMode.GRID
+                                saveNavigatorMode(context, BibleNavigatorMode.GRID)
+                            },
+                            label = { Text("ग्रिड (3-Column Grid)", fontSize = 11.sp) }
+                        )
+                        FilterChip(
+                            selected = currentNavMode == BibleNavigatorMode.LIST,
+                            onClick = {
+                                currentNavMode = BibleNavigatorMode.LIST
+                                saveNavigatorMode(context, BibleNavigatorMode.LIST)
+                            },
+                            label = { Text("सूची (Step-by-Step List)", fontSize = 11.sp) }
+                        )
                     }
 
                     // Dual Bible Customization Card
@@ -569,6 +720,54 @@ fun BibleSettingsDialog(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Direct shortcut button to open Reading Plan screen
+                    Card(
+                        onClick = {
+                            onDismiss()
+                            onOpenReadingPlan()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "📖 बाइबल रीडिंग प्लान्स खोलें (Open Reading Plans)",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = "दैनिक पठन योजनाएं देखें एवं प्रबंधित करें",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     SettingsSectionHeader("बाइबल विंडो विकल्प (Bible Window Options)")
 
                     // Original Format Mode Option
@@ -587,6 +786,22 @@ fun BibleSettingsDialog(
                         onCheckedChange = onShowSubheadingsChange
                     )
 
+                    // Chapter Outline / Verse Groupings
+                    SettingsToggleRow(
+                        title = "अध्याय रूपरेखा कार्ड (Chapter Outline & Groupings)",
+                        subtitle = "अध्याय के शीर्ष पर वचन समूहों की रूपरेखा व त्वरित जंप दिखाएँ",
+                        checked = settings.showChapterOutline,
+                        onCheckedChange = onShowChapterOutlineChange
+                    )
+
+                    // Heading Verse Ranges
+                    SettingsToggleRow(
+                        title = "शीर्षक में वचन सीमा (Verse Ranges in Headings)",
+                        subtitle = "प्रत्येक शीर्षक के साथ वचन सीमा टैग (जैसे: वचन 1–12) दिखाएँ",
+                        checked = settings.showHeadingVerseRanges,
+                        onCheckedChange = onShowHeadingVerseRangesChange
+                    )
+
                     // Verse Numbers Option
                     SettingsToggleRow(
                         title = "वचन संख्या (Verse Numbers)",
@@ -594,6 +809,45 @@ fun BibleSettingsDialog(
                         checked = settings.showVerseNumbers,
                         onCheckedChange = onShowVerseNumbersChange
                     )
+
+                    // Verse Number Size (Superscript vs Normal)
+                    AnimatedVisibility(visible = settings.showVerseNumbers) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 8.dp, bottom = 12.dp)
+                        ) {
+                            Text(
+                                text = "वचन संख्या का आकार (Verse Number Size):",
+                                style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                VerseNumberSize.entries.forEach { vSize ->
+                                    val isSelected = settings.verseNumberSize == vSize
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { onVerseNumberSizeChange(vSize) },
+                                        label = {
+                                            Text(
+                                                text = vSize.titleHindi,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                            )
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     // Paragraphs and Indents Option
                     SettingsToggleRow(
@@ -723,6 +977,424 @@ fun BibleSettingsDialog(
                         checked = settings.showAudioPlayer,
                         onCheckedChange = onShowAudioPlayerChange
                     )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // ADVANCED AUDIO CUSTOMISATION IN BIBLE CUSTOMISATION
+                    SettingsSectionHeader("एडवांस्ड ऑडियो अनुकूलन (Advanced Audio Customisation)")
+
+                    // Smart Start
+                    SettingsToggleRow(
+                        title = "स्मार्ट स्टार्ट (Smart Start from Active Verse)",
+                        subtitle = "TTS वाचन ठीक वर्तमान हाइलाइट या सक्रिय वचन से प्रारंभ करें",
+                        checked = settings.ttsSmartStartActiveVerse,
+                        onCheckedChange = onTtsSmartStartChange
+                    )
+
+                    // Background Play
+                    SettingsToggleRow(
+                        title = "बैकग्राउंड प्ले (Background Audio Playback)",
+                        subtitle = "ऐप मिनिमाइज़ होने पर भी वॉइस वाचन निरंतर जारी रखें",
+                        checked = settings.ttsBackgroundPlay,
+                        onCheckedChange = onTtsBackgroundPlayChange
+                    )
+
+                    // Sleep Timer Limits
+                    Text(
+                        text = "स्लीप टाइमर सीमा (TTS Sleep Timer):",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    val timerLimits = listOf(
+                        0 to "अनलिमिटेड (Unlimited)",
+                        15 to "15 मिनट",
+                        30 to "30 मिनट",
+                        60 to "1 घंटा",
+                        120 to "2 घंटे"
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        timerLimits.forEach { (mins, label) ->
+                            val isSelected = settings.ttsSleepTimerMinutes == mins
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onTtsSleepTimerMinutesChange(mins) },
+                                label = { Text(label, fontSize = 11.sp) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "अध्याय अनुसार स्वतः बंद (Stop after Chapters):",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    val chapterLimits = listOf(
+                        0 to "मैन्युअल (Manual)",
+                        1 to "वर्तमान अध्याय के बाद",
+                        2 to "2 अध्याय बाद",
+                        5 to "5 अध्याय बाद",
+                        10 to "10 अध्याय बाद"
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        chapterLimits.forEach { (chCount, label) ->
+                            val isSelected = settings.ttsSleepChapterCount == chCount
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onTtsSleepChapterCountChange(chCount) },
+                                label = { Text(label, fontSize = 11.sp) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Devotional Background Music System
+                    SettingsToggleRow(
+                        title = "भक्तिमय बैकग्राउंड संगीत (Devotional Background Music)",
+                        subtitle = "वचन वाचन (TTS) के साथ शांत एवं आत्मिक संगीत बजाएं",
+                        checked = settings.enableDevotionalBgm,
+                        onCheckedChange = onEnableDevotionalBgmChange
+                    )
+
+                    if (settings.enableDevotionalBgm) {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "डुअल ऑडियो मिक्सर (Dual Audio Volume Mixer)",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                )
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // TTS Volume
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "वॉइस TTS: ${(settings.ttsVolume * 100).toInt()}%",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.width(110.dp)
+                                    )
+                                    Slider(
+                                        value = settings.ttsVolume,
+                                        onValueChange = onTtsVolumeChange,
+                                        valueRange = 0.0f..1.0f,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                // BGM Volume
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "बैकग्राउंड संगीत: ${(settings.bgmVolume * 100).toInt()}%",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.width(110.dp)
+                                    )
+                                    Slider(
+                                        value = settings.bgmVolume,
+                                        onValueChange = onBgmVolumeChange,
+                                        valueRange = 0.0f..1.0f,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text = "भक्ति संगीत स्रोत (Devotional Background Music Sources):",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                val groupedTracks = remember {
+                                    DevotionalBgmManager.availableTracks.groupBy { it.categoryHindi }
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    groupedTracks.forEach { (category, trackList) ->
+                                        Text(
+                                            text = category,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            ),
+                                            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                                        )
+
+                                        trackList.forEach { track ->
+                                            val isTrackSelected = settings.selectedBgmTrackId == track.id
+                                            val isPreviewing = previewingTrackId == track.id
+
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = if (isTrackSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                                border = if (isTrackSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { onSelectedBgmTrackChange(track.id) }
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    RadioButton(
+                                                        selected = isTrackSelected,
+                                                        onClick = { onSelectedBgmTrackChange(track.id) }
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = track.nameHindi,
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                fontWeight = if (isTrackSelected) FontWeight.Bold else FontWeight.Medium
+                                                            )
+                                                        )
+                                                        Text(
+                                                            text = track.descriptionHindi,
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                fontSize = 10.sp
+                                                            )
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    IconButton(
+                                                        onClick = {
+                                                            DevotionalBgmManager.togglePreview(
+                                                                context = context,
+                                                                trackId = track.id,
+                                                                volume = settings.bgmVolume
+                                                            )
+                                                        },
+                                                        modifier = Modifier.size(32.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = if (isPreviewing) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                                            contentDescription = "Preview",
+                                                            tint = if (isPreviewing) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                                    // Option 1: Custom Music from Phone Storage
+                                    val isCustomFileSelected = settings.selectedBgmTrackId == "custom_file"
+                                    val isFilePreviewing = previewingTrackId == "custom_file"
+
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isCustomFileSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                        border = if (isCustomFileSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        if (settings.customBgmUri.isNotBlank()) {
+                                                            onSelectedBgmTrackChange("custom_file")
+                                                        } else {
+                                                            audioPickerLauncher.launch(arrayOf("audio/*"))
+                                                        }
+                                                    },
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                RadioButton(
+                                                    selected = isCustomFileSelected,
+                                                    onClick = {
+                                                        if (settings.customBgmUri.isNotBlank()) {
+                                                            onSelectedBgmTrackChange("custom_file")
+                                                        } else {
+                                                            audioPickerLauncher.launch(arrayOf("audio/*"))
+                                                        }
+                                                    }
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = if (settings.customBgmFileName.isNotBlank() && isCustomFileSelected) {
+                                                            "📁 फ़ोन स्टोरेज से: ${settings.customBgmFileName}"
+                                                        } else {
+                                                            "📁 फ़ोन स्टोरेज से अपना MP3 गाना चुनें"
+                                                        },
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontWeight = if (isCustomFileSelected) FontWeight.Bold else FontWeight.Medium
+                                                        )
+                                                    )
+                                                }
+                                                if (settings.customBgmUri.isNotBlank()) {
+                                                    IconButton(
+                                                        onClick = {
+                                                            DevotionalBgmManager.togglePreview(
+                                                                context = context,
+                                                                trackId = "custom_file",
+                                                                customUri = settings.customBgmUri,
+                                                                volume = settings.bgmVolume
+                                                            )
+                                                        },
+                                                        modifier = Modifier.size(32.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = if (isFilePreviewing) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                                            contentDescription = "Preview Custom File",
+                                                            tint = if (isFilePreviewing) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = {
+                                                    audioPickerLauncher.launch(arrayOf("audio/*"))
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 4.dp),
+                                                shape = RoundedCornerShape(10.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Folder,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = if (settings.customBgmUri.isNotBlank()) "फ़ोन से दूसरा गाना चुनें (Change File)" else "फ़ोन से MP3/ऑडियो फ़ाइल चुनें (Select Local Audio)",
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Option 2: Custom Online Web Audio Stream Link
+                                    val isCustomUrlSelected = settings.selectedBgmTrackId == "custom_url"
+                                    val isUrlPreviewing = previewingTrackId == "custom_url"
+
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isCustomUrlSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                        border = if (isCustomUrlSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        if (customUrlInput.isNotBlank()) {
+                                                            onCustomBgmUrlSubmitted(customUrlInput)
+                                                        }
+                                                    },
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                RadioButton(
+                                                    selected = isCustomUrlSelected,
+                                                    onClick = {
+                                                        if (customUrlInput.isNotBlank()) {
+                                                            onCustomBgmUrlSubmitted(customUrlInput)
+                                                        }
+                                                    }
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "🌐 ऑनलाइन वेब स्ट्रिम URL (Custom Live Audio Stream)",
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontWeight = if (isCustomUrlSelected) FontWeight.Bold else FontWeight.Medium
+                                                    )
+                                                )
+                                            }
+
+                                            OutlinedTextField(
+                                                value = customUrlInput,
+                                                onValueChange = { customUrlInput = it },
+                                                placeholder = { Text("https://example.com/devotional_stream.mp3", fontSize = 11.sp) },
+                                                leadingIcon = {
+                                                    Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                },
+                                                singleLine = true,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Button(
+                                                    onClick = {
+                                                        if (customUrlInput.isNotBlank()) {
+                                                            onCustomBgmUrlSubmitted(customUrlInput.trim())
+                                                        }
+                                                    },
+                                                    enabled = customUrlInput.isNotBlank(),
+                                                    modifier = Modifier.weight(1f),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ) {
+                                                    Text("सेव करें एवं लागू करें", style = MaterialTheme.typography.labelSmall)
+                                                }
+
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        if (customUrlInput.isNotBlank()) {
+                                                            DevotionalBgmManager.togglePreview(
+                                                                context = context,
+                                                                trackId = "custom_url",
+                                                                customUri = customUrlInput.trim(),
+                                                                volume = settings.bgmVolume
+                                                            )
+                                                        }
+                                                    },
+                                                    enabled = customUrlInput.isNotBlank(),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = if (isUrlPreviewing) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                                        contentDescription = "Test Stream",
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(if (isUrlPreviewing) "स्टॉप" else "टेस्ट करें", style = MaterialTheme.typography.labelSmall)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(14.dp))
 

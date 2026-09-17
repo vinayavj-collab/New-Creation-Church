@@ -49,15 +49,116 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
     private val _durationMs = MutableStateFlow(0L)
     val durationMs: StateFlow<Long> = _durationMs.asStateFlow()
 
+    // Settings Configuration State
+    private var smartStartEnabled: Boolean = true
+    private var backgroundPlayEnabled: Boolean = true
+    private var sleepTimerMinutes: Int = 0
+    private var sleepChapterCount: Int = 0
+    private var devotionalBgmEnabled: Boolean = false
+    private var ttsVolume: Float = 1.0f
+    private var bgmVolume: Float = 0.5f
+    private var selectedBgmTrackId: String = "peaceful_morning"
+    private var customBgmUri: String = ""
+
+    // Sleep tracking counters
+    private var chaptersPlayedInSession: Int = 0
+    private var currentBookId: Int = 0
+    private var currentChapterNumber: Int = 0
+
     private val handler = Handler(Looper.getMainLooper())
     private var progressRunnable: Runnable? = null
+    private var sleepTimerRunnable: Runnable? = null
 
     private var currentVerseList: List<BibleVerse> = emptyList()
     private var currentTtsVerseIndex = 0
 
+    // Callback for auto-advancing to next chapter when a chapter finishes
+    var onChapterCompletedListener: ((nextChapterNumber: Int) -> Unit)? = null
+
     init {
         textToSpeech = TextToSpeech(context.applicationContext, this)
         setupProgressTracker()
+    }
+
+    fun configureAudioSettings(
+        smartStart: Boolean,
+        backgroundPlay: Boolean,
+        sleepMinutes: Int,
+        sleepChapters: Int,
+        enableBgm: Boolean,
+        ttsVol: Float,
+        bgmVol: Float,
+        bgmTrackId: String,
+        customUri: String = ""
+    ) {
+        val oldSleepMinutes = sleepTimerMinutes
+        smartStartEnabled = smartStart
+        backgroundPlayEnabled = backgroundPlay
+        sleepTimerMinutes = sleepMinutes
+        sleepChapterCount = sleepChapters
+        devotionalBgmEnabled = enableBgm
+        ttsVolume = ttsVol
+        bgmVolume = bgmVol
+        selectedBgmTrackId = bgmTrackId
+        customBgmUri = customUri
+
+        // If sleep timer minutes changed while playing, restart timer
+        if (_isPlaying.value && oldSleepMinutes != sleepMinutes) {
+            scheduleSleepTimer()
+        }
+
+        // If background play setting was turned off while playing, stop foreground service
+        if (!backgroundPlay && _isPlaying.value) {
+            BibleAudioForegroundService.stopService(context)
+        } else if (backgroundPlay && _isPlaying.value) {
+            updateForegroundService()
+        }
+
+        // Synchronize BGM state
+        if (_isPlaying.value) {
+            DevotionalBgmManager.startOrUpdateBgm(
+                context = context,
+                enabled = devotionalBgmEnabled,
+                trackId = selectedBgmTrackId,
+                volume = bgmVolume,
+                customUri = customBgmUri
+            )
+        } else {
+            DevotionalBgmManager.stopBgm()
+        }
+    }
+
+    private fun scheduleSleepTimer() {
+        sleepTimerRunnable?.let { handler.removeCallbacks(it) }
+        sleepTimerRunnable = null
+
+        if (sleepTimerMinutes > 0) {
+            sleepTimerRunnable = Runnable {
+                Log.d("BibleAudioManager", "Sleep timer fired after $sleepTimerMinutes minutes. Stopping audio.")
+                stop()
+            }
+            handler.postDelayed(sleepTimerRunnable!!, sleepTimerMinutes * 60 * 1000L)
+        }
+    }
+
+    private fun cancelSleepTimer() {
+        sleepTimerRunnable?.let { handler.removeCallbacks(it) }
+        sleepTimerRunnable = null
+    }
+
+    private fun updateForegroundService() {
+        if (!backgroundPlayEnabled) return
+
+        val bookTitle = if (_audioLanguage.value == "en") "Book $currentBookId Chapter $currentChapterNumber" else "पवित्र बाइबिल - अध्याय $currentChapterNumber"
+        val vNum = _currentVerseNumber.value
+        val subtitle = if (vNum != null) "वचन $vNum वाचन..." else "ऑडियो वाचन जारी है..."
+
+        BibleAudioForegroundService.updateNotification(
+            context = context,
+            title = bookTitle,
+            subtitle = subtitle,
+            isPlaying = _isPlaying.value
+        )
     }
 
     override fun onInit(status: Int) {
@@ -70,6 +171,9 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
                     _isBuffering.value = false
                     utteranceId?.toIntOrNull()?.let { vNum ->
                         _currentVerseNumber.value = vNum
+                        if (backgroundPlayEnabled) {
+                            handler.post { updateForegroundService() }
+                        }
                     }
                 }
 
@@ -84,6 +188,9 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
                     handler.post {
                         _isPlaying.value = false
                         _isBuffering.value = false
+                        if (backgroundPlayEnabled) {
+                            BibleAudioForegroundService.stopService(context)
+                        }
                     }
                 }
             })
@@ -134,19 +241,55 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
         textToSpeech?.setSpeechRate(speed)
     }
 
-    fun playChapterAudio(bookId: Int, chapter: Int, verses: List<BibleVerse>) {
+    fun playChapterAudio(bookId: Int, chapter: Int, verses: List<BibleVerse>, explicitTargetVerse: Int? = null) {
+        currentBookId = bookId
+        currentChapterNumber = chapter
         currentVerseList = verses.sortedBy { it.verseNumber }
-        if (_audioSourceType.value == AudioSourceType.PRE_RECORDED) {
-            playPreRecordedChapter(bookId, chapter)
+
+        // Start Sleep Timer if configured
+        scheduleSleepTimer()
+
+        // Smart Start evaluation: if Smart Start is ON, use explicitTargetVerse or active verse if available
+        val activeV = explicitTargetVerse ?: _currentVerseNumber.value
+        val startIndex = if (smartStartEnabled && activeV != null) {
+            val idx = currentVerseList.indexOfFirst { it.verseNumber == activeV }
+            if (idx >= 0) idx else 0
         } else {
-            startTtsNarration(0)
+            0
+        }
+
+        if (_audioSourceType.value == AudioSourceType.PRE_RECORDED) {
+            val totalVerses = currentVerseList.size.coerceAtLeast(1)
+            val estimatedFraction = (startIndex.toFloat() / totalVerses.toFloat()).coerceIn(0f, 0.95f)
+            playPreRecordedChapter(bookId, chapter, initialOffsetFraction = estimatedFraction)
+        } else {
+            startTtsNarration(startIndex)
+        }
+
+        if (backgroundPlayEnabled) {
+            updateForegroundService()
+        }
+
+        if (devotionalBgmEnabled) {
+            DevotionalBgmManager.startOrUpdateBgm(
+                context = context,
+                enabled = true,
+                trackId = selectedBgmTrackId,
+                volume = bgmVolume,
+                customUri = customBgmUri
+            )
         }
     }
 
     fun playFromVerse(targetVerseNum: Int, bookId: Int, chapter: Int, verses: List<BibleVerse>) {
+        currentBookId = bookId
+        currentChapterNumber = chapter
         currentVerseList = verses.sortedBy { it.verseNumber }
         val verseIndex = currentVerseList.indexOfFirst { it.verseNumber == targetVerseNum }
         _currentVerseNumber.value = targetVerseNum
+
+        // Start Sleep Timer if configured
+        scheduleSleepTimer()
 
         if (_audioSourceType.value == AudioSourceType.TTS_NARRATION) {
             startTtsNarration(if (verseIndex >= 0) verseIndex else 0)
@@ -164,14 +307,27 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
                 }
             }
         }
+
+        if (backgroundPlayEnabled) {
+            updateForegroundService()
+        }
+
+        if (devotionalBgmEnabled) {
+            DevotionalBgmManager.startOrUpdateBgm(
+                context = context,
+                enabled = true,
+                trackId = selectedBgmTrackId,
+                volume = bgmVolume,
+                customUri = customBgmUri
+            )
+        }
     }
 
     private fun playPreRecordedChapter(bookId: Int, chapter: Int, initialOffsetFraction: Float = 0f) {
-        stop()
+        stopMediaPlayer()
         _isBuffering.value = true
 
         val langFolder = if (_audioLanguage.value == "en") "ENGKJV" else "HIOV"
-        // Public domain MP3 audio source for Bible chapters
         val mp3Url = "https://bolls.life/static/audio/$langFolder/$bookId/$chapter.mp3"
 
         try {
@@ -198,15 +354,18 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
                     }
                     mp.start()
                     _isPlaying.value = true
+                    if (backgroundPlayEnabled) {
+                        updateForegroundService()
+                    }
                 }
                 setOnCompletionListener {
                     _isPlaying.value = false
                     _currentPositionMs.value = _durationMs.value
+                    handleChapterCompleted()
                 }
                 setOnErrorListener { _, _, _ ->
                     _isBuffering.value = false
                     _isPlaying.value = false
-                    // Fallback to TTS narration if MP3 stream is unavailable or network error
                     Log.w("BibleAudioManager", "MP3 stream error, falling back to TTS narration")
                     startTtsNarration(0)
                     true
@@ -233,17 +392,19 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
         if (currentTtsVerseIndex >= currentVerseList.size) {
             _isPlaying.value = false
             _currentVerseNumber.value = null
+            handleChapterCompleted()
             return
         }
 
         val verse = currentVerseList[currentTtsVerseIndex]
         _currentVerseNumber.value = verse.verseNumber
 
-        val textToSpeak = if (_audioLanguage.value == "en" && !verse.secondaryText.isNullOrBlank()) {
+        val rawTextToSpeak = if (_audioLanguage.value == "en" && !verse.secondaryText.isNullOrBlank()) {
             "Verse ${verse.verseNumber}. ${verse.secondaryText}"
         } else {
             "वचन ${verse.verseNumber}. ${verse.text}"
         }
+        val textToSpeak = ScriptureSpeechUtils.formatScriptureTextForSpeech(rawTextToSpeak)
 
         textToSpeech?.setSpeechRate(_playbackSpeed.value)
         setTtsLanguage(_audioLanguage.value)
@@ -266,7 +427,22 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
         } else {
             _isPlaying.value = false
             _currentVerseNumber.value = null
+            handleChapterCompleted()
         }
+    }
+
+    private fun handleChapterCompleted() {
+        chaptersPlayedInSession++
+
+        // Check if sleep timer based on chapters has been reached
+        if (sleepChapterCount > 0 && chaptersPlayedInSession >= sleepChapterCount) {
+            Log.d("BibleAudioManager", "Sleep timer reached chapter limit of $sleepChapterCount chapters. Stopping audio.")
+            stop()
+            return
+        }
+
+        // Notify listener if configured to auto-advance
+        onChapterCompletedListener?.invoke(currentChapterNumber + 1)
     }
 
     fun playPause() {
@@ -275,9 +451,13 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
                 if (player.isPlaying) {
                     player.pause()
                     _isPlaying.value = false
+                    DevotionalBgmManager.pauseBgm()
+                    if (backgroundPlayEnabled) updateForegroundService()
                 } else {
                     player.start()
                     _isPlaying.value = true
+                    if (devotionalBgmEnabled) DevotionalBgmManager.resumeBgm()
+                    if (backgroundPlayEnabled) updateForegroundService()
                 }
             } ?: run {
                 if (currentVerseList.isNotEmpty()) {
@@ -288,8 +468,11 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
             if (_isPlaying.value) {
                 textToSpeech?.stop()
                 _isPlaying.value = false
+                DevotionalBgmManager.pauseBgm()
+                if (backgroundPlayEnabled) updateForegroundService()
             } else {
                 speakCurrentTtsVerse()
+                if (devotionalBgmEnabled) DevotionalBgmManager.resumeBgm()
             }
         }
     }
@@ -347,6 +530,13 @@ class BibleAudioManager(private val context: Context) : TextToSpeech.OnInitListe
         _isPlaying.value = false
         _isBuffering.value = false
         _currentPositionMs.value = 0L
+        cancelSleepTimer()
+
+        // Stop Devotional BGM
+        DevotionalBgmManager.stopBgm()
+
+        // Stop foreground service
+        BibleAudioForegroundService.stopService(context)
     }
 
     private fun stopMediaPlayer() {

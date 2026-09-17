@@ -20,6 +20,9 @@ interface YouTubeVideoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVideos(videos: List<YouTubeVideoEntity>)
 
+    @Query("DELETE FROM youtube_videos WHERE id LIKE 'local_vid%' OR id LIKE 'dm_x27lzjr_%' OR id LIKE 'dm_x4sr8o4_%'")
+    suspend fun deleteDummyVideos()
+
     @Query("DELETE FROM youtube_videos")
     suspend fun clearAll()
 }

@@ -3,7 +3,8 @@ package com.example.data.model
 enum class ThemeMode {
     SYSTEM,
     LIGHT,
-    DARK
+    DARK,
+    DYNAMIC
 }
 
 enum class PersonalVlogMode(val displayName: String) {
@@ -51,8 +52,31 @@ enum class HomeSectionType(val id: String, val defaultTitle: String) {
     PERSONAL_VLOG("personal_vlog", "Personal Vlog")
 }
 
+enum class VerseAlarmFrequency(val titleHindi: String, val titleEnglish: String) {
+    DAILY("प्रतिदिन एक बार (Daily Once)", "Daily Once"),
+    INTERVAL_HOURS("निश्चित अंतराल पर (Fixed Interval)", "Fixed Interval")
+}
+
+enum class VerseAlarmMode(val titleHindi: String, val titleEnglish: String) {
+    NOTIFICATION_ONLY("केवल नोटिफिकेशन (Notification Only)", "Notification Only"),
+    SPEECH_DIRECT("अलार्म व तुरंत वचन वाचन (Alarm & Direct Speech)", "Alarm & Direct Speech"),
+    MUSIC_THEN_SPEECH("पहले संगीत/अलार्म फिर वाचन (Music First, Speech on Stop)", "Music First, Speech on Stop")
+}
+
+enum class VerseAlarmContent(val titleHindi: String, val titleEnglish: String) {
+    GREETING_AND_VERSE("अभिवादन + आज का वचन (Greeting + Verse)", "Greeting + Verse"),
+    VERSE_ONLY("केवल आज का वचन (Only Verse)", "Only Verse")
+}
+
+enum class DailyPrayerSlot(val titleHindi: String, val titleEnglish: String, val defaultHour: Int, val defaultMinute: Int) {
+    MORNING("सुबह की प्रार्थना (Morning - 06:30 AM)", "Morning Prayer (06:30 AM)", 6, 30),
+    NOON("दोपहर की प्रार्थना (Noon - 12:30 PM)", "Noon Prayer (12:30 PM)", 12, 30),
+    EVENING("संध्या / रात्रि प्रार्थना (Evening - 08:30 PM)", "Evening Prayer (08:30 PM)", 20, 30),
+    CUSTOM("कस्टम समय (Custom Time)", "Custom Time", 6, 30)
+}
+
 data class UserSettings(
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val themeMode: ThemeMode = ThemeMode.DYNAMIC,
     val showFellowshipEvents: Boolean = true,
     val personalVlogMode: PersonalVlogMode = PersonalVlogMode.HIDDEN, // CRITICAL: HIDDEN by default
     val showPersonalVlog: Boolean = false, // Backwards-compatible flag
@@ -85,11 +109,12 @@ data class UserSettings(
         HomeSectionType.FELLOWSHIP_EVENTS,
         HomeSectionType.LATEST_VIDEOS,
         HomeSectionType.PLAYLISTS,
-        HomeSectionType.PHOTOS,
         HomeSectionType.LATEST_EVENTS
     ),
-    val customFourthTab: CustomFourthTab = CustomFourthTab.PHOTOS,
+    val customFourthTab: CustomFourthTab = CustomFourthTab.SONG_BOOK,
     val bloggerPhotoLayout: BloggerPhotoLayout = BloggerPhotoLayout.GRID_2,
+    val isDrawerEnabled: Boolean = true,
+    val drawerPosition: String = "left", // "left" or "right"
     val lastReadPostId: String? = null,
     val navTabsOrder: List<String> = listOf("HOME", "BLOGS", "YOUTUBE", "FOURTH_TAB", "MORE"),
     val activePlanIds: Set<String> = emptySet(),
@@ -100,8 +125,30 @@ data class UserSettings(
     val userName: String = "",
     val enableWelcomeSpeech: Boolean = true,
     val enableVerseSpeechOnLaunch: Boolean = true,
-    val welcomeSpeechOncePerDay: Boolean = true,
-    val verseSpeechOncePerDay: Boolean = true,
-    val welcomeDialogDismissed: Boolean = false
+    val welcomeSpeechOncePerDay: Boolean = false,
+    val verseSpeechOncePerDay: Boolean = false,
+    val welcomeDialogDismissed: Boolean = false,
+    // Verse of the Day Alarm & Voice Settings
+    val verseAlarmEnabled: Boolean = true,
+    val verseAlarmHour: Int = 7,
+    val verseAlarmMinute: Int = 0,
+    val verseAlarmFrequency: VerseAlarmFrequency = VerseAlarmFrequency.DAILY,
+    val verseAlarmIntervalHours: Int = 4,
+    val verseAlarmMode: VerseAlarmMode = VerseAlarmMode.SPEECH_DIRECT,
+    val verseAlarmContent: VerseAlarmContent = VerseAlarmContent.GREETING_AND_VERSE,
+    val syncGreetingVolumeWithAlarm: Boolean = true,
+    val greetingSpeechVolume: Float = 1.0f,
+    val greetingSpeechPitch: Float = 1.0f,
+    val greetingSpeechSpeed: Float = 1.0f,
+    val alarmVolume: Float = 1.0f,
+    // Reading Plan Reminder Settings
+    val readingPlanReminderEnabled: Boolean = true,
+    val readingPlanReminderHour: Int = 8,
+    val readingPlanReminderMinute: Int = 0,
+    // Daily Prayer & Motivational Verse Reminder Settings
+    val dailyPrayerReminderEnabled: Boolean = true,
+    val dailyPrayerReminderHour: Int = 6,
+    val dailyPrayerReminderMinute: Int = 30,
+    val dailyPrayerReminderSlot: DailyPrayerSlot = DailyPrayerSlot.MORNING
 )
 

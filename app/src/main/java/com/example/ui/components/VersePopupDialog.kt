@@ -39,6 +39,7 @@ import com.example.data.bible.repository.BibleRepository
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyPrimary
 import com.example.util.DetectedVerseRef
+import kotlinx.coroutines.launch
 import java.util.*
 
 private const val PREF_NAME = "verse_popup_settings"
@@ -127,9 +128,10 @@ fun VersePopupDialog(
             ttsInstance?.stop()
             isSpeaking = false
         } else {
-            val textToRead = displayVerses.joinToString(separator = " ") { verse: BibleVerse ->
+            val rawText = displayVerses.joinToString(separator = " ") { verse: BibleVerse ->
                 "${verse.text} ${verse.secondaryText ?: ""}"
             }
+            val textToRead = com.example.util.ScriptureSpeechUtils.formatScriptureTextForSpeech(rawText)
             if (textToRead.isNotBlank() && ttsInstance != null) {
                 val isHindiTrans = currentTranslationId.startsWith("HIN") || currentTranslationId == BibleTranslation.PARALLEL_HI_EN.id
                 val locale = if (isHindiTrans) Locale("hi", "IN") else Locale.US
@@ -234,6 +236,28 @@ fun VersePopupDialog(
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = {
+                            if (displayVerses.isNotEmpty()) {
+                                coroutineScope.launch {
+                                    try {
+                                        val dao = com.example.data.bible.local.BibleDatabase.getInstance(context).bibleDao()
+                                        val notesRepo = com.example.data.bible.repository.StudyNotesRepository(dao)
+                                        val combinedText = displayVerses.joinToString(" ") { v ->
+                                            if (displayVerses.size > 1) "(${v.verseNumber}) ${v.text}" else v.text
+                                        }
+                                        val (noteId, noteTitle) = notesRepo.appendScriptureToRecentNote(
+                                            referenceLabel = "${verseRef.displayLabel} ($currentTranslationId)",
+                                            scriptureText = combinedText
+                                        )
+                                        Toast.makeText(context, "📖 स्टडी नोट '$noteTitle' में जोड़ा गया!", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "नोट में जोड़ने में विफल", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Default.PostAdd, contentDescription = "Send to Note", tint = NavyPrimary, modifier = Modifier.size(20.dp))
+                        }
                         IconButton(onClick = copyVerses) {
                             Icon(Icons.Default.ContentCopy, contentDescription = "Copy Verses", modifier = Modifier.size(20.dp))
                         }
@@ -271,12 +295,9 @@ fun VersePopupDialog(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = when (trans.id) {
-                                            BibleTranslation.HINDI_IRV.id -> "हिन्दी (IRV)"
-                                            BibleTranslation.HINDI_BSI_OV.id -> "हिन्दी (BSI)"
-                                            BibleTranslation.HINDI_ERV.id -> "हिन्दी (ERV)"
-                                            BibleTranslation.ENGLISH_KJV.id -> "KJV"
-                                            BibleTranslation.ENGLISH_WEB.id -> "WEB"
-                                            BibleTranslation.PARALLEL_HI_EN.id -> "हिन्दी + Eng"
+                                            BibleTranslation.HIOV.id -> "हिन्दी (HIOV)"
+                                            BibleTranslation.ENGLISH_ESV.id -> "English (ESV)"
+                                            BibleTranslation.PARALLEL_HI_EN.id -> "हिन्दी + ESV"
                                             else -> trans.nameHindi
                                         },
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,

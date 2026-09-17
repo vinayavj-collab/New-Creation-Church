@@ -47,6 +47,11 @@ fun parseHexColor(hex: String, defaultColor: Color): Color {
     }
 }
 
+enum class ReadingTabMode {
+    PLANS,
+    INSIGHTS
+}
+
 sealed class PasswordAction {
     data class DEACTIVATE(val plan: ReadingPlanInfo) : PasswordAction()
     data class RESET(val plan: ReadingPlanInfo) : PasswordAction()
@@ -58,18 +63,30 @@ sealed class PasswordAction {
 fun BibleReadingPlanScreen(
     planRepository: ReadingPlanRepository,
     onBackClick: () -> Unit,
-    onOpenBible: (bookId: Int, chapter: Int) -> Unit,
+    onOpenBible: (bookId: Int, chapter: Int, startVerse: Int?, endVerse: Int?, startChapter: Int?, endChapter: Int?) -> Unit = { _, _, _, _, _, _ -> },
     behindColorHex: String = "#EF4444",
     onTrackColorHex: String = "#EAB308",
     completedColorHex: String = "#10B981",
     onUpdateColors: (behind: String, onTrack: String, completed: String) -> Unit = { _, _, _ -> },
     bibleViewModel: BibleViewModel? = null,
+    initialTabMode: ReadingTabMode = ReadingTabMode.PLANS,
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
     val readingSettings = bibleViewModel?.readingSettings?.collectAsState()?.value ?: BibleReadingSettings()
     val allPlans = bibleViewModel?.getAllPlansList() ?: planRepository.getAllPlans()
     val activatedPlanIds = readingSettings.activatedPlanIds
+
+    var currentTabMode by remember(initialTabMode) { mutableStateOf(initialTabMode) }
+
+    val allProgress by planRepository.getAllProgress().collectAsState(initial = emptyList())
+    val insightsData = remember(allProgress, allPlans, activatedPlanIds) {
+        ReadingInsightsCalculator.computeInsights(
+            progressList = allProgress,
+            allPlans = allPlans,
+            activePlanIds = activatedPlanIds
+        )
+    }
 
     val sortedPlans = remember(allPlans, activatedPlanIds) {
         allPlans.sortedByDescending { it.id in activatedPlanIds }
@@ -89,6 +106,7 @@ fun BibleReadingPlanScreen(
     var syncTargetDayText by remember { mutableStateOf("1") }
 
     var showColorCustomizationDialog by remember { mutableStateOf(false) }
+    var showHighlightStylesDialog by remember { mutableStateOf(false) }
     var editBehindHex by remember { mutableStateOf(behindColorHex) }
     var editOnTrackHex by remember { mutableStateOf(onTrackColorHex) }
     var editCompletedHex by remember { mutableStateOf(completedColorHex) }
@@ -117,12 +135,23 @@ fun BibleReadingPlanScreen(
                 title = {
                     Column {
                         Text(
-                            text = selectedPlan?.titleEnglish ?: "Bible Reading Plans",
+                            text = if (selectedPlan != null) {
+                                selectedPlan?.titleEnglish ?: "Bible Reading Plans"
+                            } else if (currentTabMode == ReadingTabMode.INSIGHTS) {
+                                "Reading Insights (सांख्यिकी)"
+                            } else {
+                                "Bible Reading Plans"
+                            },
                             fontWeight = FontWeight.Bold
                         )
                         if (selectedPlan != null) {
                             Text(
                                 text = selectedPlan?.titleHindi ?: "",
+                                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            )
+                        } else if (currentTabMode == ReadingTabMode.INSIGHTS) {
+                            Text(
+                                text = "आपकी बाइबल अध्ययन प्रगति व स्ट्रीक",
                                 style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                             )
                         }
@@ -140,13 +169,16 @@ fun BibleReadingPlanScreen(
                     }
                 },
                 actions = {
-                    if (selectedPlan == null) {
+                    if (selectedPlan == null && currentTabMode == ReadingTabMode.PLANS) {
                         IconButton(onClick = { showCreateCustomPlanDialog = true }) {
                             Icon(Icons.Default.Add, contentDescription = "Create Custom Plan")
                         }
-                    }
-                    IconButton(onClick = { showColorCustomizationDialog = true }) {
-                        Icon(Icons.Default.Palette, contentDescription = "Progress Bar Colors")
+                        IconButton(onClick = { showHighlightStylesDialog = true }) {
+                            Icon(Icons.Default.Style, contentDescription = "Highlight Styles")
+                        }
+                        IconButton(onClick = { showColorCustomizationDialog = true }) {
+                            Icon(Icons.Default.Palette, contentDescription = "Progress Bar Colors")
+                        }
                     }
                     if (selectedPlan != null) {
                         IconButton(onClick = {
@@ -172,14 +204,57 @@ fun BibleReadingPlanScreen(
         modifier = modifier
     ) { paddingValues ->
         if (selectedPlan == null) {
-            // List of available plans
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(paddingValues)
             ) {
+                TabRow(
+                    selectedTabIndex = if (currentTabMode == ReadingTabMode.PLANS) 0 else 1,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Tab(
+                        selected = currentTabMode == ReadingTabMode.PLANS,
+                        onClick = { currentTabMode = ReadingTabMode.PLANS },
+                        text = {
+                            Text(
+                                text = "रीडिंग प्लान्स (Plans)",
+                                fontWeight = if (currentTabMode == ReadingTabMode.PLANS) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        icon = {
+                            Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                    Tab(
+                        selected = currentTabMode == ReadingTabMode.INSIGHTS,
+                        onClick = { currentTabMode = ReadingTabMode.INSIGHTS },
+                        text = {
+                            Text(
+                                text = "इनसाइट्स (Insights)",
+                                fontWeight = if (currentTabMode == ReadingTabMode.INSIGHTS) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        icon = {
+                            Icon(Icons.Default.AutoGraph, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                }
+
+                if (currentTabMode == ReadingTabMode.INSIGHTS) {
+                    com.example.ui.bible.components.ReadingInsightsDashboard(
+                        insights = insightsData,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // List of available plans
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
                 item {
                     Card(
                         shape = RoundedCornerShape(16.dp),
@@ -199,6 +274,9 @@ fun BibleReadingPlanScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     IconButton(onClick = { showCreateCustomPlanDialog = true }) {
                                         Icon(Icons.Default.AddCircle, contentDescription = "कस्टम प्लान", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                    IconButton(onClick = { showHighlightStylesDialog = true }) {
+                                        Icon(Icons.Default.Style, contentDescription = "हाइलाइट शैलियाँ", tint = MaterialTheme.colorScheme.primary)
                                     }
                                     IconButton(onClick = { showColorCustomizationDialog = true }) {
                                         Icon(Icons.Default.Palette, contentDescription = "कलर")
@@ -398,6 +476,8 @@ fun BibleReadingPlanScreen(
                         }
                     }
                 }
+                    }
+                }
             }
         } else {
             // Plan Day Detail & Progress
@@ -556,7 +636,17 @@ fun BibleReadingPlanScreen(
                                 Button(
                                     onClick = {
                                         val firstPortion = day.portions.first()
-                                        onOpenBible(firstPortion.bookId, firstPortion.startChapter)
+                                        val startV = firstPortion.startVerse ?: 1
+                                        val totalV = BibleVerseCounts.getVerseCount(firstPortion.bookId, firstPortion.startChapter)
+                                        val endV = firstPortion.endVerse ?: (if (firstPortion.startChapter == firstPortion.endChapter && totalV > 0) totalV else firstPortion.endVerse)
+                                        onOpenBible(
+                                            firstPortion.bookId,
+                                            firstPortion.startChapter,
+                                            startV,
+                                            endV,
+                                            firstPortion.startChapter,
+                                            firstPortion.endChapter
+                                        )
                                     },
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
@@ -847,6 +937,17 @@ fun BibleReadingPlanScreen(
                 TextButton(onClick = { showColorCustomizationDialog = false }) {
                     Text("रद्द करें")
                 }
+            }
+        )
+    }
+
+    if (showHighlightStylesDialog) {
+        val currentStyle = bibleViewModel?.planHighlightStyle?.collectAsState()?.value ?: ReadingPlanHighlightStyle()
+        HighlightStylesDialog(
+            currentStyle = currentStyle,
+            onDismissRequest = { showHighlightStylesDialog = false },
+            onSaveStyle = { newStyle ->
+                bibleViewModel?.updatePlanHighlightStyle(newStyle)
             }
         )
     }

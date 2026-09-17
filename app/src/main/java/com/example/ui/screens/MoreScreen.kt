@@ -32,8 +32,10 @@ fun MoreScreen(
     onCustomizeHomeClick: () -> Unit,
     onBibleClick: () -> Unit,
     onReadingPlanClick: () -> Unit,
+    onDailyPrayerClick: () -> Unit = {},
     onNotesClick: () -> Unit,
     onLyricsClick: () -> Unit,
+    onPhotosClick: () -> Unit = {},
     onSyncCenterClick: () -> Unit,
     onBackupRestoreClick: () -> Unit,
     onSearchClick: () -> Unit,
@@ -90,10 +92,10 @@ fun MoreScreen(
                 ) {
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         SettingsClickableRow(
-                            title = strings.holyBible,
-                            subtitle = strings.holyBibleSub,
-                            icon = Icons.Default.MenuBook,
-                            onClick = onBibleClick
+                            title = "दैनिक प्रार्थना व प्रेरक वचन (Daily Prayer)",
+                            subtitle = "प्रतिदिन विशेष प्रार्थना व प्रेरक बाइबल वचन",
+                            icon = Icons.Default.VolunteerActivism,
+                            onClick = onDailyPrayerClick
                         )
 
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
@@ -121,6 +123,15 @@ fun MoreScreen(
                             subtitle = "Personal reflections, sermon notes & color tags",
                             icon = Icons.Default.EditNote,
                             onClick = onNotesClick
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
+                            title = "फ़ोटो गैलरी (Photos Gallery)",
+                            subtitle = "चर्च एवं सेवा की सभी सुंदर तस्वीरें देखें",
+                            icon = Icons.Default.PhotoLibrary,
+                            onClick = onPhotosClick
                         )
                     }
                 }
@@ -203,14 +214,17 @@ fun MoreScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                        SettingsClickableRow(
-                            title = strings.globalSearch,
-                            subtitle = strings.globalSearchSub,
-                            icon = Icons.Default.Search,
-                            onClick = onSearchClick
-                        )
+                        val isSearchEnabled by viewModel.isSearchEnabled.collectAsState()
+                        if (isSearchEnabled) {
+                            SettingsClickableRow(
+                                title = strings.globalSearch,
+                                subtitle = strings.globalSearchSub,
+                                icon = Icons.Default.Search,
+                                onClick = onSearchClick
+                            )
 
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+                        }
 
                         SettingsClickableRow(
                             title = strings.dynamicLabels,

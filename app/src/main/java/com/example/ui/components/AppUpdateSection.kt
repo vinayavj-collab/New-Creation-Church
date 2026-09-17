@@ -33,45 +33,6 @@ fun AppUpdateSection(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
 
-                // GitHub Repo Path Row (LOCKED to vinayavj-collab/New-Creation-Church)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "Locked Repository",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Official Repository (Locked)",
-                            style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        )
-                        Text(
-                            text = "vinayavj-collab/New-Creation-Church",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            text = "Official Repo",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            ),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
                 // Info Grid: Current Version | Latest Version
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -91,7 +52,11 @@ fun AppUpdateSection(
                             style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
                         Text(
-                            text = if (updateState.latestVersionCode > 0) "v${updateState.latestVersionName} (Build ${updateState.latestVersionCode})" else "अज्ञात (N/A)",
+                            text = when {
+                                updateState.latestVersionCode > 0 -> "v${updateState.latestVersionName} (Build ${updateState.latestVersionCode})"
+                                updateState.latestVersionName.isNotBlank() -> "v${updateState.latestVersionName}"
+                                else -> "v${updateState.currentVersionName} (अप-टू-डेट)"
+                            },
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = if (updateState.isUpdateAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -230,18 +195,31 @@ fun AppUpdateSection(
                         }
                     }
 
-                    // If Update Available: [Update Now]
+                    // If Update Available: [Install APK Now] or [Update Now]
                     if (updateState.isUpdateAvailable) {
-                        Button(
-                            onClick = {
-                                viewModel.downloadAndInstallAppUpdate()
-                            },
-                            enabled = !updateState.isDownloading,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Update Now")
+                        if (updateState.downloadedApkFile != null && updateState.downloadedApkFile!!.exists()) {
+                            Button(
+                                onClick = {
+                                    viewModel.installDownloadedApk()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Install APK Now")
+                            }
+                        } else {
+                            Button(
+                                onClick = {
+                                    viewModel.downloadAndInstallAppUpdate()
+                                },
+                                enabled = !updateState.isDownloading,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Update Now")
+                            }
                         }
                     }
                 }

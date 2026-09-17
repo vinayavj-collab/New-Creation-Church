@@ -10,10 +10,12 @@ import com.example.data.bible.local.BibleDatabase
 import com.example.data.bible.local.BibleHighlightEntity
 import com.example.data.bible.local.BibleLocalDataSource
 import com.example.data.bible.local.BibleNoteEntity
+import com.example.data.bible.local.ExternalModuleImporter
 import com.example.data.bible.local.ReadingPositionEntity
 import com.example.data.bible.model.*
 import com.example.data.bible.remote.BibleRemoteDataSource
 import com.example.data.bible.repository.BibleRepository
+import com.example.data.local.PreferencesManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -24,11 +26,43 @@ class BibleViewModel(
     private val repository: BibleRepository
 ) : AndroidViewModel(application) {
 
-    private val _selectedTranslation = MutableStateFlow(BibleTranslation.HINDI_IRV)
+    private val preferencesManager = PreferencesManager(application)
+    val planHighlightStyle: StateFlow<ReadingPlanHighlightStyle> = preferencesManager.readingPlanHighlightStyle
+
+    private val _planHighlightRange = MutableStateFlow<IntRange?>(null)
+    val planHighlightRange: StateFlow<IntRange?> = _planHighlightRange.asStateFlow()
+
+    fun setPlanHighlightRange(range: IntRange?) {
+        _planHighlightRange.value = range
+    }
+
+    fun clearPlanHighlight() {
+        _planHighlightRange.value = null
+    }
+
+    fun updatePlanHighlightStyle(style: ReadingPlanHighlightStyle) {
+        preferencesManager.updateReadingPlanHighlightStyle(style)
+    }
+
+    private val _selectedTranslation = MutableStateFlow(BibleTranslation.HIOV)
     val selectedTranslation: StateFlow<BibleTranslation> = _selectedTranslation.asStateFlow()
 
     private val _currentBook = MutableStateFlow(BibleBookDefinitions.getBookById(43) ?: BibleBookDefinitions.books.first()) // Default to John / यूहन्ना
     val currentBook: StateFlow<BibleBook> = _currentBook.asStateFlow()
+
+    fun getHeaderShortBookName(book: BibleBook = _currentBook.value, isHindi: Boolean = true): String {
+        return BibleHeaderFormatter.getShortBookName(book, isHindi)
+    }
+
+    fun formatHeaderTitle(
+        book: BibleBook = _currentBook.value,
+        chapter: Int = _currentChapter.value,
+        selectedVerses: Set<Int> = emptySet(),
+        visibleVerse: Int? = null,
+        isHindi: Boolean = true
+    ): String {
+        return BibleHeaderFormatter.formatHeaderTitle(book, chapter, selectedVerses, visibleVerse, isHindi)
+    }
 
     private val _currentChapter = MutableStateFlow(1)
     val currentChapter: StateFlow<Int> = _currentChapter.asStateFlow()
@@ -145,7 +179,7 @@ class BibleViewModel(
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     val searchResults: StateFlow<List<BibleVerse>> = combine(
-        _searchQuery,
+        _searchQuery.debounce(500L),
         _selectedTranslation
     ) { query, translation ->
         Pair(query.trim(), translation.id)
@@ -173,22 +207,77 @@ class BibleViewModel(
     val lastReadingPosition: StateFlow<ReadingPositionEntity?> = repository.getReadingPosition()
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
+    val audioManager = com.example.util.BibleAudioManager(application)
+
     init {
+        try {
+            val prefs = com.example.data.local.PreferencesManager(application)
+            val savedPlans = prefs.settings.value.activePlanIds
+            val savedManual = prefs.getManualPlansJson()
+            if (savedPlans.isNotEmpty() || savedManual.isNotEmpty()) {
+                _readingSettings.value = _readingSettings.value.copy(
+                    activatedPlanIds = if (savedPlans.isNotEmpty()) savedPlans else _readingSettings.value.activatedPlanIds,
+                    manualPlansJson = if (savedManual.isNotEmpty()) savedManual else _readingSettings.value.manualPlansJson
+                )
+            }
+        } catch (_: Exception) {}
+
         viewModelScope.launch {
+            val savedTransId = _readingSettings.value.selectedTranslationId
+            BibleTranslation.ALL.find { it.id == savedTransId }?.let {
+                _selectedTranslation.value = it
+            }
             repository.initialize()
             _isOnline.value = repository.isOnline()
+            if (_readingSettings.value.externalFolderPath.isNotBlank()) {
+                try {
+                    ExternalModuleImporter.importExternalFolder(
+                        getApplication<Application>(),
+                        BibleDatabase.getInstance(getApplication<Application>()),
+                        _readingSettings.value.externalFolderPath
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+        viewModelScope.launch {
+            _readingSettings.collect { s ->
+                audioManager.configureAudioSettings(
+                    smartStart = s.ttsSmartStartActiveVerse,
+                    backgroundPlay = s.ttsBackgroundPlay,
+                    sleepMinutes = s.ttsSleepTimerMinutes,
+                    sleepChapters = s.ttsSleepChapterCount,
+                    enableBgm = s.enableDevotionalBgm,
+                    ttsVol = s.ttsVolume,
+                    bgmVol = s.bgmVolume,
+                    bgmTrackId = s.selectedBgmTrackId,
+                    customUri = s.customBgmUri
+                )
+            }
+        }
+        audioManager.onChapterCompletedListener = { nextChapterNum ->
+            val book = _currentBook.value
+            if (nextChapterNum <= book.chapterCount) {
+                _currentChapter.value = nextChapterNum
+                _targetVerse.value = 1
+            }
         }
     }
 
     fun selectTranslation(translation: BibleTranslation) {
         _selectedTranslation.value = translation
+        _readingSettings.value = _readingSettings.value.copy(selectedTranslationId = translation.id)
     }
 
-    fun openBook(bookId: Int, chapter: Int = 1, targetVerse: Int? = null) {
+    fun openBook(bookId: Int, chapter: Int = 1, targetVerse: Int? = null, isReadingPlan: Boolean = false) {
         val book = BibleBookDefinitions.getBookById(bookId) ?: return
         _currentBook.value = book
         _currentChapter.value = chapter.coerceIn(1, book.chapterCount)
         _targetVerse.value = targetVerse
+        if (!isReadingPlan) {
+            _planHighlightRange.value = null
+        }
 
         if (_readingSettings.value.rememberLastReadingPosition) {
             viewModelScope.launch {
@@ -202,11 +291,14 @@ class BibleViewModel(
         }
     }
 
-    fun selectChapter(chapter: Int) {
+    fun selectChapter(chapter: Int, isReadingPlan: Boolean = false) {
         val book = _currentBook.value
         val validChapter = chapter.coerceIn(1, book.chapterCount)
         _currentChapter.value = validChapter
         _targetVerse.value = null
+        if (!isReadingPlan) {
+            _planHighlightRange.value = null
+        }
 
         if (_readingSettings.value.rememberLastReadingPosition) {
             viewModelScope.launch {
@@ -349,8 +441,20 @@ class BibleViewModel(
         _readingSettings.value = _readingSettings.value.copy(showVerseNumbers = show)
     }
 
+    fun updateVerseNumberSize(size: VerseNumberSize) {
+        _readingSettings.value = _readingSettings.value.copy(verseNumberSize = size)
+    }
+
     fun toggleSubheadings(show: Boolean) {
         _readingSettings.value = _readingSettings.value.copy(showSubheadings = show)
+    }
+
+    fun toggleChapterOutline(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showChapterOutline = show)
+    }
+
+    fun toggleHeadingVerseRanges(show: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(showHeadingVerseRanges = show)
     }
 
     fun toggleFavoritesHint(show: Boolean) {
@@ -391,6 +495,54 @@ class BibleViewModel(
 
     fun toggleAudioPlayer(show: Boolean) {
         _readingSettings.value = _readingSettings.value.copy(showAudioPlayer = show)
+    }
+
+    fun toggleTtsSmartStart(enabled: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(ttsSmartStartActiveVerse = enabled)
+    }
+
+    fun toggleTtsBackgroundPlay(enabled: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(ttsBackgroundPlay = enabled)
+    }
+
+    fun updateTtsSleepTimerMinutes(minutes: Int) {
+        _readingSettings.value = _readingSettings.value.copy(ttsSleepTimerMinutes = minutes)
+    }
+
+    fun updateTtsSleepChapterCount(count: Int) {
+        _readingSettings.value = _readingSettings.value.copy(ttsSleepChapterCount = count)
+    }
+
+    fun toggleDevotionalBgm(enabled: Boolean) {
+        _readingSettings.value = _readingSettings.value.copy(enableDevotionalBgm = enabled)
+    }
+
+    fun updateTtsVolume(volume: Float) {
+        _readingSettings.value = _readingSettings.value.copy(ttsVolume = volume)
+    }
+
+    fun updateBgmVolume(volume: Float) {
+        _readingSettings.value = _readingSettings.value.copy(bgmVolume = volume)
+    }
+
+    fun updateSelectedBgmTrack(trackId: String) {
+        _readingSettings.value = _readingSettings.value.copy(selectedBgmTrackId = trackId)
+    }
+
+    fun updateCustomBgmFile(uri: String, fileName: String) {
+        _readingSettings.value = _readingSettings.value.copy(
+            selectedBgmTrackId = "custom_file",
+            customBgmUri = uri,
+            customBgmFileName = fileName
+        )
+    }
+
+    fun updateCustomBgmUrl(url: String) {
+        _readingSettings.value = _readingSettings.value.copy(
+            selectedBgmTrackId = "custom_url",
+            customBgmUri = url,
+            customBgmFileName = if (url.isNotBlank()) "ऑनलाइन ऑडियो स्ट्रिम (Custom Stream)" else ""
+        )
     }
 
     fun toggleNoteFormatHtml(isHtml: Boolean) {
@@ -489,12 +641,20 @@ class BibleViewModel(
 
     fun activateReadingPlan(planId: String) {
         val currentSet = _readingSettings.value.activatedPlanIds
-        _readingSettings.value = _readingSettings.value.copy(activatedPlanIds = currentSet + planId)
+        val updated = currentSet + planId
+        _readingSettings.value = _readingSettings.value.copy(activatedPlanIds = updated)
+        try {
+            com.example.data.local.PreferencesManager(getApplication()).updateActivePlanIds(updated)
+        } catch (_: Exception) {}
     }
 
     fun deactivateReadingPlan(planId: String) {
         val currentSet = _readingSettings.value.activatedPlanIds
-        _readingSettings.value = _readingSettings.value.copy(activatedPlanIds = currentSet - planId)
+        val updated = currentSet - planId
+        _readingSettings.value = _readingSettings.value.copy(activatedPlanIds = updated)
+        try {
+            com.example.data.local.PreferencesManager(getApplication()).updateActivePlanIds(updated)
+        } catch (_: Exception) {}
     }
 
     fun resetReadingPlanProgress(planId: String) {
@@ -522,10 +682,16 @@ class BibleViewModel(
         val updatedList = currentList + newPlan
         val newJson = com.example.data.bible.model.ManualPlanData.serializeList(updatedList)
         val currentActivated = _readingSettings.value.activatedPlanIds
+        val updatedActivated = currentActivated + newPlan.id
         _readingSettings.value = _readingSettings.value.copy(
             manualPlansJson = newJson,
-            activatedPlanIds = currentActivated + newPlan.id
+            activatedPlanIds = updatedActivated
         )
+        try {
+            val prefs = com.example.data.local.PreferencesManager(getApplication())
+            prefs.updateManualPlansJson(newJson)
+            prefs.updateActivePlanIds(updatedActivated)
+        } catch (_: Exception) {}
     }
 
     fun deleteManualReadingPlan(planId: String) {
@@ -533,10 +699,16 @@ class BibleViewModel(
         val updatedList = currentList.filter { it.id != planId }
         val newJson = com.example.data.bible.model.ManualPlanData.serializeList(updatedList)
         val currentActivated = _readingSettings.value.activatedPlanIds
+        val updatedActivated = currentActivated - planId
         _readingSettings.value = _readingSettings.value.copy(
             manualPlansJson = newJson,
-            activatedPlanIds = currentActivated - planId
+            activatedPlanIds = updatedActivated
         )
+        try {
+            val prefs = com.example.data.local.PreferencesManager(getApplication())
+            prefs.updateManualPlansJson(newJson)
+            prefs.updateActivePlanIds(updatedActivated)
+        } catch (_: Exception) {}
         resetReadingPlanProgress(planId)
     }
 
@@ -554,7 +726,20 @@ class BibleViewModel(
         _targetVerse.value = null
     }
 
-    val audioManager = com.example.util.BibleAudioManager(application)
+    fun setExternalFolderPath(uriString: String) {
+        _readingSettings.value = _readingSettings.value.copy(externalFolderPath = uriString)
+        viewModelScope.launch {
+            try {
+                ExternalModuleImporter.importExternalFolder(
+                    getApplication<Application>(),
+                    BibleDatabase.getInstance(getApplication<Application>()),
+                    uriString
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()

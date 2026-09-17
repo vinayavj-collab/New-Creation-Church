@@ -1,46 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <!-- Subtle gold accent glow under V -->
-    <path
-        android:fillColor="#22D4AF37"
-        android:pathData="M30,30 L54,78 L78,30 Z" />
-
-    <!-- Left wing of 'V' in pure white -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M32,32 L44,32 L54,66 L46,66 Z" />
-
-    <!-- Right wing of 'V' in subtle gold-white gradient -->
-    <path
-        android:pathData="M76,32 L64,32 L54,66 L62,66 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:startX="64"
-                android:startY="32"
-                android:endX="76"
-                android:endY="66"
-                android:type="linear">
-                <item android:color="#FFF8E7" android:offset="0.0" />
-                <item android:color="#E6C657" android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- Bottom point apex jewel in subtle gold -->
-    <path
-        android:fillColor="#E6C657"
-        android:pathData="M54,64 L49,76 L54,79 L59,76 Z" />
-
-    <!-- Elegant horizontal serif bar on top left/right -->
-    <path
-        android:fillColor="#D4AF37"
-        android:pathData="M28,30 L46,30 L46,33 L28,33 Z" />
-    <path
-        android:fillColor="#D4AF37"
-        android:pathData="M62,30 L80,30 L80,33 L62,33 Z" />
-</vector>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="68dp"
+        android:height="68dp"
+        android:drawable="@drawable/church_app_icon"
+        android:gravity="center" />
+</layer-list>

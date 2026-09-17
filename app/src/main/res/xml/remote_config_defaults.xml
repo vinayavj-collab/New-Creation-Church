@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<defaultsMap>
+    <entry>
+        <key>is_search_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>is_vlog_server_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>app_notice_heading</key>
+        <value>महत्वपूर्ण सूचना</value>
+    </entry>
+    <entry>
+        <key>daily_greeting_text</key>
+        <value>जय मसीह की</value>
+    </entry>
+    <entry>
+        <key>verse_of_the_day_text</key>
+        <value>यहोवा मेरा चरवाहा है, मुझे कोई घटी न होगी।</value>
+    </entry>
+    <entry>
+        <key>special_announcement_text</key>
+        <value></value>
+    </entry>
+    <entry>
+        <key>latest_version_name</key>
+        <value>1.0.0</value>
+    </entry>
+    <entry>
+        <key>latest_version_code</key>
+        <value>1</value>
+    </entry>
+    <entry>
+        <key>update_apk_url</key>
+        <value></value>
+    </entry>
+</defaultsMap>

@@ -1,0 +1,98 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="800dp"
+    android:height="500dp"
+    android:viewportWidth="800"
+    android:viewportHeight="500">
+
+    <!-- Definitions for Gold Metallic Gradients -->
+    <!-- Crown & Cross -->
+    <!-- Cross on top of crown -->
+    <path
+        android:pathData="M 393,25 L 407,25 L 407,45 L 422,45 L 422,57 L 407,57 L 407,90 L 393,90 L 393,57 L 378,57 L 378,45 L 393,45 Z"
+        android:fillColor="#F59E0B" />
+
+    <!-- Cross highlight -->
+    <path
+        android:pathData="M 397,27 L 403,27 L 403,47 L 418,47 L 418,53 L 403,53 L 403,86 L 397,86 L 397,53 L 382,53 L 382,47 L 397,47 Z"
+        android:fillColor="#FEF08A" />
+
+    <!-- Crown Base Band -->
+    <path
+        android:pathData="M 310,145 C 340,155 460,155 490,145 L 495,160 C 460,172 340,172 305,160 Z"
+        android:fillColor="#D97706" />
+
+    <!-- Crown Main Body -->
+    <path
+        android:pathData="M 310,145 L 285,90 L 335,120 L 400,60 L 465,120 L 515,90 L 490,145 C 450,152 350,152 310,145 Z"
+        android:fillColor="#F59E0B" />
+
+    <!-- Crown Jewels / Points Orbs -->
+    <path android:pathData="M 285,85 A 7,7 0 1,1 285,99 A 7,7 0 1,1 285,85 Z" android:fillColor="#FEF08A" />
+    <path android:pathData="M 335,115 A 7,7 0 1,1 335,129 A 7,7 0 1,1 335,115 Z" android:fillColor="#FEF08A" />
+    <path android:pathData="M 400,55 A 8,8 0 1,1 400,71 A 8,8 0 1,1 400,55 Z" android:fillColor="#FEF08A" />
+    <path android:pathData="M 465,115 A 7,7 0 1,1 465,129 A 7,7 0 1,1 465,115 Z" android:fillColor="#FEF08A" />
+    <path android:pathData="M 515,85 A 7,7 0 1,1 515,99 A 7,7 0 1,1 515,85 Z" android:fillColor="#FEF08A" />
+
+    <!-- Crown Inlaid Arches -->
+    <path
+        android:pathData="M 330,148 C 360,110 440,110 470,148"
+        android:strokeColor="#FEF08A"
+        android:strokeWidth="3"
+        android:fillColor="#00000000" />
+
+    <!-- VINAY KUMAR Main Text (Bold Serif Gold Contour) -->
+    <!-- V -->
+    <path android:pathData="M 35,175 L 80,175 L 115,280 L 150,175 L 195,175 L 130,310 L 100,310 Z" android:fillColor="#F59E0B" />
+    <!-- I -->
+    <path android:pathData="M 205,175 L 235,175 L 235,310 L 205,310 Z" android:fillColor="#F59E0B" />
+    <!-- N -->
+    <path android:pathData="M 250,175 L 280,175 L 325,260 L 325,175 L 355,175 L 355,310 L 325,310 L 280,220 L 280,310 L 250,310 Z" android:fillColor="#F59E0B" />
+    <!-- A -->
+    <path android:pathData="M 365,310 L 410,175 L 440,175 L 485,310 L 452,310 L 440,270 L 410,270 L 398,310 Z M 417,245 L 433,245 L 425,200 Z" android:fillColor="#F59E0B" />
+    <!-- Y -->
+    <path android:pathData="M 490,175 L 525,245 L 560,175 L 595,175 L 542,260 L 542,310 L 508,310 L 508,260 L 455,175 Z" android:fillColor="#F59E0B" />
+
+    <!-- K (With Swooping Flourish underline) -->
+    <path android:pathData="M 360,170 L 395,170 L 395,310 L 360,310 Z" android:fillColor="#FEF08A" />
+    <path android:pathData="M 395,245 L 450,170 L 490,170 L 425,240 L 495,310 L 455,310 L 405,250 L 395,260 L 395,245 Z" android:fillColor="#FEF08A" />
+
+    <!-- U -->
+    <path android:pathData="M 505,175 L 535,175 L 535,270 C 535,290 550,300 568,300 C 586,300 601,290 601,270 L 601,175 L 631,175 L 631,270 C 631,305 598,322 568,322 C 538,322 505,305 505,270 Z" android:fillColor="#F59E0B" />
+    <!-- M -->
+    <path android:pathData="M 640,175 L 675,175 L 700,250 L 725,175 L 760,175 L 760,310 L 732,310 L 732,220 L 708,290 L 692,290 L 668,220 L 668,310 L 640,310 Z" android:fillColor="#F59E0B" />
+    <!-- A -->
+    <path android:pathData="M 765,310 L 800,175 L 830,175 L 865,310 M 815,245" android:fillColor="#F59E0B" />
+    <!-- R -->
+    <path android:pathData="M 770,175 L 825,175 C 850,175 865,188 865,208 C 865,225 852,238 830,242 L 868,310 L 832,310 L 798,245 L 798,310 L 770,310 Z M 798,200 L 798,225 L 820,225 C 832,225 838,218 838,212 C 838,205 832,200 820,200 Z" android:fillColor="#F59E0B" />
+
+    <!-- Swooping Underline Ribbon Banner -->
+    <path
+        android:pathData="M 100,320 C 250,370 550,370 700,320 C 550,350 250,350 100,320 Z"
+        android:fillColor="#FEF08A" />
+
+    <!-- AVJ Center Text -->
+    <!-- A -->
+    <path android:pathData="M 320,410 L 338,350 L 354,350 L 372,410 L 357,410 L 351,390 L 341,390 L 335,410 Z M 343,378 L 349,378 L 346,362 Z" android:fillColor="#FEF08A" />
+    <!-- V -->
+    <path android:pathData="M 378,350 L 396,350 L 410,398 L 424,350 L 442,350 L 418,410 L 402,410 Z" android:fillColor="#FEF08A" />
+    <!-- J -->
+    <path android:pathData="M 465,350 L 480,350 L 480,395 C 480,406 472,412 460,412 C 450,412 442,406 442,398 L 455,398 C 455,402 457,404 460,404 C 464,404 467,401 467,395 Z" android:fillColor="#FEF08A" />
+
+    <!-- Left & Right Diamond Star Flourishes -->
+    <!-- Left Star -->
+    <path android:pathData="M 260,380 L 280,372 L 300,380 L 280,388 Z" android:fillColor="#F59E0B" />
+    <path android:pathData="M 280,360 L 288,380 L 280,400 L 272,380 Z" android:fillColor="#F59E0B" />
+    <!-- Right Star -->
+    <path android:pathData="M 500,380 L 520,372 L 540,380 L 520,388 Z" android:fillColor="#F59E0B" />
+    <path android:pathData="M 520,360 L 528,380 L 520,400 L 512,380 Z" android:fillColor="#F59E0B" />
+
+    <!-- Bottom Royal Filigree Scrollwork -->
+    <path
+        android:pathData="M 250,420 C 320,470 380,420 400,450 C 420,420 480,470 550,420 C 470,455 420,425 400,435 C 380,425 330,455 250,420 Z"
+        android:fillColor="#F59E0B" />
+
+    <!-- Center Drop Diamond Pendant -->
+    <path android:pathData="M 400,450 L 412,468 L 400,486 L 388,468 Z" android:fillColor="#FEF08A" />
+
+</vector>

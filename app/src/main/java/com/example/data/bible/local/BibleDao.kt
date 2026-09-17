@@ -22,6 +22,39 @@ interface BibleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVerses(verses: List<BibleVerseEntity>)
 
+    // Commentaries
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCommentaries(commentaries: List<BibleCommentaryEntity>)
+
+    @Query("DELETE FROM bible_commentaries")
+    suspend fun clearAllCommentaries()
+
+    @Query("DELETE FROM bible_commentaries WHERE translationId = :translationId")
+    suspend fun deleteCommentariesByTranslation(translationId: String)
+
+    @Query("""
+        SELECT * FROM bible_commentaries 
+        WHERE (translationId = :translationId OR translationId = :translationId || '_commentaries' OR translationId = 'HIOV' OR translationId = 'HIOV_commentaries')
+          AND bookId = :bookId 
+          AND chapterFrom = :chapter 
+          AND verseFrom = :verse
+    """)
+    fun getCommentariesForVerse(translationId: String, bookId: Int, chapter: Int, verse: Int): Flow<List<BibleCommentaryEntity>>
+
+    @Query("""
+        SELECT * FROM bible_commentaries 
+        WHERE (translationId = :translationId OR translationId = :translationId || '_commentaries' OR translationId = 'HIOV' OR translationId = 'HIOV_commentaries')
+          AND bookId = :bookId 
+          AND chapterFrom = :chapter
+    """)
+    fun getCommentariesForChapter(translationId: String, bookId: Int, chapter: Int): Flow<List<BibleCommentaryEntity>>
+
+    @Query("DELETE FROM bible_verses")
+    suspend fun clearAllVerses()
+
+    @Query("DELETE FROM bible_verses WHERE translationId = :translationId")
+    suspend fun deleteVersesByTranslation(translationId: String)
+
     @Query("DELETE FROM bible_verses WHERE translationId = :translationId AND bookId = :bookId AND chapter = :chapter")
     suspend fun deleteChapterVerses(translationId: String, bookId: Int, chapter: Int)
 
@@ -62,6 +95,9 @@ interface BibleDao {
 
     @Query("SELECT COUNT(*) FROM bible_headings WHERE translationId = :translationId")
     suspend fun getHeadingCount(translationId: String): Int
+
+    @Query("DELETE FROM bible_headings WHERE translationId = :translationId")
+    suspend fun deleteHeadingsByTranslation(translationId: String)
 
     // Bookmarks
     @Query("SELECT * FROM bible_bookmarks ORDER BY timestamp DESC")
@@ -135,30 +171,46 @@ interface BibleDao {
     @Query("SELECT * FROM reading_plan_progress WHERE planId = :planId")
     fun getPlanProgress(planId: String): Flow<List<ReadingPlanProgressEntity>>
 
+    @Query("SELECT * FROM reading_plan_progress")
+    fun getAllProgress(): Flow<List<ReadingPlanProgressEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun setPlanDayCompleted(progress: ReadingPlanProgressEntity)
 
     @Query("DELETE FROM reading_plan_progress WHERE planId = :planId")
     suspend fun resetPlan(planId: String)
 
-    // Dedicated Notes
-    @Query("SELECT * FROM dedicated_notes ORDER BY modifiedAt DESC")
-    fun getAllDedicatedNotes(): Flow<List<DedicatedNoteEntity>>
+    @Query("""
+        SELECT * FROM bible_verses 
+        WHERE translationId = :translationId AND bookId = :bookId AND chapter = :chapter AND verse >= :fromVerse AND verse <= :toVerse 
+        ORDER BY verse ASC
+    """)
+    suspend fun getVersesRangeSync(translationId: String, bookId: Int, chapter: Int, fromVerse: Int, toVerse: Int): List<BibleVerseEntity>
 
-    @Query("SELECT * FROM dedicated_notes WHERE id = :id LIMIT 1")
-    suspend fun getDedicatedNoteById(id: Long): DedicatedNoteEntity?
+    @Query("SELECT * FROM StudyNotes ORDER BY date DESC, noteId DESC LIMIT 1")
+    suspend fun getMostRecentStudyNote(): StudyNoteEntity?
+
+    // Study Notes
+    @Query("SELECT * FROM StudyNotes ORDER BY date DESC, noteId DESC")
+    fun getAllStudyNotesByDate(): Flow<List<StudyNoteEntity>>
+
+    @Query("SELECT * FROM StudyNotes ORDER BY noteId ASC")
+    fun getAllStudyNotesByIdAsc(): Flow<List<StudyNoteEntity>>
+
+    @Query("SELECT * FROM StudyNotes WHERE noteId = :id LIMIT 1")
+    suspend fun getStudyNoteById(id: Long): StudyNoteEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertDedicatedNote(note: DedicatedNoteEntity): Long
+    suspend fun insertStudyNote(note: StudyNoteEntity): Long
 
     @Update
-    suspend fun updateDedicatedNote(note: DedicatedNoteEntity)
+    suspend fun updateStudyNote(note: StudyNoteEntity)
 
-    @Query("DELETE FROM dedicated_notes WHERE id = :id")
-    suspend fun deleteDedicatedNoteById(id: Long)
+    @Query("DELETE FROM StudyNotes WHERE noteId = :id")
+    suspend fun deleteStudyNoteById(id: Long)
 
-    @Query("SELECT * FROM dedicated_notes WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%'")
-    fun searchDedicatedNotes(query: String): Flow<List<DedicatedNoteEntity>>
+    @Query("SELECT * FROM StudyNotes WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%' OR tags LIKE '%' || :query || '%' ORDER BY date DESC")
+    fun searchStudyNotes(query: String): Flow<List<StudyNoteEntity>>
 
     // Christian Songs / Song Book
     @Query("SELECT * FROM christian_songs ORDER BY CASE WHEN songNumber > 0 THEN songNumber ELSE 99999 END ASC, title ASC")
@@ -172,6 +224,12 @@ interface BibleDao {
 
     @Query("SELECT * FROM christian_songs WHERE songNumber = :number LIMIT 1")
     suspend fun getSongByNumber(number: Int): ChristianSongEntity?
+
+    @Query("SELECT * FROM christian_songs WHERE LOWER(TRIM(title)) = LOWER(TRIM(:title)) LIMIT 1")
+    suspend fun getSongByTitle(title: String): ChristianSongEntity?
+
+    @Query("UPDATE christian_songs SET isFavorite = :isFavorite, modifiedAt = :timestamp WHERE id = :id")
+    suspend fun setSongFavorite(id: Long, isFavorite: Boolean, timestamp: Long = System.currentTimeMillis())
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(song: ChristianSongEntity): Long

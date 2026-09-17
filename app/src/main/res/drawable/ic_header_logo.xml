@@ -1,0 +1,165 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="1200dp"
+    android:height="300dp"
+    android:viewportWidth="1200"
+    android:viewportHeight="300">
+
+    <!-- Gradients for Watercolor Spectrum -->
+    <group>
+        <!-- ======================= VINAY (Blue/Cyan/Sky watercolor) ======================= -->
+        <!-- V Capital flourishes & main loop -->
+        <path
+            android:pathData="M 70,165 C 50,110 90,50 145,45 C 205,40 240,85 220,150 C 200,205 160,250 115,250 C 85,250 72,230 85,198 C 105,152 160,105 205,105 C 235,105 225,138 205,178 L 185,215"
+            android:strokeWidth="15"
+            android:strokeColor="#0EA5E9"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <path
+            android:pathData="M 180,220 C 220,150 265,100 310,100 C 335,100 325,138 298,190 L 280,225"
+            android:strokeWidth="13"
+            android:strokeColor="#0284C7"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- Leaf vine flourish at the base of V -->
+        <path
+            android:pathData="M 215,225 C 240,240 255,270 235,285 C 215,295 195,275 220,255 C 235,242 270,240 290,260"
+            android:strokeWidth="8"
+            android:strokeColor="#10B981"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M 255,248 C 270,235 285,242 280,255 C 275,268 260,260 255,248 Z"
+            android:fillColor="#22C55E" />
+        <path
+            android:pathData="M 225,268 C 215,255 228,245 238,252 C 248,260 238,275 225,268 Z"
+            android:fillColor="#14B8A6" />
+
+        <!-- i -->
+        <path
+            android:pathData="M 290,195 C 310,170 335,160 350,160 C 360,160 350,188 340,215 C 330,232 342,232 358,222"
+            android:strokeWidth="11"
+            android:strokeColor="#0284C7"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M 338,138 A 7,7 0 1,1 338,152 A 7,7 0 1,1 338,138 Z"
+            android:fillColor="#38BDF8" />
+
+        <!-- n -->
+        <path
+            android:pathData="M 360,205 L 372,170 C 385,160 405,160 412,180 L 398,220 C 410,170 430,160 445,160 C 458,160 452,188 440,215 C 435,230 445,230 458,220"
+            android:strokeWidth="11"
+            android:strokeColor="#2563EB"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- a -->
+        <path
+            android:pathData="M 495,190 C 485,160 462,160 448,180 C 435,200 445,225 465,225 C 485,225 498,200 492,225 C 488,238 502,235 515,220"
+            android:strokeWidth="11"
+            android:strokeColor="#3B82F6"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- y -->
+        <path
+            android:pathData="M 540,190 C 530,160 512,160 500,180 C 488,200 500,225 520,225 C 540,225 550,198 542,225 L 525,270 C 510,305 485,315 460,300"
+            android:strokeWidth="12"
+            android:strokeColor="#6366F1"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- ======================= KUMAR (Rainbow watercolor: Green/Yellow/Orange/Red/Pink) ======================= -->
+        <!-- K (Lime/Green to Yellow) -->
+        <path
+            android:pathData="M 605,80 C 585,120 565,190 545,245 M 562,150 L 620,95 M 575,160 C 605,188 640,225 665,238"
+            android:strokeWidth="13"
+            android:strokeColor="#22C55E"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M 562,150 L 620,95"
+            android:strokeWidth="13"
+            android:strokeColor="#EAB308"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- u (Yellow to Orange) -->
+        <path
+            android:pathData="M 660,190 L 645,218 C 638,232 655,235 668,218 L 682,190 L 670,225 C 668,238 680,235 692,220"
+            android:strokeWidth="11"
+            android:strokeColor="#F59E0B"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- m (Orange to Red) -->
+        <path
+            android:pathData="M 698,205 L 712,170 C 722,160 738,160 745,180 L 735,220 C 745,170 762,160 775,160 C 785,160 782,188 770,215 C 780,170 798,160 810,160 C 822,160 818,188 808,220 C 805,230 815,230 828,220"
+            android:strokeWidth="11"
+            android:strokeColor="#EF4444"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- a (Red to Magenta) -->
+        <path
+            android:pathData="M 860,190 C 850,160 830,160 818,180 C 805,200 815,225 835,225 C 855,225 865,200 860,225 C 855,238 868,235 880,220"
+            android:strokeWidth="11"
+            android:strokeColor="#EC4899"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- r (Pink to Violet) -->
+        <path
+            android:pathData="M 885,205 L 892,170 C 902,160 918,160 925,170 L 918,225"
+            android:strokeWidth="11"
+            android:strokeColor="#D946EF"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- ======================= AVJ (Purple / Magenta / Violet Script & Heart Tail & Star) ======================= -->
+        <!-- A -->
+        <path
+            android:pathData="M 945,215 L 965,150 L 985,215 M 952,195 L 978,195"
+            android:strokeWidth="9"
+            android:strokeColor="#9333EA"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- v -->
+        <path
+            android:pathData="M 990,185 L 1002,215 L 1018,185"
+            android:strokeWidth="9"
+            android:strokeColor="#A855F7"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- j with heart flourish loop -->
+        <path
+            android:pathData="M 1025,185 L 1025,230 C 1025,270 995,300 955,290 C 925,280 935,240 965,240 C 1015,240 1060,150 1060,95 C 1060,50 1030,35 1010,65 C 1000,80 1005,100 1020,115"
+            android:strokeWidth="10"
+            android:strokeColor="#C026D3"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+
+        <!-- Multicolor Star above j -->
+        <!-- Center star at (1025, 130) -->
+        <path
+            android:pathData="M 1025,115 L 1030,126 L 1042,127 L 1033,136 L 1036,148 L 1025,142 L 1014,148 L 1017,136 L 1008,127 L 1020,126 Z"
+            android:fillColor="#38BDF8" />
+        <path
+            android:pathData="M 1025,115 L 1030,126 L 1042,127 L 1033,136 Z"
+            android:fillColor="#FACC15" />
+        <path
+            android:pathData="M 1033,136 L 1036,148 L 1025,142 Z"
+            android:fillColor="#FB923C" />
+        <path
+            android:pathData="M 1025,142 L 1014,148 L 1017,136 Z"
+            android:fillColor="#F43F5E" />
+        <path
+            android:pathData="M 1017,136 L 1008,127 L 1020,126 Z"
+            android:fillColor="#A855F7" />
+    </group>
+</vector>

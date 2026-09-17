@@ -8,6 +8,7 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [
         BibleVerseEntity::class,
+        BibleCommentaryEntity::class,
         BibleHeadingEntity::class,
         BibleBookmarkEntity::class,
         BibleFavoriteVerseEntity::class,
@@ -15,10 +16,10 @@ import androidx.room.RoomDatabase
         BibleNoteEntity::class,
         ReadingPositionEntity::class,
         ReadingPlanProgressEntity::class,
-        DedicatedNoteEntity::class,
+        StudyNoteEntity::class,
         ChristianSongEntity::class
     ],
-    version = 7,
+    version = 10,
     exportSchema = false
 )
 abstract class BibleDatabase : RoomDatabase() {

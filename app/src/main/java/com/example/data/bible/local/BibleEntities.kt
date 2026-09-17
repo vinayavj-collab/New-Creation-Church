@@ -20,6 +20,24 @@ data class BibleVerseEntity(
 )
 
 @Entity(
+    tableName = "bible_commentaries",
+    primaryKeys = ["translationId", "bookId", "chapterFrom", "verseFrom", "marker"],
+    indices = [
+        Index(value = ["translationId", "bookId", "chapterFrom", "verseFrom"])
+    ]
+)
+data class BibleCommentaryEntity(
+    val translationId: String,
+    val bookId: Int,
+    val chapterFrom: Int,
+    val verseFrom: Int,
+    val chapterTo: Int = 0,
+    val verseTo: Int = 0,
+    val marker: String = "",
+    val text: String
+)
+
+@Entity(
     tableName = "bible_headings",
     primaryKeys = ["translationId", "bookId", "chapter", "beforeVerse"],
     indices = [
@@ -118,17 +136,15 @@ data class ReadingPlanProgressEntity(
     val completedTimestamp: Long = 0L
 )
 
-@Entity(tableName = "dedicated_notes")
-data class DedicatedNoteEntity(
+@Entity(tableName = "StudyNotes")
+data class StudyNoteEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val title: String,
-    val content: String,
-    val colorHex: String = "#FFFBEB", // default warm yellow
-    val textColorHex: String = "#1E293B",
-    val linkedReferences: String = "", // comma-separated or text of references
-    val createdAt: Long = System.currentTimeMillis(),
-    val modifiedAt: Long = System.currentTimeMillis()
+    val noteId: Long = 0L,
+    val title: String = "",
+    val tags: String = "",
+    val date: String = "",
+    val time: String = "",
+    val content: String = ""
 )
 
 @Entity(tableName = "christian_songs")

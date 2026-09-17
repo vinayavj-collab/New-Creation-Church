@@ -5,10 +5,18 @@ data class ReadingPlanPortion(
     val bookNameHindi: String,
     val bookNameEnglish: String,
     val startChapter: Int,
-    val endChapter: Int = startChapter
+    val endChapter: Int = startChapter,
+    val startVerse: Int = 1,
+    val endVerse: Int? = null
 ) {
-    val displayHindi: String get() = if (startChapter == endChapter) "$bookNameHindi $startChapter" else "$bookNameHindi $startChapter-$endChapter"
-    val displayEnglish: String get() = if (startChapter == endChapter) "$bookNameEnglish $startChapter" else "$bookNameEnglish $startChapter-$endChapter"
+    val displayHindi: String get() {
+        val base = if (startChapter == endChapter) "$bookNameHindi $startChapter" else "$bookNameHindi $startChapter-$endChapter"
+        return if (endVerse != null && startChapter == endChapter) "$base:$startVerse-$endVerse" else base
+    }
+    val displayEnglish: String get() {
+        val base = if (startChapter == endChapter) "$bookNameEnglish $startChapter" else "$bookNameEnglish $startChapter-$endChapter"
+        return if (endVerse != null && startChapter == endChapter) "$base:$startVerse-$endVerse" else base
+    }
 }
 
 data class ReadingPlanDay(

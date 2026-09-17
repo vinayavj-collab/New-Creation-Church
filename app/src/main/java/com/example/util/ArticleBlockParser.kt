@@ -34,7 +34,8 @@ object ArticleBlockParser {
             "(?is)(<table[^>]*class=\"[^\"]*tr-caption-container[^\"]*\"[^>]*>.*?</table>)|" +
             "(<a[^>]*href=\"[^\"]*\"[^>]*>\\s*<img[^>]*src=\"([^\"]+)\"[^>]*>.*?</a>)|" +
             "(<img[^>]*src=\"([^\"]+)\"[^>]*>)|" +
-            "(<iframe[^>]*src=\"[^\"]*(?:youtube\\.com/embed/|youtu\\.be/)([^\"?&]+)[^\"]*\"[^>]*>.*?</iframe>)"
+            "(<iframe[^>]*src=\"[^\"]*(?:youtube\\.com/embed/|youtu\\.be/)([^\"?&]+)[^\"]*\"[^>]*>.*?</iframe>)|" +
+            "(<iframe[^>]*src=\"[^\"]*(?:dailymotion\\.com/embed/video/|dai\\.ly/)([^\"?&]+)[^\"]*\"[^>]*>.*?</iframe>)"
         )
 
         val matcher = pattern.matcher(rawHtml)
@@ -77,6 +78,17 @@ object ArticleBlockParser {
                         val vidId = vidMatcher.group(1)
                         if (!vidId.isNullOrBlank()) {
                             blocks.add(ArticleBlock.VideoBlock(vidId))
+                        }
+                    }
+                }
+
+                // Dailymotion Iframe
+                fullMatch.contains("dailymotion.com/embed/video/", ignoreCase = true) || fullMatch.contains("dai.ly/", ignoreCase = true) -> {
+                    val dmMatcher = Pattern.compile("(?i)(?:dailymotion\\.com/embed/video/|dai\\.ly/)([a-zA-Z0-9]+)").matcher(fullMatch)
+                    if (dmMatcher.find()) {
+                        val dmId = dmMatcher.group(1)
+                        if (!dmId.isNullOrBlank()) {
+                            blocks.add(ArticleBlock.VideoBlock("https://www.dailymotion.com/video/$dmId"))
                         }
                     }
                 }

@@ -2,6 +2,7 @@ package com.example.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.data.bible.model.ReadingPlanHighlightStyle
 import com.example.data.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,15 +12,68 @@ class PreferencesManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("vinay_app_prefs", Context.MODE_PRIVATE)
 
+    init {
+        // Reset default to false for v37 if previously saved as default true
+        if (!prefs.getBoolean("v37_defaults_migrated", false)) {
+            prefs.edit()
+                .putBoolean("welcome_speech_once_day", false)
+                .putBoolean("verse_speech_once_day", false)
+                .putBoolean("v37_defaults_migrated", true)
+                .apply()
+        }
+
+        // Migration to turn off Photo Gallery & Albums by default
+        if (!prefs.getBoolean("v39_photo_gallery_off_migrated", false)) {
+            val currentEnabled = prefs.getStringSet("enabled_home_sections", null)
+            if (currentEnabled != null) {
+                val updated = currentEnabled.toMutableSet()
+                updated.remove(HomeSectionType.PHOTOS.id)
+                prefs.edit().putStringSet("enabled_home_sections", updated).apply()
+            }
+            if (prefs.getString("custom_fourth_tab", null) == CustomFourthTab.PHOTOS.name) {
+                prefs.edit().putString("custom_fourth_tab", CustomFourthTab.SONG_BOOK.name).apply()
+            }
+            prefs.edit().putBoolean("v39_photo_gallery_off_migrated", true).apply()
+        }
+    }
+
     private val _settings = MutableStateFlow(loadSettings())
     val settings: StateFlow<UserSettings> = _settings.asStateFlow()
 
+    private val _readingPlanHighlightStyle = MutableStateFlow(loadReadingPlanHighlightStyle())
+    val readingPlanHighlightStyle: StateFlow<ReadingPlanHighlightStyle> = _readingPlanHighlightStyle.asStateFlow()
+
+    fun getReadingPlanHighlightStyle(): ReadingPlanHighlightStyle = _readingPlanHighlightStyle.value
+
+    private fun loadReadingPlanHighlightStyle(): ReadingPlanHighlightStyle {
+        return ReadingPlanHighlightStyle(
+            isVisible = prefs.getBoolean("reading_plan_highlight_visible", true),
+            windowFillColorHex = prefs.getString("reading_plan_highlight_fill_color", "#FDE68A") ?: "#FDE68A",
+            strokeColorHex = prefs.getString("reading_plan_highlight_stroke_color", "#D97706") ?: "#D97706",
+            alpha = prefs.getFloat("reading_plan_highlight_alpha", 0.35f),
+            borderThicknessDp = prefs.getFloat("reading_plan_highlight_border_thickness", 2.0f),
+            cornerRadiusDp = prefs.getFloat("reading_plan_highlight_corner_radius", 8.0f)
+        )
+    }
+
+    fun updateReadingPlanHighlightStyle(style: ReadingPlanHighlightStyle) {
+        prefs.edit()
+            .putBoolean("reading_plan_highlight_visible", style.isVisible)
+            .putString("reading_plan_highlight_fill_color", style.windowFillColorHex)
+            .putString("reading_plan_highlight_stroke_color", style.strokeColorHex)
+            .putFloat("reading_plan_highlight_alpha", style.alpha)
+            .putFloat("reading_plan_highlight_border_thickness", style.borderThicknessDp)
+            .putFloat("reading_plan_highlight_corner_radius", style.cornerRadiusDp)
+            .apply()
+        _readingPlanHighlightStyle.value = style
+    }
+
     private fun loadSettings(): UserSettings {
-        val themeStr = prefs.getString("theme_mode", ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name
+        val themeStr = prefs.getString("theme_mode", ThemeMode.DYNAMIC.name) ?: ThemeMode.DYNAMIC.name
         val themeMode = try {
             ThemeMode.valueOf(themeStr)
         } catch (e: Exception) {
-            ThemeMode.SYSTEM
+            ThemeMode.DYNAMIC
         }
 
         val vlogModeStr = prefs.getString("personal_vlog_mode", PersonalVlogMode.HIDDEN.name) ?: PersonalVlogMode.HIDDEN.name
@@ -59,7 +113,6 @@ class PreferencesManager(context: Context) {
             HomeSectionType.FELLOWSHIP_EVENTS.id,
             HomeSectionType.LATEST_VIDEOS.id,
             HomeSectionType.PLAYLISTS.id,
-            HomeSectionType.PHOTOS.id,
             HomeSectionType.LATEST_EVENTS.id
         )
         val enabledStrings = prefs.getStringSet("enabled_home_sections", defaultEnabled) ?: defaultEnabled
@@ -89,11 +142,11 @@ class PreferencesManager(context: Context) {
             list
         }
 
-        val fourthTabStr = prefs.getString("custom_fourth_tab", CustomFourthTab.PHOTOS.name) ?: CustomFourthTab.PHOTOS.name
+        val fourthTabStr = prefs.getString("custom_fourth_tab", CustomFourthTab.SONG_BOOK.name) ?: CustomFourthTab.SONG_BOOK.name
         val customFourthTab = try {
             CustomFourthTab.valueOf(fourthTabStr)
         } catch (e: Exception) {
-            CustomFourthTab.PHOTOS
+            CustomFourthTab.SONG_BOOK
         }
 
         val photoLayoutStr = prefs.getString("blogger_photo_layout", BloggerPhotoLayout.GRID_2.name) ?: BloggerPhotoLayout.GRID_2.name
@@ -108,10 +161,22 @@ class PreferencesManager(context: Context) {
         val navOrderStr = prefs.getString("nav_tabs_order", "HOME,BLOGS,YOUTUBE,FOURTH_TAB,MORE") ?: "HOME,BLOGS,YOUTUBE,FOURTH_TAB,MORE"
         val navTabsOrder = navOrderStr.split(",").filter { it.isNotBlank() }
 
-        val activePlans = prefs.getStringSet("active_plan_ids", emptySet()) ?: emptySet()
+        val activePlans = prefs.getStringSet("active_plan_ids", null) ?: setOf("gospels_30")
         val behindColor = prefs.getString("plan_behind_color", "#EF4444") ?: "#EF4444"
         val onTrackColor = prefs.getString("plan_ontrack_color", "#EAB308") ?: "#EAB308"
         val completedColor = prefs.getString("plan_completed_color", "#10B981") ?: "#10B981"
+
+        val verseAlarmFreqStr = prefs.getString("verse_alarm_freq", VerseAlarmFrequency.DAILY.name) ?: VerseAlarmFrequency.DAILY.name
+        val verseAlarmFreq = try { VerseAlarmFrequency.valueOf(verseAlarmFreqStr) } catch (e: Exception) { VerseAlarmFrequency.DAILY }
+
+        val verseAlarmModeStr = prefs.getString("verse_alarm_mode", VerseAlarmMode.SPEECH_DIRECT.name) ?: VerseAlarmMode.SPEECH_DIRECT.name
+        val verseAlarmMode = try { VerseAlarmMode.valueOf(verseAlarmModeStr) } catch (e: Exception) { VerseAlarmMode.SPEECH_DIRECT }
+
+        val verseAlarmContentStr = prefs.getString("verse_alarm_content", VerseAlarmContent.GREETING_AND_VERSE.name) ?: VerseAlarmContent.GREETING_AND_VERSE.name
+        val verseAlarmContent = try { VerseAlarmContent.valueOf(verseAlarmContentStr) } catch (e: Exception) { VerseAlarmContent.GREETING_AND_VERSE }
+
+        val dailyPrayerSlotStr = prefs.getString("daily_prayer_reminder_slot", DailyPrayerSlot.MORNING.name) ?: DailyPrayerSlot.MORNING.name
+        val dailyPrayerSlot = try { DailyPrayerSlot.valueOf(dailyPrayerSlotStr) } catch (e: Exception) { DailyPrayerSlot.MORNING }
 
         return UserSettings(
             themeMode = themeMode,
@@ -135,6 +200,8 @@ class PreferencesManager(context: Context) {
             enabledHomeSections = enabledHomeSections,
             customFourthTab = customFourthTab,
             bloggerPhotoLayout = bloggerPhotoLayout,
+            isDrawerEnabled = prefs.getBoolean("is_drawer_enabled", true),
+            drawerPosition = prefs.getString("drawer_position", "left") ?: "left",
             lastReadPostId = prefs.getString("last_read_post_id", null),
             navTabsOrder = navTabsOrder,
             activePlanIds = activePlans,
@@ -144,9 +211,28 @@ class PreferencesManager(context: Context) {
             userName = prefs.getString("user_name", "") ?: "",
             enableWelcomeSpeech = prefs.getBoolean("enable_welcome_speech", true),
             enableVerseSpeechOnLaunch = prefs.getBoolean("enable_verse_speech_launch", true),
-            welcomeSpeechOncePerDay = prefs.getBoolean("welcome_speech_once_day", true),
-            verseSpeechOncePerDay = prefs.getBoolean("verse_speech_once_day", true),
-            welcomeDialogDismissed = prefs.getBoolean("welcome_dialog_dismissed", false)
+            welcomeSpeechOncePerDay = prefs.getBoolean("welcome_speech_once_day", false),
+            verseSpeechOncePerDay = prefs.getBoolean("verse_speech_once_day", false),
+            welcomeDialogDismissed = prefs.getBoolean("welcome_dialog_dismissed", false),
+            verseAlarmEnabled = prefs.getBoolean("verse_alarm_enabled", true),
+            verseAlarmHour = prefs.getInt("verse_alarm_hour", 7),
+            verseAlarmMinute = prefs.getInt("verse_alarm_minute", 0),
+            verseAlarmFrequency = verseAlarmFreq,
+            verseAlarmIntervalHours = prefs.getInt("verse_alarm_interval_hours", 4),
+            verseAlarmMode = verseAlarmMode,
+            verseAlarmContent = verseAlarmContent,
+            syncGreetingVolumeWithAlarm = prefs.getBoolean("sync_greeting_volume_alarm", true),
+            greetingSpeechVolume = prefs.getFloat("greeting_speech_volume", 1.0f),
+            greetingSpeechPitch = prefs.getFloat("greeting_speech_pitch", 1.0f),
+            greetingSpeechSpeed = prefs.getFloat("greeting_speech_speed", 1.0f),
+            alarmVolume = prefs.getFloat("alarm_volume", 1.0f),
+            readingPlanReminderEnabled = prefs.getBoolean("reading_plan_reminder_enabled", true),
+            readingPlanReminderHour = prefs.getInt("reading_plan_reminder_hour", 8),
+            readingPlanReminderMinute = prefs.getInt("reading_plan_reminder_minute", 0),
+            dailyPrayerReminderEnabled = prefs.getBoolean("daily_prayer_reminder_enabled", true),
+            dailyPrayerReminderHour = prefs.getInt("daily_prayer_reminder_hour", 6),
+            dailyPrayerReminderMinute = prefs.getInt("daily_prayer_reminder_minute", 30),
+            dailyPrayerReminderSlot = dailyPrayerSlot
         )
     }
 
@@ -263,6 +349,16 @@ class PreferencesManager(context: Context) {
         _settings.value = _settings.value.copy(bloggerPhotoLayout = layout)
     }
 
+    fun updateIsDrawerEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("is_drawer_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(isDrawerEnabled = enabled)
+    }
+
+    fun updateDrawerPosition(position: String) {
+        prefs.edit().putString("drawer_position", position).apply()
+        _settings.value = _settings.value.copy(drawerPosition = position)
+    }
+
     fun setLastReadPostId(postId: String) {
         prefs.edit().putString("last_read_post_id", postId).apply()
         _settings.value = _settings.value.copy(lastReadPostId = postId)
@@ -277,6 +373,12 @@ class PreferencesManager(context: Context) {
     fun updateActivePlanIds(ids: Set<String>) {
         prefs.edit().putStringSet("active_plan_ids", ids).apply()
         _settings.value = _settings.value.copy(activePlanIds = ids)
+    }
+
+    fun getManualPlansJson(): String = prefs.getString("manual_plans_json", "") ?: ""
+
+    fun updateManualPlansJson(json: String) {
+        prefs.edit().putString("manual_plans_json", json).apply()
     }
 
     fun updateReadingPlanColors(behindHex: String, onTrackHex: String, completedHex: String) {
@@ -320,6 +422,119 @@ class PreferencesManager(context: Context) {
     fun updateWelcomeDialogDismissed(dismissed: Boolean) {
         prefs.edit().putBoolean("welcome_dialog_dismissed", dismissed).apply()
         _settings.value = _settings.value.copy(welcomeDialogDismissed = dismissed)
+    }
+
+    fun updateVerseAlarmEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("verse_alarm_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(verseAlarmEnabled = enabled)
+    }
+
+    fun updateVerseAlarmTime(hour: Int, minute: Int) {
+        prefs.edit()
+            .putInt("verse_alarm_hour", hour)
+            .putInt("verse_alarm_minute", minute)
+            .apply()
+        _settings.value = _settings.value.copy(
+            verseAlarmHour = hour,
+            verseAlarmMinute = minute
+        )
+    }
+
+    fun updateVerseAlarmFrequency(frequency: VerseAlarmFrequency) {
+        prefs.edit().putString("verse_alarm_freq", frequency.name).apply()
+        _settings.value = _settings.value.copy(verseAlarmFrequency = frequency)
+    }
+
+    fun updateVerseAlarmIntervalHours(intervalHours: Int) {
+        prefs.edit().putInt("verse_alarm_interval_hours", intervalHours).apply()
+        _settings.value = _settings.value.copy(verseAlarmIntervalHours = intervalHours)
+    }
+
+    fun updateVerseAlarmMode(mode: VerseAlarmMode) {
+        prefs.edit().putString("verse_alarm_mode", mode.name).apply()
+        _settings.value = _settings.value.copy(verseAlarmMode = mode)
+    }
+
+    fun updateVerseAlarmContent(content: VerseAlarmContent) {
+        prefs.edit().putString("verse_alarm_content", content.name).apply()
+        _settings.value = _settings.value.copy(verseAlarmContent = content)
+    }
+
+    fun updateSyncGreetingVolumeWithAlarm(sync: Boolean) {
+        prefs.edit().putBoolean("sync_greeting_volume_alarm", sync).apply()
+        _settings.value = _settings.value.copy(syncGreetingVolumeWithAlarm = sync)
+    }
+
+    fun updateGreetingSpeechVolume(volume: Float) {
+        val v = volume.coerceIn(0.1f, 1.0f)
+        prefs.edit().putFloat("greeting_speech_volume", v).apply()
+        _settings.value = _settings.value.copy(greetingSpeechVolume = v)
+    }
+
+    fun updateGreetingSpeechPitch(pitch: Float) {
+        val p = pitch.coerceIn(0.5f, 1.8f)
+        prefs.edit().putFloat("greeting_speech_pitch", p).apply()
+        _settings.value = _settings.value.copy(greetingSpeechPitch = p)
+    }
+
+    fun updateGreetingSpeechSpeed(speed: Float) {
+        val s = speed.coerceIn(0.5f, 1.8f)
+        prefs.edit().putFloat("greeting_speech_speed", s).apply()
+        _settings.value = _settings.value.copy(greetingSpeechSpeed = s)
+    }
+
+    fun updateAlarmVolume(volume: Float) {
+        val v = volume.coerceIn(0.1f, 1.0f)
+        prefs.edit().putFloat("alarm_volume", v).apply()
+        _settings.value = _settings.value.copy(alarmVolume = v)
+    }
+
+    fun updateReadingPlanReminderEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("reading_plan_reminder_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(readingPlanReminderEnabled = enabled)
+    }
+
+    fun updateReadingPlanReminderTime(hour: Int, minute: Int) {
+        prefs.edit()
+            .putInt("reading_plan_reminder_hour", hour)
+            .putInt("reading_plan_reminder_minute", minute)
+            .apply()
+        _settings.value = _settings.value.copy(
+            readingPlanReminderHour = hour,
+            readingPlanReminderMinute = minute
+        )
+    }
+
+    fun updateDailyPrayerReminderEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("daily_prayer_reminder_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(dailyPrayerReminderEnabled = enabled)
+    }
+
+    fun updateDailyPrayerReminderTime(hour: Int, minute: Int) {
+        prefs.edit()
+            .putInt("daily_prayer_reminder_hour", hour)
+            .putInt("daily_prayer_reminder_minute", minute)
+            .apply()
+        _settings.value = _settings.value.copy(
+            dailyPrayerReminderHour = hour,
+            dailyPrayerReminderMinute = minute
+        )
+    }
+
+    fun updateDailyPrayerReminderSlot(slot: DailyPrayerSlot) {
+        val editor = prefs.edit().putString("daily_prayer_reminder_slot", slot.name)
+        if (slot != DailyPrayerSlot.CUSTOM) {
+            editor.putInt("daily_prayer_reminder_hour", slot.defaultHour)
+            editor.putInt("daily_prayer_reminder_minute", slot.defaultMinute)
+            _settings.value = _settings.value.copy(
+                dailyPrayerReminderSlot = slot,
+                dailyPrayerReminderHour = slot.defaultHour,
+                dailyPrayerReminderMinute = slot.defaultMinute
+            )
+        } else {
+            _settings.value = _settings.value.copy(dailyPrayerReminderSlot = slot)
+        }
+        editor.apply()
     }
 }
 

@@ -2,11 +2,13 @@ package com.example.data.repository
 
 import com.example.data.local.AppDatabase
 import com.example.data.local.BlogPostEntity
+import com.example.data.local.PredefinedData
 import com.example.data.model.BlogPost
 import com.example.data.model.BlogSourceType
 import com.example.data.model.GalleryPhoto
 import com.example.data.remote.BloggerFeedService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 class BloggerRepository(
@@ -14,6 +16,7 @@ class BloggerRepository(
     private val feedService: BloggerFeedService = BloggerFeedService()
 ) {
     private val dao = database.blogPostDao()
+    private val firebaseDataRepository by lazy { FirebaseDataRepository.getInstance() }
 
     fun getPostsFlow(showPersonalVlog: Boolean): Flow<List<BlogPost>> {
         val sources = if (showPersonalVlog) {
@@ -21,34 +24,64 @@ class BloggerRepository(
         } else {
             listOf(BlogSourceType.FELLOWSHIP_EVENTS.id)
         }
-        return dao.getPostsBySources(sources).map { entities ->
-            entities.map { it.toDomain() }
+        val remoteFlow = if (showPersonalVlog) firebaseDataRepository.allBlogs else firebaseDataRepository.fellowshipBlogs
+
+        return combine(dao.getPostsBySources(sources), remoteFlow) { entities, remoteMerged ->
+            val dbPosts = entities.map { it.toDomain() }
+            val localHardcoded = if (showPersonalVlog) {
+                PredefinedData.hardcodedFellowshipBlogs + PredefinedData.hardcodedPersonalVlogs
+            } else {
+                PredefinedData.hardcodedFellowshipBlogs
+            }
+            FirebaseDataRepository.mergeAndDeduplicate(
+                remoteItems = remoteMerged,
+                localHardcodedItems = localHardcoded + dbPosts,
+                keySelector = { it.id.ifBlank { it.url } },
+                timestampSelector = { it.publishedTimestamp }
+            )
         }
     }
 
     fun getPostsBySourceFlow(source: BlogSourceType): Flow<List<BlogPost>> {
-        return dao.getPostsBySource(source.id).map { entities ->
-            entities.map { it.toDomain() }
+        val remoteFlow = when (source) {
+            BlogSourceType.FELLOWSHIP_EVENTS -> firebaseDataRepository.fellowshipBlogs
+            BlogSourceType.PERSONAL_VLOG -> firebaseDataRepository.personalVlogs
+        }
+        val hardcoded = when (source) {
+            BlogSourceType.FELLOWSHIP_EVENTS -> PredefinedData.hardcodedFellowshipBlogs
+            BlogSourceType.PERSONAL_VLOG -> PredefinedData.hardcodedPersonalVlogs
+        }
+        return combine(dao.getPostsBySource(source.id), remoteFlow) { entities, remoteMerged ->
+            val dbPosts = entities.map { it.toDomain() }
+            FirebaseDataRepository.mergeAndDeduplicate(
+                remoteItems = remoteMerged,
+                localHardcodedItems = hardcoded + dbPosts,
+                keySelector = { it.id.ifBlank { it.url } },
+                timestampSelector = { it.publishedTimestamp }
+            )
         }
     }
 
     fun getPostById(id: String): Flow<BlogPost?> {
-        return dao.getPostById(id).map { it?.toDomain() }
+        return getPostsFlow(showPersonalVlog = true).map { list ->
+            list.find { it.id == id }
+        }
     }
 
     fun searchPosts(query: String, showPersonalVlog: Boolean): Flow<List<BlogPost>> {
-        val sources = if (showPersonalVlog) {
-            listOf(BlogSourceType.FELLOWSHIP_EVENTS.id, BlogSourceType.PERSONAL_VLOG.id)
-        } else {
-            listOf(BlogSourceType.FELLOWSHIP_EVENTS.id)
-        }
-        return dao.searchPosts(query, sources).map { entities ->
-            entities.map { it.toDomain() }
+        val q = query.trim().lowercase()
+        return getPostsFlow(showPersonalVlog).map { list ->
+            if (q.isBlank()) list
+            else list.filter { post ->
+                post.title.lowercase().contains(q) ||
+                    post.plainTextExcerpt.lowercase().contains(q) ||
+                    post.labels.any { it.lowercase().contains(q) }
+            }
         }
     }
 
-    suspend fun refreshPosts(showPersonalVlog: Boolean): Result<Unit> {
-        return try {
+    suspend fun refreshPosts(showPersonalVlog: Boolean): Result<Unit> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
             val fellowshipPosts = feedService.fetchBlogPosts(BlogSourceType.FELLOWSHIP_EVENTS)
             if (fellowshipPosts.isNotEmpty()) {
                 dao.insertPosts(fellowshipPosts.map { BlogPostEntity.fromDomain(it) })
@@ -66,7 +99,7 @@ class BloggerRepository(
         }
     }
 
-    suspend fun clearCache() {
+    suspend fun clearCache() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         dao.clearAll()
     }
 

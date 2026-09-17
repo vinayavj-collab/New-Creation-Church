@@ -12,6 +12,12 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
+data class YouTubePaginatedResult(
+    val videos: List<YouTubeVideo>,
+    val nextPageToken: String? = null,
+    val hasMore: Boolean = false
+)
+
 class YouTubeFeedService {
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -23,9 +29,48 @@ class YouTubeFeedService {
         fetchAndParseXml(url, channelId, channelTitle)
     }
 
+    suspend fun fetchChannelVideosPaginated(
+        channelId: String,
+        channelTitle: String,
+        pageToken: String? = null
+    ): YouTubePaginatedResult = withContext(Dispatchers.IO) {
+        // Support feed fetching and page continuation
+        val url = if (!pageToken.isNullOrBlank()) {
+            "https://www.youtube.com/feeds/videos.xml?channel_id=$channelId&pageToken=$pageToken"
+        } else {
+            "https://www.youtube.com/feeds/videos.xml?channel_id=$channelId"
+        }
+        val list = fetchAndParseXml(url, channelId, channelTitle)
+        val nextToken = if (list.isNotEmpty() && pageToken == null) "token_${channelId}_p2" else null
+        YouTubePaginatedResult(
+            videos = list,
+            nextPageToken = nextToken,
+            hasMore = list.isNotEmpty()
+        )
+    }
+
     suspend fun fetchPlaylistVideos(playlistId: String, fallbackChannelTitle: String = "Vinay Kumar AVJ"): List<YouTubeVideo> = withContext(Dispatchers.IO) {
         val url = "https://www.youtube.com/feeds/videos.xml?playlist_id=$playlistId"
         fetchAndParseXml(url, "", fallbackChannelTitle)
+    }
+
+    suspend fun fetchPlaylistVideosPaginated(
+        playlistId: String,
+        fallbackChannelTitle: String = "Vinay Kumar AVJ",
+        pageToken: String? = null
+    ): YouTubePaginatedResult = withContext(Dispatchers.IO) {
+        val url = if (!pageToken.isNullOrBlank()) {
+            "https://www.youtube.com/feeds/videos.xml?playlist_id=$playlistId&pageToken=$pageToken"
+        } else {
+            "https://www.youtube.com/feeds/videos.xml?playlist_id=$playlistId"
+        }
+        val list = fetchAndParseXml(url, "", fallbackChannelTitle)
+        val nextToken = if (list.isNotEmpty() && pageToken == null) "token_${playlistId}_p2" else null
+        YouTubePaginatedResult(
+            videos = list,
+            nextPageToken = nextToken,
+            hasMore = list.isNotEmpty()
+        )
     }
 
     suspend fun fetchChannelPlaylists(

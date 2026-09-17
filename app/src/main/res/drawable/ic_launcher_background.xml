@@ -14,13 +14,13 @@
                 android:endX="108"
                 android:endY="108"
                 android:type="linear">
-                <item android:color="#0B1B3D" android:offset="0.0" />
-                <item android:color="#142C5F" android:offset="0.5" />
-                <item android:color="#0D1F42" android:offset="1.0" />
+                <item android:color="#0D2D6C" android:offset="0.0" />
+                <item android:color="#154B99" android:offset="0.5" />
+                <item android:color="#0A2252" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- Subtle luxury gold accent ring -->
+    <!-- Subtle gold accent halo ring -->
     <path
         android:pathData="M54,14 A40,40 0 1,0 54,94 A40,40 0 1,0 54,14"
         android:strokeWidth="1.5"

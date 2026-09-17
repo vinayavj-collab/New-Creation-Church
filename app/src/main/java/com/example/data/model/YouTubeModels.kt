@@ -132,4 +132,22 @@ object PredefinedPlaylists {
         description = "Official channel of New Creation Church Ministry featuring Sermons, Prayers, Worship & Fellowship Services.",
         avatarUrl = "https://yt3.googleusercontent.com/ytc/AIdro_k..."
     )
+
+    val channelDailymotionChristian = YouTubeChannelInfo(
+        id = "dm_x27lzjr",
+        name = "Christian Media (Dailymotion)",
+        handle = "@x27lzjr",
+        channelUrl = "https://www.dailymotion.com/partner/x27lzjr/media/video",
+        description = "Christian songs, sermons, worship, and spiritual media broadcasted via Dailymotion.",
+        avatarUrl = "https://www.dailymotion.com/thumbnail/user/x27lzjr"
+    )
+
+    val channelDailymotionVlog = YouTubeChannelInfo(
+        id = "dm_x4sr8o4",
+        name = "Personal Vlog (Dailymotion)",
+        handle = "@x4sr8o4",
+        channelUrl = "https://www.dailymotion.com/partner/x4sr8o4/media/video",
+        description = "Pastor Vinay's Personal Vlogs and reflections on Dailymotion.",
+        avatarUrl = "https://www.dailymotion.com/thumbnail/user/x4sr8o4"
+    )
 }

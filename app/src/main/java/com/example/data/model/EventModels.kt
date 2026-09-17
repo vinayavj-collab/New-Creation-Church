@@ -14,6 +14,39 @@ data class UpcomingEvent(
     val startTimestamp: Long
 )
 
+enum class RsvpStatus {
+    GOING,
+    INTERESTED,
+    NOT_GOING
+}
+
+data class EventRsvp(
+    val eventId: String = "",
+    val userName: String = "",
+    val userContact: String = "",
+    val status: String = "GOING", // GOING, INTERESTED, NOT_GOING
+    val attendeesCount: Int = 1,
+    val timestamp: Long = System.currentTimeMillis(),
+    val notes: String = ""
+)
+
+data class FellowshipEvent(
+    val id: String = "",
+    val title: String = "",
+    val description: String = "",
+    val dateString: String = "",
+    val timeString: String = "",
+    val locationString: String = "",
+    val speaker: String = "",
+    val category: String = "General", // Sunday Worship, Prayer Meeting, Youth Fellowship, Bible Study, Special Conference
+    val startTimestamp: Long = 0L,
+    val rsvpCount: Int = 0,
+    val meetingUrl: String = "",
+    val isOnline: Boolean = false,
+    val imageUrl: String = "",
+    val postUrl: String = ""
+)
+
 object EventExtractor {
 
     private val DATE_PATTERNS = listOf(

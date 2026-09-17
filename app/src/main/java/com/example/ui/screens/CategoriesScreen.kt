@@ -27,6 +27,7 @@ fun CategoriesScreen(
 ) {
     val fellowshipCategories by viewModel.fellowshipCategories.collectAsState()
     val personalVlogCategories by viewModel.personalVlogCategories.collectAsState()
+    val isPersonalVlogAllowed by viewModel.isPersonalVlogAllowed.collectAsState()
     val settings by viewModel.settings.collectAsState()
 
     Scaffold(
@@ -82,7 +83,7 @@ fun CategoriesScreen(
             }
 
             // Personal Vlog Labels - ONLY IF ENABLED
-            if (settings.showPersonalVlog) {
+            if (isPersonalVlogAllowed) {
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(

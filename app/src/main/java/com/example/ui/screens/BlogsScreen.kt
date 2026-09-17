@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -35,24 +36,25 @@ fun BlogsScreen(
     modifier: Modifier = Modifier
 ) {
     val strings = appStrings()
-    val settings by viewModel.settings.collectAsState()
-    val allPosts by viewModel.allPosts.collectAsState()
-    val fellowshipPosts by viewModel.fellowshipPosts.collectAsState()
-    val personalVlogPosts by viewModel.personalVlogPosts.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val allPosts by viewModel.allPosts.collectAsStateWithLifecycle()
+    val fellowshipPosts by viewModel.fellowshipPosts.collectAsStateWithLifecycle()
+    val personalVlogPosts by viewModel.personalVlogPosts.collectAsStateWithLifecycle()
+    val isPersonalVlogAllowed by viewModel.isPersonalVlogAllowed.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableStateOf(BlogTab.FELLOWSHIP) }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
 
-    // If personal vlog is disabled, ensure selected tab is not PERSONAL
-    LaunchedEffect(settings.showPersonalVlog) {
-        if (!settings.showPersonalVlog && selectedTab == BlogTab.PERSONAL) {
+    // If personal vlog is disabled (either locally or server-side kill switch), ensure selected tab is not PERSONAL
+    LaunchedEffect(isPersonalVlogAllowed) {
+        if (!isPersonalVlogAllowed && selectedTab == BlogTab.PERSONAL) {
             selectedTab = BlogTab.FELLOWSHIP
         }
     }
 
-    val availableTabs = remember(settings.showPersonalVlog) {
-        if (settings.showPersonalVlog) {
+    val availableTabs = remember(isPersonalVlogAllowed) {
+        if (isPersonalVlogAllowed) {
             listOf(BlogTab.FELLOWSHIP, BlogTab.PERSONAL, BlogTab.ALL)
         } else {
             listOf(BlogTab.FELLOWSHIP, BlogTab.ALL)
@@ -111,12 +113,15 @@ fun BlogsScreen(
                                 )
                             )
                         }
-                        IconButton(onClick = onSearchClick) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = strings.globalSearch,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                        val isSearchEnabled by viewModel.isSearchEnabled.collectAsStateWithLifecycle()
+                        if (isSearchEnabled) {
+                            IconButton(onClick = onSearchClick) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = strings.globalSearch,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
 

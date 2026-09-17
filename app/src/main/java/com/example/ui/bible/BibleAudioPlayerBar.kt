@@ -29,6 +29,7 @@ fun BibleAudioPlayerBar(
     currentBook: BibleBook,
     currentChapter: Int,
     verses: List<BibleVerse>,
+    activeTargetVerse: Int? = null,
     modifier: Modifier = Modifier
 ) {
     val isPlaying by audioManager.isPlaying.collectAsState()
@@ -124,7 +125,7 @@ fun BibleAudioPlayerBar(
                                 if (isPlaying) {
                                     audioManager.playPause()
                                 } else {
-                                    audioManager.playChapterAudio(currentBook.id, currentChapter, verses)
+                                    audioManager.playChapterAudio(currentBook.id, currentChapter, verses, activeTargetVerse)
                                 }
                             }
                         ) {
@@ -269,7 +270,7 @@ fun BibleAudioPlayerBar(
                                 if (isPlaying) {
                                     audioManager.playPause()
                                 } else {
-                                    audioManager.playChapterAudio(currentBook.id, currentChapter, verses)
+                                    audioManager.playChapterAudio(currentBook.id, currentChapter, verses, activeTargetVerse)
                                 }
                             },
                             modifier = Modifier.size(52.dp)

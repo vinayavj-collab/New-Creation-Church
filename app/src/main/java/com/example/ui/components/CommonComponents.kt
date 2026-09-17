@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,12 +23,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.R
+import com.example.data.model.LocalAppProfile
 import com.example.data.model.BlogPost
 import com.example.data.model.BlogSourceType
 import com.example.data.model.YouTubePlaylist
@@ -40,66 +50,162 @@ import com.example.util.BloggerImageUtils
 @Composable
 fun AppHeader(
     modifier: Modifier = Modifier,
-    onSearchClick: (() -> Unit)? = null
+    onSearchClick: (() -> Unit)? = null,
+    isUpdateAvailable: Boolean = false,
+    onUpdateClick: (() -> Unit)? = null,
+    onOpenDrawer: (() -> Unit)? = null,
+    isDrawerEnabled: Boolean = true,
+    drawerPosition: String = "left",
+    unreadNotificationCount: Int = 0,
+    onNotificationClick: (() -> Unit)? = null
 ) {
-    Card(
+    val activeProfile = LocalAppProfile.current
+    // Header Bar with transparent background, maximizing available horizontal and vertical space
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
-        ),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            .height(56.dp)
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .background(Color.Transparent),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
+        val hasLeftDrawer = isDrawerEnabled && onOpenDrawer != null && drawerPosition != "right"
+        val hasRightDrawer = isDrawerEnabled && onOpenDrawer != null && drawerPosition == "right"
+
+        // Central Logo: Maximized width to fill available center space with 48dp margins on both sides for Drawer and Bell buttons
+        Image(
+            painter = painterResource(id = activeProfile.headerLogoRes),
+            contentDescription = activeProfile.displayNameEnglish,
+            contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Profile / Monogram Logo Box
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(NavyPrimary, NavyDark)
-                        )
-                    ),
-                contentAlignment = Alignment.Center
+                .fillMaxHeight()
+                .padding(
+                    start = 48.dp,
+                    end = 48.dp,
+                    top = 2.dp,
+                    bottom = 2.dp
+                )
+        )
+
+        // Navigation Drawer (Hamburger Menu): Standard 48dp touch target
+        if (isDrawerEnabled && onOpenDrawer != null) {
+            val drawerAlignModifier = if (drawerPosition == "right") {
+                Modifier.align(Alignment.CenterEnd)
+            } else {
+                Modifier.align(Alignment.CenterStart)
+            }
+            IconButton(
+                onClick = onOpenDrawer,
+                modifier = drawerAlignModifier
+                    .size(48.dp)
+                    .testTag("drawer_menu_button")
             ) {
-                Text(
-                    text = "V",
-                    color = GoldWarm,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Open Sidebar",
+                    tint = GoldWarm
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.width(14.dp))
+        // Notification Bell Icon: Dynamically mirrors Navigation Drawer's position
+        // If Drawer is Left, Bell MUST be on Right; If Drawer is Right, Bell MUST be on Left.
+        val bellAlignModifier = if (drawerPosition == "right") {
+            Modifier.align(Alignment.CenterStart)
+        } else {
+            Modifier.align(Alignment.CenterEnd)
+        }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Vinay Kumar AVJ",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                )
-                Text(
-                    text = "Fellowship Events • Videos • Photos • Memories",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                        fontSize = 11.5.sp
-                    ),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+        IconButton(
+            onClick = { onNotificationClick?.invoke() },
+            modifier = bellAlignModifier
+                .size(48.dp)
+                .testTag("notification_bell_button")
+        ) {
+            BadgedBox(
+                badge = {
+                    if (unreadNotificationCount > 0) {
+                        Badge(
+                            containerColor = Color(0xFFD32F2F),
+                            contentColor = Color.White
+                        ) {
+                            Text(
+                                text = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = if (unreadNotificationCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                    contentDescription = "Notifications",
+                    tint = GoldWarm
                 )
             }
         }
     }
+}
+
+@Composable
+fun AdminNoticeBanner(
+    notice: com.example.data.model.AdminNotice?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    onActionClick: ((String) -> Unit)? = null
+) {
+    if (notice == null || !notice.isActive || notice.message.isBlank()) {
+        return
+    }
+
+    AndroidView(
+        factory = { ctx ->
+            val view = LayoutInflater.from(ctx).inflate(R.layout.view_marquee_notice_banner, null, false)
+            view
+        },
+        update = { view ->
+            val noticeContainer = view.findViewById<View>(R.id.noticeBannerContainer)
+            val noticeBadge = view.findViewById<TextView>(R.id.noticeBadge)
+            val noticeTextView = view.findViewById<TextView>(R.id.noticeTextView)
+            val dismissButton = view.findViewById<ImageView>(R.id.noticeDismissButton)
+
+            val remoteNoticeHeading = com.example.util.RemoteConfigManager.getAppNoticeHeading()
+            if (noticeBadge != null && remoteNoticeHeading.isNotBlank()) {
+                noticeBadge.text = "📢 $remoteNoticeHeading"
+            }
+
+            if (notice != null && notice.isActive && notice.message.isNotBlank()) {
+                noticeContainer.visibility = View.VISIBLE
+                val titleToDisplay = if (notice.title.isNotBlank()) notice.title else remoteNoticeHeading
+                val formattedText = "$titleToDisplay : ${notice.message}               "
+                noticeTextView.text = formattedText
+                // Activation Logic: In the Kotlin/Java code, explicitly call noticeTextView.isSelected = true
+                // as this is required for the Android marquee effect to start animating.
+                noticeTextView.isSelected = true
+
+                noticeTextView.setOnClickListener {
+                    if (!notice.actionUrl.isNullOrBlank()) {
+                        onActionClick?.invoke(notice.actionUrl)
+                    }
+                }
+            } else {
+                noticeContainer.visibility = View.GONE
+                noticeTextView.isSelected = false
+            }
+
+            dismissButton.visibility = if (notice?.isDismissible == true) View.VISIBLE else View.GONE
+            dismissButton.setOnClickListener {
+                onDismiss()
+            }
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("admin_notice_ticker")
+    )
 }
 
 @Composable
@@ -569,9 +675,19 @@ fun YouTubeVideoCard(
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
             ) {
+                val effectiveThumbnail = remember(video) {
+                    val thumb = video.thumbnailUrl.trim()
+                    if (thumb.isNotBlank() && !thumb.contains("local_vid") && !thumb.contains("/default/")) {
+                        thumb
+                    } else if (video.id.isNotBlank() && !video.id.startsWith("local_vid") && !video.id.startsWith("dm_")) {
+                        "https://i.ytimg.com/vi/${video.id}/hqdefault.jpg"
+                    } else {
+                        thumb
+                    }
+                }
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(video.thumbnailUrl)
+                        .data(effectiveThumbnail)
                         .crossfade(true)
                         .build(),
                     contentDescription = video.title,
@@ -607,6 +723,23 @@ fun YouTubeVideoCard(
                         text = video.publishedAt,
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+
+                // Platform tag badge (YouTube vs Dailymotion)
+                val platformInfo = com.example.util.VideoUrlParser.parse(if (video.videoUrl.isNotBlank()) video.videoUrl else video.id)
+                Surface(
+                    color = if (platformInfo.platform == com.example.util.VideoPlatform.DAILYMOTION) Color(0xFF0066DC) else Color(0xFFD32F2F),
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = if (platformInfo.platform == com.example.util.VideoPlatform.DAILYMOTION) "DAILYMOTION" else "YOUTUBE",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }

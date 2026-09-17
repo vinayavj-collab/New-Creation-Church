@@ -36,6 +36,7 @@ import coil.request.ImageRequest
 import com.example.data.model.*
 import com.example.ui.components.RelatedContentSection
 import com.example.ui.components.SourceBadge
+import com.example.ui.components.UniversalVideoPlayer
 import com.example.ui.components.YouTubePlayerView
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyPrimary
@@ -198,17 +199,12 @@ fun PostDetailScreen(
                     }
                 },
                 actions = {
-                    // Photo Layout Grid Customization Menu (User Request 3)
+                    // Blogger Customization Menu (Data Saver & Photo Grid Layout)
                     Box {
                         IconButton(onClick = { showPhotoLayoutMenu = true }) {
                             Icon(
-                                imageVector = when (settings.bloggerPhotoLayout) {
-                                    BloggerPhotoLayout.SINGLE -> Icons.Default.CropSquare
-                                    BloggerPhotoLayout.GRID_2 -> Icons.Default.ViewAgenda
-                                    BloggerPhotoLayout.GRID_3 -> Icons.Default.GridView
-                                    BloggerPhotoLayout.GRID_4 -> Icons.Default.ViewModule
-                                },
-                                contentDescription = "Photo Layout",
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = "Blogger Customization",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -218,6 +214,63 @@ fun PostDetailScreen(
                             onDismissRequest = { showPhotoLayoutMenu = false },
                             shape = RoundedCornerShape(16.dp)
                         ) {
+                            Text(
+                                text = "BLOGGER CUSTOMIZATION",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 0.8.sp
+                                ),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                            )
+
+                            // Data Saver Toggle (Default: On)
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(
+                                            "Data Saver Mode",
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            if (settings.dataSaverEnabled) "Active (कम डेटा खर्च)" else "Full Quality (सामान्य)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.DataUsage,
+                                        contentDescription = null,
+                                        tint = if (settings.dataSaverEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    )
+                                },
+                                trailingIcon = {
+                                    Switch(
+                                        checked = settings.dataSaverEnabled,
+                                        onCheckedChange = {
+                                            viewModel.updateDataSaver(it)
+                                        }
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.updateDataSaver(!settings.dataSaverEnabled)
+                                }
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+
+                            Text(
+                                text = "PHOTO GRID LAYOUT",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    letterSpacing = 0.8.sp
+                                ),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+
                             DropdownMenuItem(
                                 text = { Text("1 फ़ोटो प्रति पंक्ति (Single)") },
                                 leadingIcon = { Icon(Icons.Default.CropSquare, contentDescription = null) },
@@ -523,9 +576,12 @@ fun PostDetailScreen(
                                             } else {
                                                 android.graphics.Color.parseColor("#1E293B")
                                             }
+                                            val sanitizedHtml = block.html
+                                                .replace(Regex("""(?i)(?:\s|<br\s*/?>|&nbsp;|\r?\n)+([”"’'»])"""), "$1")
+                                                .replace(Regex("""(?<=\S)\s+([”"’'»])"""), "$1")
                                             textView.setTextColor(textColor)
                                             textView.text = HtmlCompat.fromHtml(
-                                                block.html,
+                                                sanitizedHtml,
                                                 HtmlCompat.FROM_HTML_MODE_COMPACT
                                             )
                                         }
@@ -620,7 +676,7 @@ fun PostDetailScreen(
                                         .padding(horizontal = 16.dp, vertical = 8.dp)
                                         .clip(RoundedCornerShape(12.dp))
                                 ) {
-                                    YouTubePlayerView(videoId = block.videoId)
+                                    UniversalVideoPlayer(videoUrlOrId = block.videoId)
                                 }
                             }
                         }
@@ -663,7 +719,7 @@ fun PostDetailScreen(
                                     .height(220.dp)
                                     .clip(RoundedCornerShape(12.dp))
                             ) {
-                                YouTubePlayerView(videoId = vidId)
+                                UniversalVideoPlayer(videoUrlOrId = vidId)
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                         }

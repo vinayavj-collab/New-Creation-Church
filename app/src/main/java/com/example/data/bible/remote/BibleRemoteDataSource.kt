@@ -27,15 +27,11 @@ class BibleRemoteDataSource(
         bookId: Int,
         chapter: Int
     ): List<BibleVerseEntity>? = withContext(Dispatchers.IO) {
-        val candidateCodes = when (translationId) {
-            BibleTranslation.HINDI_IRV.id -> listOf("HIOV", "HIN")
-            BibleTranslation.HINDI_BSI_OV.id -> listOf("HIOV", "HIN")
-            BibleTranslation.HINDI_ERV.id -> listOf("HINERV", "HIERV", "ERV", "HIOV", "HIN")
-            BibleTranslation.HINDI_ULB.id -> listOf("HINULB", "ULBHI", "ULB", "HIOV", "HIN")
-            BibleTranslation.ENGLISH_KJV.id -> listOf("KJV")
-            BibleTranslation.ENGLISH_WEB.id -> listOf("WEB", "KJV")
-            BibleTranslation.ENGLISH_BBE.id -> listOf("BBE", "KJV", "WEB")
-            else -> listOf("HIOV", "KJV")
+        val candidateCodes = when {
+            translationId.equals(BibleTranslation.HIOV.id, ignoreCase = true) -> listOf("HIOV", "HIN")
+            translationId.equals(BibleTranslation.ENGLISH_ESV.id, ignoreCase = true) -> listOf("ESV", "KJV")
+            translationId.startsWith("ENG", ignoreCase = true) -> listOf("ESV", "KJV")
+            else -> listOf("HIOV", "ESV")
         }
 
         for (code in candidateCodes) {

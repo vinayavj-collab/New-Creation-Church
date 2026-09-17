@@ -8,9 +8,9 @@ enum class BibleFontSize(val title: String, val sp: Float) {
 }
 
 enum class BibleLineSpacing(val title: String, val multiplier: Float) {
-    COMPACT("Compact (सघन)", 1.25f),
-    NORMAL("Normal (सामान्य)", 1.45f),
-    COMFORTABLE("Comfortable (खुला)", 1.70f)
+    COMPACT("Compact (सघन)", 1.35f),
+    NORMAL("Normal (सामान्य)", 1.65f),
+    COMFORTABLE("Comfortable (खुला)", 1.90f)
 }
 
 enum class BibleTheme(val titleHindi: String, val titleEnglish: String) {
@@ -60,42 +60,62 @@ enum class VerseTapSelectionMode(val titleHindi: String, val titleEnglish: Strin
     VERSE_NUMBER_ONLY("केवल वचन संख्या टैप करें (Verse Number Only)", "Tap Verse Number Only")
 }
 
+enum class VerseNumberSize(val titleHindi: String, val titleEnglish: String, val scale: Float) {
+    SUPERSCRIPT("छोटा/ऊपर (Small Superscript)", "Superscript", 0.62f),
+    NORMAL("सामान्य/बराबर (Normal Size)", "Normal Size", 0.95f)
+}
+
 data class BibleReadingSettings(
     val fontSize: BibleFontSize = BibleFontSize.NORMAL,
     val lineSpacing: BibleLineSpacing = BibleLineSpacing.NORMAL,
-    val fontStyle: BibleFontFamilyType = BibleFontFamilyType.SYSTEM_DEFAULT,
+    val fontStyle: BibleFontFamilyType = BibleFontFamilyType.CLASSIC_SERIF,
     val showVerseNumbers: Boolean = true,
+    val verseNumberSize: VerseNumberSize = VerseNumberSize.SUPERSCRIPT,
     val showSubheadings: Boolean = true,
+    val showChapterOutline: Boolean = true, // Show Chapter Outline & Verse Groupings summary card at top of chapter
+    val showHeadingVerseRanges: Boolean = true, // Show verse range info tags on section headings
     val showFavoritesHint: Boolean = true,
     val showBookmarkHint: Boolean = true,
     val showHighlights: Boolean = true,
     val showParagraphAndIndents: Boolean = true,
-    val showJesusWordsInRed: Boolean = false, // Default is now OFF as requested
-    val jesusWordsColorHex: String = "#DC2626", // Red, Crimson, Maroon, Amber, Gold
+    val showJesusWordsInRed: Boolean = false,
+    val jesusWordsColorHex: String = "#991B1B", // Dark rich red for Jesus' words in printed bibles
     val customTextColorHex: String? = null, // Custom main text color
     val customHeadingColorHex: String? = null, // Custom chapter/section heading color
     val customSubHeadingColorHex: String? = null, // Custom subheading color
     val justifyBibleText: Boolean = false,
     val suggestVerseSelection: Boolean = true,
     val showNoteHint: Boolean = true,
-    val showAudioPlayer: Boolean = true,
+    val showAudioPlayer: Boolean = false,
     val noteFormatHtml: Boolean = true,
     val screenTimeoutMinutes: Int = -1, // Default keep screen on while reading or custom timeout
     val theme: BibleTheme = BibleTheme.PAPER, // Default comforting reading paper
     val rememberLastReadingPosition: Boolean = true,
-    val selectedTranslationId: String = BibleTranslation.HINDI_IRV.id,
-    val useSerifFont: Boolean = false,
+    val selectedTranslationId: String = BibleTranslation.HIOV.id,
+    val useSerifFont: Boolean = true,
     val originalFormatMode: Boolean = false,
     val translationToggleBehavior: TranslationToggleBehavior = TranslationToggleBehavior.SINGLE_TAP_SHOW_ALL,
     val verseTapSelectionMode: VerseTapSelectionMode = VerseTapSelectionMode.ENTIRE_VERSE,
     // Dual / Bilingual Bible Options
     val isDualBibleEnabled: Boolean = false,
-    val dualHindiVersionId: String = BibleTranslation.HINDI_IRV.id,
-    val dualEnglishVersionId: String = BibleTranslation.ENGLISH_KJV.id,
+    val dualHindiVersionId: String = BibleTranslation.HIOV.id,
+    val dualEnglishVersionId: String = BibleTranslation.ENGLISH_ESV.id,
     val dualViewMode: DualViewMode = DualViewMode.INTERLEAVED,
     // Version 21 & 22 Settings
     val showTodaysScriptureOnHome: Boolean = false, // By default hidden on Bible main navigation page
     val showActivatedPlansOnHome: Boolean = true, // Show activated plans on Bible main navigation page
     val activatedPlanIds: Set<String> = emptySet(), // Set of activated reading plan IDs
-    val manualPlansJson: String = "" // Serialized manual reading plans
+    val manualPlansJson: String = "", // Serialized manual reading plans
+    // Advanced Audio Customization
+    val ttsSmartStartActiveVerse: Boolean = true, // TTS starts reading from currently highlighted/active verse
+    val ttsBackgroundPlay: Boolean = true, // Background foreground playback
+    val ttsSleepTimerMinutes: Int = 0, // 0 = unlimited, >0 = minutes
+    val ttsSleepChapterCount: Int = 0, // 0 = unlimited, 1 = current chapter, >1 = X chapters
+    val enableDevotionalBgm: Boolean = false, // Background music enabled
+    val ttsVolume: Float = 1.0f, // 0.0 to 1.0
+    val bgmVolume: Float = 0.5f, // 0.0 to 1.0
+    val selectedBgmTrackId: String = "peaceful_morning", // Preset track ID or "custom_file"
+    val customBgmUri: String = "", // URI of user-selected local audio file
+    val customBgmFileName: String = "", // Display name of user-selected local audio file
+    val externalFolderPath: String = "" // SAF persisted folder URI for external modules
 )

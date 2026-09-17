@@ -22,11 +22,11 @@ fun WelcomeCustomizationDialog(
 ) {
     val settings by viewModel.settings.collectAsState()
 
-    var nameInput by remember { mutableStateOf(settings.userName) }
-    var welcomeSpeechEnabled by remember { mutableStateOf(settings.enableWelcomeSpeech) }
-    var verseSpeechEnabled by remember { mutableStateOf(settings.enableVerseSpeechOnLaunch) }
-    var welcomeOnceDay by remember { mutableStateOf(settings.welcomeSpeechOncePerDay) }
-    var verseOnceDay by remember { mutableStateOf(settings.verseSpeechOncePerDay) }
+    var nameInput by remember(settings.userName) { mutableStateOf(settings.userName) }
+    var welcomeSpeechEnabled by remember(settings.enableWelcomeSpeech) { mutableStateOf(settings.enableWelcomeSpeech) }
+    var verseSpeechEnabled by remember(settings.enableVerseSpeechOnLaunch) { mutableStateOf(settings.enableVerseSpeechOnLaunch) }
+    var welcomeOnceDay by remember(settings.welcomeSpeechOncePerDay) { mutableStateOf(settings.welcomeSpeechOncePerDay) }
+    var verseOnceDay by remember(settings.verseSpeechOncePerDay) { mutableStateOf(settings.verseSpeechOncePerDay) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -205,6 +205,28 @@ fun WelcomeCustomizationDialog(
                     )
                 }
 
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                // Volume Control Only (Pitch & Speed hidden for welcome dialog, available in Main Settings)
+                Text(
+                    text = "🔊 आवाज़ वॉल्यूम (Voice Volume)",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var speechVolume by remember(settings.greetingSpeechVolume) { mutableStateOf(settings.greetingSpeechVolume) }
+
+                Text("वॉइस वॉल्यूम: ${(speechVolume * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
+                Slider(
+                    value = speechVolume,
+                    onValueChange = {
+                        speechVolume = it
+                        viewModel.updateGreetingSpeechVolume(it)
+                    },
+                    valueRange = 0.1f..1.0f
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Action Buttons Row
@@ -216,6 +238,7 @@ fun WelcomeCustomizationDialog(
                     OutlinedButton(
                         onClick = {
                             viewModel.updateUserName(nameInput)
+                            viewModel.updateGreetingSpeechVolume(speechVolume)
                             viewModel.testWelcomeSpeech()
                         },
                         modifier = Modifier.weight(1f),
@@ -234,6 +257,7 @@ fun WelcomeCustomizationDialog(
                             viewModel.updateEnableVerseSpeechOnLaunch(verseSpeechEnabled)
                             viewModel.updateWelcomeSpeechOncePerDay(welcomeOnceDay)
                             viewModel.updateVerseSpeechOncePerDay(verseOnceDay)
+                            viewModel.updateGreetingSpeechVolume(speechVolume)
                             viewModel.updateWelcomeDialogDismissed(true)
 
                             // Trigger speech

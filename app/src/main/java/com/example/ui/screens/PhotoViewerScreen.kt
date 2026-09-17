@@ -2,7 +2,10 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -29,6 +32,8 @@ import coil.request.ImageRequest
 import com.example.data.model.GalleryPhoto
 import com.example.ui.components.SourceBadge
 import com.example.util.BloggerImageUtils
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 @Composable
 fun PhotoViewerScreen(
@@ -38,12 +43,16 @@ fun PhotoViewerScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(
         initialPage = initialIndex.coerceIn(0, (photos.size - 1).coerceAtLeast(0)),
         pageCount = { photos.size }
     )
 
     val currentPhoto = photos.getOrNull(pagerState.currentPage)
+
+    // Swipe up/down dismissal offset
+    val dismissOffsetY = remember { Animatable(0f) }
 
     val sharePhoto = {
         if (currentPhoto != null) {
@@ -75,10 +84,33 @@ fun PhotoViewerScreen(
         if (photos.isNotEmpty()) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        translationY = dismissOffsetY.value
+                        val progress = (abs(dismissOffsetY.value) / 600f).coerceIn(0f, 1f)
+                        alpha = 1f - (progress * 0.5f)
+                    }
             ) { page ->
                 val photo = photos[page]
-                ZoomableImage(photo = photo)
+                ZoomableImageWithSwipeDismiss(
+                    photo = photo,
+                    onDismiss = onBack,
+                    onDragY = { dy ->
+                        coroutineScope.launch {
+                            dismissOffsetY.snapTo(dismissOffsetY.value + dy)
+                        }
+                    },
+                    onReleaseY = {
+                        coroutineScope.launch {
+                            if (abs(dismissOffsetY.value) > 180f) {
+                                onBack()
+                            } else {
+                                dismissOffsetY.animateTo(0f, tween(200))
+                            }
+                        }
+                    }
+                )
             }
         }
 
@@ -167,7 +199,12 @@ fun PhotoViewerScreen(
 }
 
 @Composable
-fun ZoomableImage(photo: GalleryPhoto) {
+fun ZoomableImageWithSwipeDismiss(
+    photo: GalleryPhoto,
+    onDismiss: () -> Unit,
+    onDragY: (Float) -> Unit,
+    onReleaseY: () -> Unit
+) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
@@ -175,15 +212,37 @@ fun ZoomableImage(photo: GalleryPhoto) {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .pointerInput(scale) {
+                if (scale > 1.05f) {
+                    // When zoomed in, allow panning and zooming
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(1f, 4f)
+                        if (scale > 1f) {
+                            offsetX += pan.x
+                            offsetY += pan.y
+                        } else {
+                            offsetX = 0f
+                            offsetY = 0f
+                        }
+                    }
+                } else {
+                    // When not zoomed, allow pinch to zoom AND vertical drag to dismiss
+                    detectDragGestures(
+                        onDragEnd = { onReleaseY() },
+                        onDragCancel = { onReleaseY() },
+                        onDrag = { change, dragAmount ->
+                            if (abs(dragAmount.y) > abs(dragAmount.x) * 0.8f) {
+                                change.consume()
+                                onDragY(dragAmount.y)
+                            }
+                        }
+                    )
+                }
+            }
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(1f, 4f)
-                    if (scale > 1f) {
-                        offsetX += pan.x
-                        offsetY += pan.y
-                    } else {
-                        offsetX = 0f
-                        offsetY = 0f
+                    if (zoom != 1f) {
+                        scale = (scale * zoom).coerceIn(1f, 4f)
                     }
                 }
             },
@@ -207,3 +266,4 @@ fun ZoomableImage(photo: GalleryPhoto) {
         )
     }
 }
+

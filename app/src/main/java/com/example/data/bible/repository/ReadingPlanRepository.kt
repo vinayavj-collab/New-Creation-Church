@@ -14,6 +14,10 @@ class ReadingPlanRepository(private val bibleDao: BibleDao) {
         return bibleDao.getPlanProgress(planId)
     }
 
+    fun getAllProgress(): Flow<List<ReadingPlanProgressEntity>> {
+        return bibleDao.getAllProgress()
+    }
+
     suspend fun markDayCompleted(planId: String, dayNumber: Int, completed: Boolean) = withContext(Dispatchers.IO) {
         bibleDao.setPlanDayCompleted(
             ReadingPlanProgressEntity(

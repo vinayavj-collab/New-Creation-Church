@@ -1,6 +1,6 @@
 {
-  "name": "Vinay Kumar AVJ",
-  "description": "Fellowship Events • Videos • Photos • Memories - Central hub for fellowship events, sermons, videos, and photo gallery.",
+  "name": "New Creation Church",
+  "description": "New Creation Church - Holy Bible with Hindi (HIOV), English (ESV), Reading Plans, Audio, and Church Fellowship.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -36,6 +36,9 @@ fun YouVersionQuickFontSheet(
     onFontSizeChange: (BibleFontSize) -> Unit,
     onLineSpacingChange: (BibleLineSpacing) -> Unit,
     onFontStyleChange: (BibleFontFamilyType) -> Unit,
+    onVerseNumberSizeChange: (VerseNumberSize) -> Unit = {},
+    onToggleChapterOutline: (Boolean) -> Unit = {},
+    onToggleHeadingVerseRanges: (Boolean) -> Unit = {},
     onThemeChange: (BibleTheme) -> Unit,
     onScreenTimeoutChange: (Int) -> Unit,
     onCustomTextColorChange: (String?) -> Unit,
@@ -349,7 +352,32 @@ fun YouVersionQuickFontSheet(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 6. Quick Toggles: Jesus words in Red (Default OFF), Justify
+            // 6. Quick Toggles: Verse Number Size, Jesus words in Red (Default OFF), Justify
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        text = "वचन संख्या सामान्य आकार (Normal Verse Numbers)",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                    )
+                    Text(
+                        text = if (settings.verseNumberSize == VerseNumberSize.NORMAL) "वचन संख्या सामान्य आकार में है" else "वचन संख्या छोटा/ऊपर (Superscript) है",
+                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    )
+                }
+                Switch(
+                    checked = settings.verseNumberSize == VerseNumberSize.NORMAL,
+                    onCheckedChange = { isNormal ->
+                        onVerseNumberSizeChange(if (isNormal) VerseNumberSize.NORMAL else VerseNumberSize.SUPERSCRIPT)
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -370,6 +398,52 @@ fun YouVersionQuickFontSheet(
                     onCheckedChange = onToggleJesusWordsInRed
                 )
             }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        text = "अध्याय रूपरेखा कार्ड (Chapter Outline)",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                    )
+                    Text(
+                        text = "वचन समूहों की संक्षिप्त सूची व त्वरित नेविगेशन",
+                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    )
+                }
+                Switch(
+                    checked = settings.showChapterOutline,
+                    onCheckedChange = onToggleChapterOutline
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        text = "शीर्षक में वचन सीमा (Verse Ranges)",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                    )
+                    Text(
+                        text = "शीर्षक के साथ [वचन 1–12] सीमा प्रदर्शित करें",
+                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    )
+                }
+                Switch(
+                    checked = settings.showHeadingVerseRanges,
+                    onCheckedChange = onToggleHeadingVerseRanges
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

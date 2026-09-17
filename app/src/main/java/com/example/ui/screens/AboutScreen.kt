@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,10 +19,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.LocalAppProfile
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyDark
 import com.example.ui.theme.NavyPrimary
@@ -63,6 +68,7 @@ fun AboutScreen(
             contentPadding = PaddingValues(16.dp)
         ) {
             item {
+                val activeProfile = LocalAppProfile.current
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -73,28 +79,30 @@ fun AboutScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(NavyPrimary),
+                            .background(Color.Transparent),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "V",
-                            color = GoldWarm,
-                            fontSize = 42.sp,
-                            fontWeight = FontWeight.Bold
+                        Image(
+                            painter = painterResource(id = activeProfile.appIconRes),
+                            contentDescription = activeProfile.displayNameEnglish,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Fit
                         )
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
-                        text = "Vinay Kumar AVJ",
+                        text = activeProfile.displayNameEnglish,
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         )
                     )
 
                     Text(
-                        text = "Fellowship Events • Videos • Photos • Memories",
+                        text = activeProfile.subtitleEnglish,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold
@@ -102,9 +110,10 @@ fun AboutScreen(
                     )
 
                     Text(
-                        text = "Version 1.4 • Production Hub",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = MaterialTheme.colorScheme.outline
+                        text = activeProfile.displayNameHindi,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            color = MaterialTheme.colorScheme.outline,
+                            fontWeight = FontWeight.Medium
                         )
                     )
 

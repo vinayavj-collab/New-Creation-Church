@@ -18,7 +18,7 @@ data class BackupMetadata(
     val bookmarkCount: Int,
     val highlightCount: Int,
     val noteCount: Int,
-    val dedicatedNoteCount: Int,
+    val studyNoteCount: Int,
     val customSongCount: Int
 )
 
@@ -31,7 +31,7 @@ class BackupRepository(
         val bookmarks = bibleDao.getAllBookmarks().first()
         val highlights = bibleDao.getAllHighlights().first()
         val notes = bibleDao.getAllNotes().first()
-        val dedicatedNotes = bibleDao.getAllDedicatedNotes().first()
+        val studyNotes = try { bibleDao.getAllStudyNotesByDate().first() } catch (e: Exception) { emptyList() }
         val songs = bibleDao.getAllSongs().first().filter { it.isUserCreated || it.isFavorite }
 
         val root = JSONObject()
@@ -81,21 +81,19 @@ class BackupRepository(
         }
         root.put("notes", noteArray)
 
-        // Dedicated Notes
-        val dnArray = JSONArray()
-        dedicatedNotes.forEach { dn ->
+        // Study Notes
+        val snArray = JSONArray()
+        studyNotes.forEach { sn ->
             val obj = JSONObject()
-            obj.put("id", dn.id)
-            obj.put("title", dn.title)
-            obj.put("content", dn.content)
-            obj.put("colorHex", dn.colorHex)
-            obj.put("textColorHex", dn.textColorHex)
-            obj.put("linkedReferences", dn.linkedReferences)
-            obj.put("createdAt", dn.createdAt)
-            obj.put("modifiedAt", dn.modifiedAt)
-            dnArray.put(obj)
+            obj.put("noteId", sn.noteId)
+            obj.put("title", sn.title)
+            obj.put("tags", sn.tags)
+            obj.put("date", sn.date)
+            obj.put("time", sn.time)
+            obj.put("content", sn.content)
+            snArray.put(obj)
         }
-        root.put("dedicatedNotes", dnArray)
+        root.put("studyNotes", snArray)
 
         // Songs
         val songArray = JSONArray()
@@ -191,21 +189,20 @@ class BackupRepository(
                 }
             }
 
-            // Dedicated notes
-            if (root.has("dedicatedNotes")) {
-                val dnArray = root.getJSONArray("dedicatedNotes")
-                for (i in 0 until dnArray.length()) {
-                    val obj = dnArray.getJSONObject(i)
-                    val dn = DedicatedNoteEntity(
+            // Study notes
+            if (root.has("studyNotes")) {
+                val snArray = root.getJSONArray("studyNotes")
+                for (i in 0 until snArray.length()) {
+                    val obj = snArray.getJSONObject(i)
+                    val sn = StudyNoteEntity(
+                        noteId = obj.optLong("noteId", 0L),
                         title = obj.optString("title", "Untitled Note"),
-                        content = obj.optString("content", ""),
-                        colorHex = obj.optString("colorHex", "#FFFBEB"),
-                        textColorHex = obj.optString("textColorHex", "#1E293B"),
-                        linkedReferences = obj.optString("linkedReferences", ""),
-                        createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
-                        modifiedAt = obj.optLong("modifiedAt", System.currentTimeMillis())
+                        tags = obj.optString("tags", ""),
+                        date = obj.optString("date", ""),
+                        time = obj.optString("time", ""),
+                        content = obj.optString("content", "")
                     )
-                    bibleDao.insertDedicatedNote(dn)
+                    bibleDao.insertStudyNote(sn)
                     restoredCount++
                 }
             }
