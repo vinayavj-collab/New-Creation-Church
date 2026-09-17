@@ -441,9 +441,13 @@ fun AppNavigationHost(
     var readingPlanTabMode by remember { mutableStateOf(com.example.ui.bible.ReadingTabMode.PLANS) }
     val galleryPhotos by viewModel.galleryPhotos.collectAsState()
 
-    // Notify activity of video playing state for PiP onUserLeaveHint
+    // Notify activity of video playing state for PiP onUserLeaveHint and reset orientation when leaving video
     LaunchedEffect(currentRoute) {
-        onVideoPlayingStateChanged(currentRoute is AppRoute.YouTubePlayer)
+        val isVideo = currentRoute is AppRoute.YouTubePlayer
+        onVideoPlayingStateChanged(isVideo)
+        if (!isVideo) {
+            (context as? ComponentActivity)?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
     }
 
     // Handle deep link / widget launch route

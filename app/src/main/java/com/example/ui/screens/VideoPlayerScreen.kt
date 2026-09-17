@@ -1,7 +1,10 @@
 package com.example.ui.screens
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,25 +24,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -56,15 +55,15 @@ import com.example.data.model.YouTubeVideo
 import com.example.ui.components.UniversalVideoPlayer
 import com.example.ui.components.YouTubeVideoCard
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.VideoPlaybackTracker
 
 /**
  * Universal Video Player Screen:
- * - Pinned video player at the top so scrolling never reloads or restarts the video.
- * - Clean, distraction-free UI without redundant tech labels.
- * - True immersive full-screen without banners or text overlays.
- * - Dynamic, non-definite mix of related and random video thumbnails from across all sources.
+ * - Uses movableContentOf to preserve uninterrupted video playback across Fullscreen,
+ *   Landscape, and Picture-in-Picture transitions without restarting the stream.
+ * - BackHandler automatically exits landscape mode before navigating back.
+ * - Restores Portrait orientation upon disposal so the app never gets stuck in landscape.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoPlayerScreen(
     video: YouTubeVideo,
@@ -76,9 +75,32 @@ fun VideoPlayerScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val allVideos by viewModel.youtubeVideos.collectAsStateWithLifecycle()
+
+    // Notify tracker that this video is active and playing
+    DisposableEffect(video.id) {
+        VideoPlaybackTracker.setPlaying(video.id, true)
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
+
+    // Handle Back action: If in landscape, return to portrait first; otherwise exit screen
+    val handleBackPress = {
+        if (isLandscape) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        } else {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            onBack()
+        }
+    }
+
+    BackHandler(enabled = true) {
+        handleBackPress()
+    }
 
     // Dynamic, non-definite mixture of related & random videos from all sources
     val relatedVideos = remember(video.id, allVideos) {
@@ -123,7 +145,18 @@ fun VideoPlayerScreen(
         context.startActivity(shareIntent)
     }
 
-    // Full Screen / Landscape / PiP: Pure uninterrupted video display without any top banner or text
+    // Single persistent player node across all layout configurations
+    val videoPlayerNode = remember(playTarget) {
+        movableContentOf {
+            UniversalVideoPlayer(
+                videoUrlOrId = playTarget,
+                modifier = Modifier.fillMaxSize(),
+                autoplay = true
+            )
+        }
+    }
+
+    // Full Screen / Landscape / PiP: Pure uninterrupted video display
     if (isInPictureInPictureMode || isLandscape) {
         Box(
             modifier = modifier
@@ -131,76 +164,23 @@ fun VideoPlayerScreen(
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
-            UniversalVideoPlayer(
-                videoUrlOrId = playTarget,
-                modifier = Modifier.fillMaxSize(),
-                autoplay = true
-            )
+            videoPlayerNode()
         }
-        return
-    }
-
-    // Portrait Mode Layout
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = video.title.ifBlank { "Video" },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                actions = {
-                    if (onEnterPipClick != null) {
-                        IconButton(onClick = onEnterPipClick) {
-                            Icon(
-                                imageVector = Icons.Default.PictureInPictureAlt,
-                                contentDescription = "Picture-in-Picture"
-                            )
-                        }
-                    }
-                    IconButton(onClick = shareVideo) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share video"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
+    } else {
+        // Portrait Mode Layout: Video touches status bar at the top with details below
         Column(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // FIXED Video Player at the Top: Never gets destroyed or reset when scrolling below!
+            // FIXED Video Player at the Top touching status bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
                     .background(Color.Black)
             ) {
-                UniversalVideoPlayer(
-                    videoUrlOrId = playTarget,
-                    modifier = Modifier.fillMaxSize(),
-                    autoplay = true
-                )
+                videoPlayerNode()
             }
 
             // Scrollable Content (Details + Dynamic Recommended Videos)
@@ -252,14 +232,31 @@ fun VideoPlayerScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        OutlinedButton(
-                            onClick = shareVideo,
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Share Video")
+                            OutlinedButton(
+                                onClick = shareVideo,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Share")
+                            }
+
+                            if (onEnterPipClick != null) {
+                                OutlinedButton(
+                                    onClick = onEnterPipClick,
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.PictureInPictureAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("PiP")
+                                }
+                            }
                         }
 
                         // Expandable Description

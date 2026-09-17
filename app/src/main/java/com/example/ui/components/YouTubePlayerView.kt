@@ -16,21 +16,16 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -39,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.util.VideoPlaybackTracker
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -48,11 +44,8 @@ fun YouTubePlayerView(
     onFallbackClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var hasError by remember { mutableStateOf(false) }
     var errorCode by remember { mutableStateOf(0) }
-    var useDirectWebFallback by remember { mutableStateOf(false) }
 
     val openInYouTube = {
         try {
@@ -65,17 +58,6 @@ fun YouTubePlayerView(
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             context.startActivity(webIntent)
-        }
-    }
-
-    val toggleOrientation = {
-        val activity = context as? ComponentActivity
-        if (activity != null) {
-            activity.requestedOrientation = if (isLandscape) {
-                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            } else {
-                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            }
         }
     }
 
@@ -166,6 +148,28 @@ fun YouTubePlayerView(
                                     hasError = true
                                 }
                             }
+
+                            @JavascriptInterface
+                            fun onPlaybackProgress(seconds: Float, isPlaying: Boolean) {
+                                if (seconds > 0f) {
+                                    VideoPlaybackTracker.setPosition(videoId, seconds)
+                                    VideoPlaybackTracker.setPlaying(videoId, isPlaying)
+                                }
+                            }
+
+                            @JavascriptInterface
+                            fun onFullScreenChanged(isFull: Boolean) {
+                                post {
+                                    val activity = ctx as? ComponentActivity
+                                    if (activity != null) {
+                                        activity.requestedOrientation = if (isFull) {
+                                            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                        } else {
+                                            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                        }
+                                    }
+                                }
+                            }
                         }, "AndroidApp")
 
                         webChromeClient = object : WebChromeClient() {
@@ -176,12 +180,16 @@ fun YouTubePlayerView(
                                 super.onShowCustomView(view, callback)
                                 customView = view
                                 customViewCallback = callback
+                                val activity = ctx as? ComponentActivity
+                                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                             }
 
                             override fun onHideCustomView() {
                                 super.onHideCustomView()
                                 customView = null
                                 customViewCallback?.onCustomViewHidden()
+                                val activity = ctx as? ComponentActivity
+                                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                             }
                         }
 
@@ -215,6 +223,10 @@ fun YouTubePlayerView(
                             }
                         }
 
+                        val savedTime = VideoPlaybackTracker.getPosition(videoId)
+                        val startSecInt = savedTime.toInt()
+                        val startParam = if (startSecInt > 2) "&start=$startSecInt" else ""
+
                         val embedHtml = """
                             <!DOCTYPE html>
                             <html>
@@ -244,10 +256,12 @@ fun YouTubePlayerView(
                             <body>
                                 <iframe 
                                     id="player"
-                                    src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&playsinline=1&enablejsapi=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3"
+                                    src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&playsinline=1&enablejsapi=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3$startParam"
                                     frameborder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowfullscreen
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                                    allowfullscreen="true"
+                                    webkitallowfullscreen="true"
+                                    mozallowfullscreen="true"
                                     referrerpolicy="strict-origin-when-cross-origin">
                                 </iframe>
                                 <script>
@@ -257,17 +271,51 @@ fun YouTubePlayerView(
                                     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
                                     var player;
+                                    var progressTimer = null;
+
+                                    function setupProgressTracking() {
+                                        if (progressTimer) clearInterval(progressTimer);
+                                        progressTimer = setInterval(function() {
+                                            try {
+                                                if (player && player.getCurrentTime) {
+                                                    var curr = player.getCurrentTime();
+                                                    var st = player.getPlayerState ? player.getPlayerState() : 1;
+                                                    if (window.AndroidApp && window.AndroidApp.onPlaybackProgress) {
+                                                        window.AndroidApp.onPlaybackProgress(curr, st === 1 || st === 3);
+                                                    }
+                                                }
+                                            } catch(e){}
+                                        }, 500);
+                                    }
+
                                     function onYouTubeIframeAPIReady() {
                                         player = new YT.Player('player', {
                                             events: {
                                                 'onReady': function(e) {
-                                                    try { e.target.playVideo(); } catch(err){}
+                                                    try {
+                                                        var startSec = $savedTime;
+                                                        if (startSec > 2) {
+                                                            e.target.seekTo(startSec, true);
+                                                        }
+                                                        e.target.playVideo();
+                                                        setupProgressTracking();
+                                                    } catch(err){}
+                                                },
+                                                'onStateChange': function(e) {
+                                                    try {
+                                                        if (player && player.getCurrentTime) {
+                                                            var curr = player.getCurrentTime();
+                                                            var isPlaying = (e.data === 1 || e.data === 3);
+                                                            if (window.AndroidApp && window.AndroidApp.onPlaybackProgress) {
+                                                                window.AndroidApp.onPlaybackProgress(curr, isPlaying);
+                                                            }
+                                                        }
+                                                    } catch(err){}
                                                 },
                                                 'onError': function(e) {
                                                     if (window.AndroidApp && window.AndroidApp.onPlaybackError) {
-                                                        // Only trigger fallback for hard fatal errors, avoid 150/152 false positives
                                                         if (e.data === 150 || e.data === 152 || e.data === 101) {
-                                                            // IFrame direct stream handles it
+                                                            // IFrame stream handles it
                                                         } else {
                                                             window.AndroidApp.onPlaybackError(e.data);
                                                         }
@@ -276,6 +324,20 @@ fun YouTubePlayerView(
                                             }
                                         });
                                     }
+
+                                    // Listen to Fullscreen changes
+                                    document.addEventListener("fullscreenchange", function() {
+                                        var isFull = !!(document.fullscreenElement);
+                                        if (window.AndroidApp && window.AndroidApp.onFullScreenChanged) {
+                                            window.AndroidApp.onFullScreenChanged(isFull);
+                                        }
+                                    });
+                                    document.addEventListener("webkitfullscreenchange", function() {
+                                        var isFull = !!(document.webkitFullscreenElement);
+                                        if (window.AndroidApp && window.AndroidApp.onFullScreenChanged) {
+                                            window.AndroidApp.onFullScreenChanged(isFull);
+                                        }
+                                    });
                                 </script>
                             </body>
                             </html>
@@ -285,7 +347,7 @@ fun YouTubePlayerView(
                     }
                 },
                 update = { webView ->
-                    // Keep updated
+                    // Keep instance active
                 },
                 onRelease = { webView ->
                     try {
@@ -302,21 +364,6 @@ fun YouTubePlayerView(
                     }
                 }
             )
-
-            // Landscape / Screen Rotation Control Button overlay
-            IconButton(
-                onClick = toggleOrientation,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-            ) {
-                Icon(
-                    imageVector = if (isLandscape) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                    contentDescription = "Toggle Screen Orientation",
-                    tint = Color.White
-                )
-            }
         }
     }
 }

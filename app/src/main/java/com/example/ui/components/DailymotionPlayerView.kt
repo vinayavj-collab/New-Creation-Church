@@ -310,21 +310,6 @@ fun DailymotionPlayerView(
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
-
-            // Orientation toggle button
-            IconButton(
-                onClick = toggleOrientation,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-            ) {
-                Icon(
-                    imageVector = if (isLandscape) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                    contentDescription = "Toggle Fullscreen Orientation",
-                    tint = Color.White
-                )
-            }
         }
     }
 }
