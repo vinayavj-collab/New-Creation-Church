@@ -595,7 +595,8 @@ class FirebaseDataRepository private constructor() {
                         publishedAt = publishedAt,
                         publishedTimestamp = timestamp,
                         description = description,
-                        videoUrl = videoUrl
+                        videoUrl = videoUrl,
+                        isRemote = true
                     )
                 )
             } catch (e: Exception) {

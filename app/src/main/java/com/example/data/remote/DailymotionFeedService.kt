@@ -100,13 +100,21 @@ class DailymotionFeedService(
                     val id = item.optString("id", "")
                     val title = item.optString("title", "Dailymotion Video")
                     val description = item.optString("description", "")
+                    val videoUrl = item.optString("url", "https://www.dailymotion.com/video/$id")
+
+                    // Hide specified excluded videos
+                    if (id.equals("x2dzbsk", ignoreCase = true) ||
+                        videoUrl.contains("x2dzbsk", ignoreCase = true) ||
+                        title.contains("JOEL OSTEEN", ignoreCase = true)
+                    ) {
+                        continue
+                    }
                     var thumb = item.optString("thumbnail_480_url", "")
                     if (thumb.isBlank()) {
                         thumb = item.optString("thumbnail_360_url", "https://www.dailymotion.com/thumbnail/video/$id")
                     }
                     val createdTime = item.optLong("created_time", 0L) * 1000L
                     val owner = item.optString("owner.screenname", defaultOwner)
-                    val videoUrl = item.optString("url", "https://www.dailymotion.com/video/$id")
 
                     val displayDate = if (createdTime > 0) {
                         val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())

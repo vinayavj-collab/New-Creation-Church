@@ -236,6 +236,15 @@ class DailymotionDataParser(
 
                     val title = item.optString("title", "Dailymotion Video")
                     val description = item.optString("description", "")
+                    val videoUrl = item.optString("url", "https://www.dailymotion.com/video/$rawId")
+
+                    // Hide specified excluded videos
+                    if (rawId.equals("x2dzbsk", ignoreCase = true) ||
+                        videoUrl.contains("x2dzbsk", ignoreCase = true) ||
+                        title.contains("JOEL OSTEEN", ignoreCase = true)
+                    ) {
+                        continue
+                    }
 
                     val thumb720 = item.optString("thumbnail_720_url", "")
                     val thumb480 = item.optString("thumbnail_480_url", "")
@@ -250,7 +259,6 @@ class DailymotionDataParser(
                     val createdSec = item.optLong("created_time", 0L)
                     val createdTimestamp = if (createdSec > 0) createdSec * 1000L else System.currentTimeMillis()
                     val owner = item.optString("owner.screenname", defaultOwner)
-                    val videoUrl = item.optString("url", "https://www.dailymotion.com/video/$rawId")
 
                     val displayDate = if (createdTimestamp > 0) {
                         SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(createdTimestamp))

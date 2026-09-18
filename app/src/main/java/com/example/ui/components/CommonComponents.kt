@@ -733,19 +733,37 @@ fun YouTubeVideoCard(
 
                 // Platform tag badge (YouTube vs Dailymotion)
                 val platformInfo = com.example.util.VideoUrlParser.parse(if (video.videoUrl.isNotBlank()) video.videoUrl else video.id)
-                Surface(
-                    color = if (platformInfo.platform == com.example.util.VideoPlatform.DAILYMOTION) Color(0xFF0066DC) else Color(0xFFD32F2F),
-                    shape = RoundedCornerShape(4.dp),
+                Row(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(8.dp)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = if (platformInfo.platform == com.example.util.VideoPlatform.DAILYMOTION) "DAILYMOTION" else "YOUTUBE",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                    Surface(
+                        color = if (platformInfo.platform == com.example.util.VideoPlatform.DAILYMOTION) Color(0xFF0066DC) else Color(0xFFD32F2F),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = if (platformInfo.platform == com.example.util.VideoPlatform.DAILYMOTION) "DAILYMOTION" else "YOUTUBE",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    if (video.isRemote) {
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.75f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "🔥",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                 }
             }
 

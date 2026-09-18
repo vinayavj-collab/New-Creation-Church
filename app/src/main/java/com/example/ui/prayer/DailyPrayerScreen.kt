@@ -268,8 +268,9 @@ fun DailyPrayerScreen(
                                     shape = RoundedCornerShape(8.dp),
                                     color = GoldWarm.copy(alpha = 0.25f)
                                 ) {
+                                    val isFirebasePrayer = fbPrayers.containsKey(currentPrayer.id)
                                     Text(
-                                        text = "दिवस ${currentPrayer.dayNumber} / ${allPrayers.size} • ${currentPrayer.category}",
+                                        text = if (isFirebasePrayer) "दिवस ${currentPrayer.dayNumber} / ${allPrayers.size} • ${currentPrayer.category} 🔥" else "दिवस ${currentPrayer.dayNumber} / ${allPrayers.size} • ${currentPrayer.category}",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             color = GoldWarm,
                                             fontWeight = FontWeight.Bold

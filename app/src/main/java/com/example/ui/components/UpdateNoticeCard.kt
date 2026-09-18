@@ -53,7 +53,7 @@ fun UpdateNoticeCard(
                         )
                         if (updateState.latestVersionName.isNotBlank()) {
                             Text(
-                                text = "नवीनतम संस्करण: v${updateState.latestVersionName} (Build ${updateState.latestVersionCode})",
+                                text = "नवीनतम संस्करण: New Creation Church v${updateState.latestVersionName} (Build ${updateState.latestVersionCode})",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                 )

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -51,10 +52,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import com.example.data.model.YouTubeVideo
 import com.example.ui.components.UniversalVideoPlayer
 import com.example.ui.components.YouTubeVideoCard
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.GlobalVideoPlayerState
 import com.example.util.VideoPlaybackTracker
 
 /**
@@ -88,12 +92,13 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Handle Back action: If in landscape, return to portrait first; otherwise exit screen
+    // Handle Back action: If in landscape, return to portrait first; otherwise exit to mini player
     val handleBackPress = {
         if (isLandscape) {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         } else {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            GlobalVideoPlayerState.minimizeToMiniPlayer()
             onBack()
         }
     }
@@ -167,18 +172,43 @@ fun VideoPlayerScreen(
             videoPlayerNode()
         }
     } else {
-        // Portrait Mode Layout: Video touches status bar at the top with details below
+        // Portrait Mode Layout: Video below status bar with details below
         Column(
             modifier = modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // FIXED Video Player at the Top touching status bar
+            // FIXED Video Player at the Top below status bar with swipe down / swipe up support
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
                     .background(Color.Black)
+                    .pointerInput(video.id) {
+                        var totalDragY = 0f
+                        detectDragGestures(
+                            onDragEnd = {
+                                if (totalDragY > 60f) {
+                                    // Swipe DOWN -> Minimize to Mini Player
+                                    totalDragY = 0f
+                                    GlobalVideoPlayerState.minimizeToMiniPlayer()
+                                    onBack()
+                                } else if (totalDragY < -60f) {
+                                    // Swipe UP -> Enter Landscape Full Screen mode
+                                    totalDragY = 0f
+                                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                } else {
+                                    totalDragY = 0f
+                                }
+                            },
+                            onDragCancel = { totalDragY = 0f },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                totalDragY += dragAmount.y
+                            }
+                        )
+                    }
             ) {
                 videoPlayerNode()
             }
@@ -199,9 +229,12 @@ fun VideoPlayerScreen(
                     ) {
                         Text(
                             text = video.title,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
-                            )
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            ),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))

@@ -9,7 +9,8 @@ data class YouTubeVideo(
     val publishedAt: String,
     val publishedTimestamp: Long,
     val description: String = "",
-    val videoUrl: String = "https://www.youtube.com/watch?v=$id"
+    val videoUrl: String = "https://www.youtube.com/watch?v=$id",
+    val isRemote: Boolean = false
 )
 
 data class YouTubePlaylist(

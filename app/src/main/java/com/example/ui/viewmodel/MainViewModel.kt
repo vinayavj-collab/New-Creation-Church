@@ -865,11 +865,7 @@ class MainViewModel(
 
     fun checkForAppUpdates(force: Boolean = true) {
         viewModelScope.launch {
-            val result = appUpdateManager.checkForUpdates(force)
-            if (result.isUpdateAvailable) {
-                val s = settings.value
-                welcomeSpeechManager.speakUpdateAnnouncement(s.userName)
-            }
+            appUpdateManager.checkForUpdates(force)
         }
     }
 

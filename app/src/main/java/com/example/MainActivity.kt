@@ -63,6 +63,10 @@ import com.example.ui.bible.BibleSearchScreen
 import com.example.ui.bible.BibleViewModel
 import com.example.ui.components.AppUpdateModalDialog
 import com.example.ui.components.BibleMiniAudioPlayer
+import com.example.ui.components.YouTubeMiniPlayer
+import com.example.ui.components.UniversalVideoPlayer
+import com.example.util.GlobalVideoPlayerState
+import com.example.util.VideoPlaybackForegroundService
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
 import com.example.widget.BibleVerseWidgetProvider
@@ -695,9 +699,51 @@ fun AppNavigationHost(
                                 }
                             }
 
+                            // Global Video State handling
+                            val activeVideo by GlobalVideoPlayerState.currentVideo.collectAsState()
+                            val isMiniPlayerActive by GlobalVideoPlayerState.isMiniPlayerActive.collectAsState()
+                            val isVideoPlaying by GlobalVideoPlayerState.isPlaying.collectAsState()
+                            val context = LocalContext.current
+
+                            // Manage background playback service notification
+                            LaunchedEffect(activeVideo, isMiniPlayerActive, isVideoPlaying) {
+                                val video = activeVideo
+                                if (video != null && isMiniPlayerActive) {
+                                    VideoPlaybackForegroundService.startService(
+                                        context = context,
+                                        videoId = video.id,
+                                        title = video.title,
+                                        channel = video.channelTitle,
+                                        isPlaying = isVideoPlaying
+                                    )
+                                } else if (video == null || !isMiniPlayerActive) {
+                                    VideoPlaybackForegroundService.stopService(context)
+                                }
+                            }
+
                             Scaffold(
                                 bottomBar = {
                                     Column {
+                                        // Floating YouTube Mini Player
+                                        YouTubeMiniPlayer(
+                                            videoPlayerContent = {
+                                                activeVideo?.let { vid ->
+                                                    UniversalVideoPlayer(
+                                                        videoUrlOrId = vid.id,
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        autoplay = true
+                                                    )
+                                                }
+                                            },
+                                            onExpand = { video ->
+                                                GlobalVideoPlayerState.expandToFullScreen()
+                                                currentRoute = AppRoute.YouTubePlayer(video)
+                                            },
+                                            onClose = {
+                                                GlobalVideoPlayerState.closePlayer()
+                                            }
+                                        )
+
                                         BibleMiniAudioPlayer(
                                             audioManager = bibleViewModel.audioManager,
                                             onOpenReader = { bId, chap, vNum ->
@@ -952,6 +998,9 @@ fun AppNavigationHost(
         }
 
         is AppRoute.YouTubePlayer -> {
+            LaunchedEffect(route.video) {
+                GlobalVideoPlayerState.openVideo(route.video)
+            }
             VideoPlayerScreen(
                 video = route.video,
                 viewModel = viewModel,

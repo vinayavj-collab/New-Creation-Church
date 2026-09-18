@@ -540,6 +540,18 @@ class AppUpdateManager private constructor(private val context: Context) {
             downloadStreamToFile(finalConnection, targetFile, onProgress)
             finalConnection.disconnect()
 
+            // Also copy to public Downloads folder so it persists if app is uninstalled
+            try {
+                val publicDownloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                if (publicDownloadsDir != null && (publicDownloadsDir.exists() || publicDownloadsDir.mkdirs())) {
+                    val publicFile = File(publicDownloadsDir, fileName)
+                    targetFile.copyTo(publicFile, overwrite = true)
+                    Log.d("AppUpdateManager", "Copied APK to public Downloads folder: ${publicFile.absolutePath}")
+                }
+            } catch (pubErr: Exception) {
+                Log.w("AppUpdateManager", "Could not copy APK to public downloads folder: ${pubErr.message}")
+            }
+
             // Validate downloaded APK safely
             val validationError = validateApk(targetFile)
             if (validationError != null) {

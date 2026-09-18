@@ -177,19 +177,36 @@ fun YouTubePlayerView(
                             private var customViewCallback: CustomViewCallback? = null
 
                             override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
-                                super.onShowCustomView(view, callback)
-                                customView = view
-                                customViewCallback = callback
+                                if (customView != null) {
+                                    callback?.onCustomViewHidden()
+                                    return
+                                }
                                 val activity = ctx as? ComponentActivity
-                                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                val decorView = activity?.window?.decorView as? ViewGroup
+                                if (decorView != null && view != null) {
+                                    customView = view
+                                    customViewCallback = callback
+                                    decorView.addView(
+                                        view,
+                                        ViewGroup.LayoutParams(
+                                            ViewGroup.LayoutParams.MATCH_PARENT,
+                                            ViewGroup.LayoutParams.MATCH_PARENT
+                                        )
+                                    )
+                                    activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                }
                             }
 
                             override fun onHideCustomView() {
-                                super.onHideCustomView()
-                                customView = null
-                                customViewCallback?.onCustomViewHidden()
                                 val activity = ctx as? ComponentActivity
-                                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                val decorView = activity?.window?.decorView as? ViewGroup
+                                if (customView != null) {
+                                    decorView?.removeView(customView)
+                                    customView = null
+                                    customViewCallback?.onCustomViewHidden()
+                                    customViewCallback = null
+                                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                }
                             }
                         }
 

@@ -33,6 +33,7 @@ import com.example.data.bible.model.VerseOfTheDay
 import com.example.data.bible.model.ActiveReadingPlanItem
 import androidx.compose.ui.platform.testTag
 import com.example.data.model.*
+import com.example.data.prayer.repository.FirebaseDailyPrayerManager
 import com.example.ui.components.*
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyPrimary
@@ -96,6 +97,13 @@ fun HomeScreen(
     val dailyGreetingText by viewModel.dailyGreetingText.collectAsStateWithLifecycle()
     val verseOfTheDayText by viewModel.verseOfTheDayText.collectAsStateWithLifecycle()
     val specialAnnouncementText by viewModel.specialAnnouncementText.collectAsStateWithLifecycle()
+
+    val dailyPrayerManager = remember { FirebaseDailyPrayerManager.getInstance(context) }
+    val firebasePrayers by dailyPrayerManager.firebasePrayers.collectAsStateWithLifecycle()
+    val isTodayPrayerFromFirebase = remember(firebasePrayers) {
+        val todayPrayerId = dailyPrayerManager.getEffectiveTodayPrayer().id
+        firebasePrayers.containsKey(todayPrayerId)
+    }
 
     // Welcome Customisation Dialog State
     var showWelcomeDialog by remember { mutableStateOf(false) }
@@ -356,7 +364,7 @@ fun HomeScreen(
                             FilterChip(
                                 selected = false,
                                 onClick = onDailyPrayerClick,
-                                label = { Text("🙏 दैनिक प्रार्थना", fontWeight = FontWeight.SemiBold) }
+                                label = { Text(if (isTodayPrayerFromFirebase) "🙏 दैनिक प्रार्थना 🔥" else "🙏 दैनिक प्रार्थना", fontWeight = FontWeight.SemiBold) }
                             )
                         }
                     }
@@ -635,6 +643,13 @@ fun HomeScreen(
                                         ),
                                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                                     ) {
+                                        val activeVerseText = when {
+                                            verseOfTheDayText.isNotBlank() -> verseOfTheDayText
+                                            dynamicTodayScripture.isNotBlank() -> dynamicTodayScripture
+                                            else -> todaysVerse.textHindi
+                                        }
+                                        val hasCustomScriptureOverride = activeVerseText != todaysVerse.textHindi
+
                                         Column(modifier = Modifier.padding(16.dp)) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
@@ -648,7 +663,7 @@ fun HomeScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
-                                                    text = strings.secTodayScripture,
+                                                    text = if (hasCustomScriptureOverride) "${strings.secTodayScripture} 🔥" else strings.secTodayScripture,
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontWeight = FontWeight.Bold,
                                                         color = GoldWarm,
@@ -658,13 +673,6 @@ fun HomeScreen(
                                             }
 
                                             Spacer(modifier = Modifier.height(8.dp))
-
-                                            val activeVerseText = when {
-                                                verseOfTheDayText.isNotBlank() -> verseOfTheDayText
-                                                dynamicTodayScripture.isNotBlank() -> dynamicTodayScripture
-                                                else -> todaysVerse.textHindi
-                                            }
-                                            val hasCustomScriptureOverride = activeVerseText != todaysVerse.textHindi
 
                                             Text(
                                                 text = "\"$activeVerseText\"",
@@ -930,21 +938,39 @@ fun CompactVideoCard(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = if (video.channelTitle.contains("Worship", ignoreCase = true)) {
-                        NavyPrimary
-                    } else {
-                        Color(0xFFCC0000)
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = video.channelTitle,
-                        color = Color.White,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (video.channelTitle.contains("Worship", ignoreCase = true)) {
+                            NavyPrimary
+                        } else {
+                            Color(0xFFCC0000)
+                        }
+                    ) {
+                        Text(
+                            text = video.channelTitle,
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    if (video.isRemote) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFFF5722).copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = "🔥",
+                                fontSize = 9.sp,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
