@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,7 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -679,7 +682,10 @@ fun YouTubeVideoCard(
                     val thumb = video.thumbnailUrl.trim()
                     if (thumb.isNotBlank() && !thumb.contains("local_vid") && !thumb.contains("/default/")) {
                         thumb
-                    } else if (video.id.isNotBlank() && !video.id.startsWith("local_vid") && !video.id.startsWith("dm_")) {
+                    } else if (video.id.startsWith("dm_")) {
+                        val dmId = video.id.substringAfterLast("_")
+                        "https://www.dailymotion.com/thumbnail/video/$dmId"
+                    } else if (video.id.isNotBlank() && !video.id.startsWith("local_vid")) {
                         "https://i.ytimg.com/vi/${video.id}/hqdefault.jpg"
                     } else {
                         thumb
@@ -731,7 +737,7 @@ fun YouTubeVideoCard(
                     )
                 }
 
-                // Platform tag badge (YouTube vs Dailymotion)
+                // Platform tag badge (YouTube / Media)
                 val platformInfo = com.example.util.VideoUrlParser.parse(if (video.videoUrl.isNotBlank()) video.videoUrl else video.id)
                 Row(
                     modifier = Modifier
@@ -741,15 +747,48 @@ fun YouTubeVideoCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        color = if (platformInfo.platform == com.example.util.VideoPlatform.DAILYMOTION) Color(0xFF0066DC) else Color(0xFFD32F2F),
+                        color = when (platformInfo.platform) {
+                            com.example.util.VideoPlatform.DAILYMOTION -> Color(0xFF0066DC)
+                            com.example.util.VideoPlatform.DIRECT_STREAM -> Color(0xFFE65100)
+                            else -> Color(0xFFD32F2F)
+                        },
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
-                            text = if (platformInfo.platform == com.example.util.VideoPlatform.DAILYMOTION) "DAILYMOTION" else "YOUTUBE",
+                            text = when (platformInfo.platform) {
+                                com.example.util.VideoPlatform.DAILYMOTION -> "DAILYMOTION"
+                                com.example.util.VideoPlatform.DIRECT_STREAM -> "MEDIA"
+                                else -> "YOUTUBE"
+                            },
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
+                    }
+
+                    if (video.isPinned) {
+                        Surface(
+                            color = GoldWarm,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PushPin,
+                                    contentDescription = "Pinned",
+                                    tint = Color(0xFF1E1B4B),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "PINNED",
+                                    color = Color(0xFF1E1B4B),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                        }
                     }
 
                     if (video.isRemote) {
@@ -816,7 +855,7 @@ fun PlaylistCard(
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                     .background(NavyPrimary)
             ) {
-                if (!playlist.thumbnailUrl.isNullOrBlank()) {
+                if (!playlist.thumbnailUrl.isNullOrBlank() && !playlist.thumbnailUrl.contains("/default/")) {
                     AsyncImage(
                         model = coil.request.ImageRequest.Builder(LocalContext.current)
                             .data(playlist.thumbnailUrl)
@@ -826,7 +865,39 @@ fun PlaylistCard(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(NavyPrimary, MaterialTheme.colorScheme.primaryContainer)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.List,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.25f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
                 }
+
+                // Gradient scrim overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.5f)
+                                )
+                            )
+                        )
+                )
 
                 // Playlist overlay badge
                 Surface(
@@ -1039,3 +1110,25 @@ fun RandomVideoCard(
         }
     }
 }
+
+@Composable
+fun ShimmerLoadingBox(
+    modifier: Modifier = Modifier
+) {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by transition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmer_alpha"
+    )
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = alpha))
+    )
+}
+

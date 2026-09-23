@@ -18,7 +18,7 @@
     </entry>
     <entry>
         <key>verse_of_the_day_text</key>
-        <value>यहोवा मेरा चरवाहा है, मुझे कोई घटी न होगी।</value>
+        <value></value>
     </entry>
     <entry>
         <key>special_announcement_text</key>
@@ -47,5 +47,41 @@
     <entry>
         <key>private_profile_enabled</key>
         <value>true</value>
+    </entry>
+    <entry>
+        <key>theme_primary_color</key>
+        <value></value>
+    </entry>
+    <entry>
+        <key>theme_secondary_color</key>
+        <value></value>
+    </entry>
+    <entry>
+        <key>is_live_stream_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>is_gallery_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>is_prayer_request_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>promo_banner_image_url</key>
+        <value></value>
+    </entry>
+    <entry>
+        <key>promo_banner_title</key>
+        <value></value>
+    </entry>
+    <entry>
+        <key>promo_banner_link_url</key>
+        <value></value>
+    </entry>
+    <entry>
+        <key>is_promo_banner_enabled</key>
+        <value>false</value>
     </entry>
 </defaultsMap>

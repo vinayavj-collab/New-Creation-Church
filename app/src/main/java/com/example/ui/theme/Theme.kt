@@ -48,23 +48,62 @@ private val LightColorScheme =
     outline = LightOutline,
   )
 
+fun parseHexColor(hexString: String?): androidx.compose.ui.graphics.Color? {
+    if (hexString.isNullOrBlank()) return null
+    return try {
+        val cleanHex = hexString.trim().removePrefix("#")
+        val colorInt = when (cleanHex.length) {
+            6 -> (0xFF000000 or cleanHex.toLong(16)).toInt()
+            8 -> cleanHex.toLong(16).toInt()
+            else -> null
+        }
+        colorInt?.let { androidx.compose.ui.graphics.Color(it) }
+    } catch (e: Exception) {
+        null
+    }
+}
+
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
   // Dynamic color is available on Android 12+
   dynamicColor: Boolean = true,
+  customPrimaryHex: String? = null,
+  customSecondaryHex: String? = null,
   content: @Composable () -> Unit,
 ) {
-  val colorScheme =
+  val customPrimary = androidx.compose.runtime.remember(customPrimaryHex) { parseHexColor(customPrimaryHex) }
+  val customSecondary = androidx.compose.runtime.remember(customSecondaryHex) { parseHexColor(customSecondaryHex) }
+
+  val baseColorScheme =
     when {
+      customPrimary != null -> if (darkTheme) DarkColorScheme else LightColorScheme
       dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
         val context = LocalContext.current
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
       }
-
       darkTheme -> DarkColorScheme
       else -> LightColorScheme
     }
 
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  val finalColorScheme = androidx.compose.runtime.remember(baseColorScheme, customPrimary, customSecondary, darkTheme) {
+      var scheme = baseColorScheme
+      customPrimary?.let { p ->
+          scheme = scheme.copy(
+              primary = p,
+              primaryContainer = if (darkTheme) p.copy(alpha = 0.35f) else p.copy(alpha = 0.15f),
+              onPrimaryContainer = if (darkTheme) androidx.compose.ui.graphics.Color.White else p
+          )
+      }
+      customSecondary?.let { s ->
+          scheme = scheme.copy(
+              secondary = s,
+              secondaryContainer = if (darkTheme) s.copy(alpha = 0.35f) else s.copy(alpha = 0.15f),
+              onSecondaryContainer = if (darkTheme) androidx.compose.ui.graphics.Color.White else s
+          )
+      }
+      scheme
+  }
+
+  MaterialTheme(colorScheme = finalColorScheme, typography = Typography, content = content)
 }

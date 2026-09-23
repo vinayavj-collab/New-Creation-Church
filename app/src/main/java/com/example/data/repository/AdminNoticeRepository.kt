@@ -56,19 +56,28 @@ class AdminNoticeRepository(private val context: Context) {
                         val actionText = snapshot.child("actionText").getValue(String::class.java)
                         val actionUrl = snapshot.child("actionUrl").getValue(String::class.java)
                         val isDismissible = snapshot.child("isDismissible").getValue(Boolean::class.java) ?: true
+                        val isPermanent = snapshot.child("isPermanent").getValue(Boolean::class.java) ?: true
+                        val durationHours = snapshot.child("durationHours").getValue(Int::class.java) ?: 0
+                        val durationDays = snapshot.child("durationDays").getValue(Int::class.java) ?: 0
+                        val expiresAtTimestamp = snapshot.child("expiresAtTimestamp").getValue(Long::class.java) ?: 0L
 
-                        if (isActive && (title.isNotBlank() || message.isNotBlank()) && !dismissedNoticeIds.contains(id)) {
-                            val notice = AdminNotice(
-                                id = id,
-                                title = title,
-                                message = message,
-                                timestamp = timestamp,
-                                isActive = true,
-                                type = type,
-                                actionText = actionText,
-                                actionUrl = actionUrl,
-                                isDismissible = isDismissible
-                            )
+                        val notice = AdminNotice(
+                            id = id,
+                            title = title,
+                            message = message,
+                            timestamp = timestamp,
+                            isActive = true,
+                            type = type,
+                            actionText = actionText,
+                            actionUrl = actionUrl,
+                            isDismissible = isDismissible,
+                            isPermanent = isPermanent,
+                            durationHours = durationHours,
+                            durationDays = durationDays,
+                            expiresAtTimestamp = expiresAtTimestamp
+                        )
+
+                        if (isActive && (title.isNotBlank() || message.isNotBlank()) && !dismissedNoticeIds.contains(id) && !notice.isExpired()) {
                             _activeNotice.value = notice
 
                             // Save to local Notification Room database if new

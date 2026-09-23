@@ -7,9 +7,9 @@ import com.example.data.model.PredefinedPlaylists
 import com.example.data.model.YouTubePlaylist
 import com.example.data.model.YouTubeVideo
 import com.example.data.remote.DailymotionFeedService
-import com.example.data.remote.DailymotionPaginatedResult
 import com.example.data.remote.YouTubeFeedService
 import com.example.data.remote.YouTubePaginatedResult
+import com.example.util.PersonalVlogSecurity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,17 +26,28 @@ class YouTubeRepository(
     private val firebaseDataRepository by lazy { FirebaseDataRepository.getInstance() }
     private val playlistCache = ConcurrentHashMap<String, List<YouTubeVideo>>()
 
-    private val _playlists = MutableStateFlow<List<YouTubePlaylist>>(PredefinedPlaylists.items)
+    private val _playlists = MutableStateFlow<List<YouTubePlaylist>>(
+        PredefinedPlaylists.items.filter { !PredefinedPlaylists.isBlockedYouTubeChannel(it.channelTitle) }
+    )
     val playlistsFlow: Flow<List<YouTubePlaylist>> = combine(_playlists, firebaseDataRepository.playlists) { localPlaylists, remotePlaylists ->
-        FirebaseDataRepository.mergeAndDeduplicate(
+        val merged = FirebaseDataRepository.mergeAndDeduplicate(
             remoteItems = remotePlaylists,
             localHardcodedItems = localPlaylists,
             keySelector = { it.id.ifBlank { it.playlistUrl } }
         )
+        merged.filter { pl ->
+            !PredefinedPlaylists.isBlockedYouTubeChannel(pl.channelTitle) &&
+            !PredefinedPlaylists.isBlockedYouTubeChannel(pl.title)
+        }
     }
 
     fun getAllVideosFlow(): Flow<List<YouTubeVideo>> {
-        return combine(dao.getAllVideos(), firebaseDataRepository.videos) { entities, remoteMerged ->
+        return combine(
+            dao.getAllVideos(),
+            firebaseDataRepository.videos,
+            com.example.util.ProfileManager.activeProfileFlow,
+            firebaseDataRepository.pinnedVideoId
+        ) { entities, remoteMerged, activeProfile, pinnedId ->
             val dbVideos = entities.map { it.toDomain() }
             val merged = FirebaseDataRepository.mergeAndDeduplicate(
                 remoteItems = remoteMerged,
@@ -44,17 +55,36 @@ class YouTubeRepository(
                 keySelector = { it.id.ifBlank { it.videoUrl } },
                 timestampSelector = { it.publishedTimestamp }
             )
+            val isVlogAllowed = (activeProfile == com.example.data.model.AppProfile.VINAY) || PersonalVlogSecurity.isVlogServerAllowed()
             merged.filter { candidate ->
+                val titleLower = candidate.title.lowercase()
+                val descLower = candidate.description.lowercase()
                 !candidate.id.startsWith("local_vid") &&
-                !candidate.id.startsWith("dm_x27lzjr_") &&
-                !candidate.id.startsWith("dm_x4sr8o4_") &&
-                !candidate.thumbnailUrl.contains("local_vid")
-            }
+                !candidate.thumbnailUrl.contains("local_vid") &&
+                (isVlogAllowed || !candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_")) &&
+                !titleLower.contains("metdaan") && !titleLower.contains("met daan") &&
+                !descLower.contains("metdaan") && !descLower.contains("met daan") &&
+                !PredefinedPlaylists.isBlockedYouTubeChannel(candidate.channelTitle, candidate.channelId)
+            }.map { vid ->
+                if (!pinnedId.isNullOrBlank() && (vid.id == pinnedId || vid.videoUrl.contains(pinnedId))) {
+                    vid.copy(isPinned = true)
+                } else {
+                    vid.copy(isPinned = false)
+                }
+            }.sortedWith(
+                compareByDescending<YouTubeVideo> { it.isPinned }
+                    .thenByDescending { it.publishedTimestamp }
+            )
         }
     }
 
     fun getVideosByChannelFlow(channelId: String): Flow<List<YouTubeVideo>> {
-        return combine(dao.getVideosByChannel(channelId), firebaseDataRepository.videos) { entities, remoteMerged ->
+        return combine(
+            dao.getVideosByChannel(channelId),
+            firebaseDataRepository.videos,
+            com.example.util.ProfileManager.activeProfileFlow,
+            firebaseDataRepository.pinnedVideoId
+        ) { entities, remoteMerged, activeProfile, pinnedId ->
             val dbVideos = entities.map { it.toDomain() }
             val matchingRemote = remoteMerged.filter { it.channelId == channelId }
             val matchingHardcoded = PredefinedData.hardcodedVideos.filter { it.channelId == channelId }
@@ -64,12 +94,26 @@ class YouTubeRepository(
                 keySelector = { it.id.ifBlank { it.videoUrl } },
                 timestampSelector = { it.publishedTimestamp }
             )
+            val isVlogAllowed = (activeProfile == com.example.data.model.AppProfile.VINAY) || PersonalVlogSecurity.isVlogServerAllowed()
             merged.filter { candidate ->
+                val titleLower = candidate.title.lowercase()
+                val descLower = candidate.description.lowercase()
                 !candidate.id.startsWith("local_vid") &&
-                !candidate.id.startsWith("dm_x27lzjr_") &&
-                !candidate.id.startsWith("dm_x4sr8o4_") &&
-                !candidate.thumbnailUrl.contains("local_vid")
-            }
+                !candidate.thumbnailUrl.contains("local_vid") &&
+                (isVlogAllowed || !candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_")) &&
+                !titleLower.contains("metdaan") && !titleLower.contains("met daan") &&
+                !descLower.contains("metdaan") && !descLower.contains("met daan") &&
+                !PredefinedPlaylists.isBlockedYouTubeChannel(candidate.channelTitle, candidate.channelId)
+            }.map { vid ->
+                if (!pinnedId.isNullOrBlank() && (vid.id == pinnedId || vid.videoUrl.contains(pinnedId))) {
+                    vid.copy(isPinned = true)
+                } else {
+                    vid.copy(isPinned = false)
+                }
+            }.sortedWith(
+                compareByDescending<YouTubeVideo> { it.isPinned }
+                    .thenByDescending { it.publishedTimestamp }
+            )
         }
     }
 
@@ -122,25 +166,26 @@ class YouTubeRepository(
                 PredefinedPlaylists.channelNewCreationChurch.name
             )
 
-            // 1. Christian Dailymotion Channel (x27lzjr) - Always fetched for all users
-            val dmChristian = try {
-                dailymotionService.fetchChristianVideos(page = 1, limit = 15).videos
+            // Fetch Dailymotion videos
+            val dmMainVideos = try {
+                dailymotionService.fetchUserVideos(
+                    DailymotionFeedService.CHANNEL_MAIN_ID,
+                    DailymotionFeedService.CHANNEL_MAIN_TITLE
+                )
             } catch (e: Exception) {
                 emptyList()
             }
 
-            // 2. Personal Vlog Dailymotion Channel (x4sr8o4) - Fetched and tagged only if server flag allows
-            val dmVlog = if (com.example.util.RemoteConfigHelper.isVlogServerEnabled()) {
-                try {
-                    dailymotionService.fetchPersonalVlogVideos(page = 1, limit = 15).videos
-                } catch (e: Exception) {
-                    emptyList()
-                }
-            } else {
+            val dmVlogVideos = try {
+                dailymotionService.fetchUserVideos(
+                    DailymotionFeedService.CHANNEL_VLOG_ID,
+                    DailymotionFeedService.CHANNEL_VLOG_TITLE
+                )
+            } catch (e: Exception) {
                 emptyList()
             }
 
-            val all = mainVideos + worshipVideos + churchVideos + dmChristian + dmVlog
+            val all = mainVideos + worshipVideos + churchVideos + dmMainVideos + dmVlogVideos
             dao.deleteDummyVideos()
             if (all.isNotEmpty()) {
                 dao.insertVideos(all.map { YouTubeVideoEntity.fromDomain(it) })
@@ -163,44 +208,30 @@ class YouTubeRepository(
         if (!forceRefresh && playlistCache.containsKey(playlist.id)) {
             return@withContext playlistCache[playlist.id].orEmpty()
         }
-        val videos = feedService.fetchPlaylistVideos(playlist.id, playlist.channelTitle)
+        val rawVideos = feedService.fetchPlaylistVideos(playlist.id, playlist.channelTitle)
+        val videos = rawVideos.filter {
+            !PredefinedPlaylists.isBlockedYouTubeChannel(it.channelTitle, it.channelId)
+        }
         if (videos.isNotEmpty()) {
             playlistCache[playlist.id] = videos
+            val firstThumb = videos.firstOrNull()?.thumbnailUrl
+            _playlists.value = _playlists.value.map { pl ->
+                if (pl.id == playlist.id) {
+                    val updatedThumb = if (pl.thumbnailUrl.isNullOrBlank() || pl.thumbnailUrl.contains("/default/")) {
+                        firstThumb ?: pl.thumbnailUrl
+                    } else {
+                        pl.thumbnailUrl
+                    }
+                    pl.copy(
+                        thumbnailUrl = updatedThumb,
+                        videoCountEstimate = if ((pl.videoCountEstimate ?: 0) < videos.size) videos.size else pl.videoCountEstimate
+                    )
+                } else {
+                    pl
+                }
+            }
         }
         videos
-    }
-
-    suspend fun fetchDailymotionPaginated(
-        page: Int,
-        limit: Int = 15,
-        includePersonalVlog: Boolean = false
-    ): DailymotionPaginatedResult = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        try {
-            // 1. Fetch Christian Channel (x27lzjr)
-            val christianResult = dailymotionService.fetchChristianVideos(page = page, limit = limit)
-            val combinedList = mutableListOf<YouTubeVideo>()
-            combinedList.addAll(christianResult.videos)
-
-            // 2. If Personal Vlog is enabled, fetch Personal Vlog Channel (x4sr8o4)
-            if (includePersonalVlog) {
-                val vlogResult = dailymotionService.fetchPersonalVlogVideos(page = page, limit = limit)
-                combinedList.addAll(vlogResult.videos)
-            }
-
-            if (combinedList.isNotEmpty()) {
-                dao.insertVideos(combinedList.map { YouTubeVideoEntity.fromDomain(it) })
-            }
-
-            DailymotionPaginatedResult(
-                videos = combinedList,
-                page = page,
-                limit = limit,
-                hasMore = christianResult.hasMore || combinedList.isNotEmpty()
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            DailymotionPaginatedResult(emptyList(), page, limit, hasMore = false)
-        }
     }
 
     suspend fun fetchMoreChannelVideos(
@@ -209,6 +240,17 @@ class YouTubeRepository(
         pageToken: String?
     ): YouTubePaginatedResult = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         try {
+            if (channelId == DailymotionFeedService.CHANNEL_MAIN_ID || channelId == DailymotionFeedService.CHANNEL_VLOG_ID) {
+                val page = pageToken?.toIntOrNull() ?: 1
+                val dmVideos = dailymotionService.fetchUserVideos(channelId, channelTitle, page = page)
+                if (dmVideos.isNotEmpty()) {
+                    dao.insertVideos(dmVideos.map { YouTubeVideoEntity.fromDomain(it) })
+                }
+                val hasMore = dmVideos.size >= 50
+                val nextToken = if (hasMore) (page + 1).toString() else null
+                return@withContext YouTubePaginatedResult(dmVideos, nextToken, hasMore)
+            }
+
             val result = feedService.fetchChannelVideosPaginated(channelId, channelTitle, pageToken)
             if (result.videos.isNotEmpty()) {
                 dao.insertVideos(result.videos.map { YouTubeVideoEntity.fromDomain(it) })

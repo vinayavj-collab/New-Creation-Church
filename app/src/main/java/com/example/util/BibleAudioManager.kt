@@ -2,7 +2,10 @@ package com.example.util
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
@@ -95,12 +98,90 @@ class BibleAudioManager private constructor(private val context: Context) : Text
     private var currentVerseList: List<BibleVerse> = emptyList()
     private var currentTtsVerseIndex = 0
 
+    // Audio Focus and interruption handling
+    private val systemAudioManager: AudioManager? = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    private var audioFocusRequest: AudioFocusRequest? = null
+    private var resumeOnFocusGain: Boolean = false
+
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                // Permanent loss, e.g., another media app playing indefinitely
+                resumeOnFocusGain = false
+                pauseAudio()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                // Temporary loss, e.g., incoming phone call, notification alert
+                if (_isPlaying.value) {
+                    resumeOnFocusGain = true
+                    pauseAudio()
+                }
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                // Duck or pause during transient sound
+                if (_isPlaying.value) {
+                    resumeOnFocusGain = true
+                    pauseAudio()
+                }
+            }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                // Focus regained after phone call finishes or notification ends
+                if (resumeOnFocusGain) {
+                    resumeOnFocusGain = false
+                    resumeAudio()
+                }
+            }
+        }
+    }
+
     // Callback for auto-advancing to next chapter when a chapter finishes
     var onChapterCompletedListener: ((nextChapterNumber: Int) -> Unit)? = null
 
     init {
         textToSpeech = TextToSpeech(context.applicationContext, this)
         setupProgressTracker()
+    }
+
+    private fun requestSystemAudioFocus(): Boolean {
+        if (systemAudioManager == null) return true
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val playbackAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+                val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(playbackAttributes)
+                    .setAcceptsDelayedFocusGain(true)
+                    .setOnAudioFocusChangeListener(audioFocusChangeListener, handler)
+                    .build()
+                audioFocusRequest = request
+                systemAudioManager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            } else {
+                @Suppress("DEPRECATION")
+                systemAudioManager.requestAudioFocus(
+                    audioFocusChangeListener,
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN
+                ) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            }
+        } catch (e: Exception) {
+            Log.e("BibleAudioManager", "Failed to request audio focus", e)
+            true
+        }
+    }
+
+    private fun abandonSystemAudioFocus() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                audioFocusRequest?.let { systemAudioManager?.abandonAudioFocusRequest(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                systemAudioManager?.abandonAudioFocus(audioFocusChangeListener)
+            }
+        } catch (e: Exception) {
+            Log.e("BibleAudioManager", "Failed to abandon audio focus", e)
+        }
     }
 
     fun setBookDetails(bookId: Int, chapter: Int, bookName: String) {
@@ -300,8 +381,10 @@ class BibleAudioManager private constructor(private val context: Context) : Text
         if (_audioSourceType.value == AudioSourceType.PRE_RECORDED) {
             val totalVerses = currentVerseList.size.coerceAtLeast(1)
             val estimatedFraction = (startIndex.toFloat() / totalVerses.toFloat()).coerceIn(0f, 0.95f)
+            requestSystemAudioFocus()
             playPreRecordedChapter(bookId, chapter, initialOffsetFraction = estimatedFraction)
         } else {
+            requestSystemAudioFocus()
             startTtsNarration(startIndex)
         }
 
@@ -491,35 +574,50 @@ class BibleAudioManager private constructor(private val context: Context) : Text
         playPause()
     }
 
-    fun playPause() {
+    fun pauseAudio() {
         if (_audioSourceType.value == AudioSourceType.PRE_RECORDED) {
             mediaPlayer?.let { player ->
                 if (player.isPlaying) {
                     player.pause()
-                    _isPlaying.value = false
-                    DevotionalBgmManager.pauseBgm()
-                    if (backgroundPlayEnabled) updateForegroundService()
-                } else {
-                    player.start()
-                    _isPlaying.value = true
-                    if (devotionalBgmEnabled) DevotionalBgmManager.resumeBgm()
-                    if (backgroundPlayEnabled) updateForegroundService()
                 }
+            }
+        } else {
+            if (_isPlaying.value) {
+                textToSpeech?.stop()
+            }
+        }
+        _isPlaying.value = false
+        DevotionalBgmManager.pauseBgm()
+        if (backgroundPlayEnabled) updateForegroundService()
+    }
+
+    fun resumeAudio() {
+        if (!_hasActiveSession.value) return
+        requestSystemAudioFocus()
+        if (_audioSourceType.value == AudioSourceType.PRE_RECORDED) {
+            mediaPlayer?.let { player ->
+                player.start()
+                _isPlaying.value = true
+                if (devotionalBgmEnabled) DevotionalBgmManager.resumeBgm()
+                if (backgroundPlayEnabled) updateForegroundService()
             } ?: run {
                 if (currentVerseList.isNotEmpty()) {
                     playPreRecordedChapter(currentVerseList.first().bookId, currentVerseList.first().chapter)
                 }
             }
         } else {
-            if (_isPlaying.value) {
-                textToSpeech?.stop()
-                _isPlaying.value = false
-                DevotionalBgmManager.pauseBgm()
-                if (backgroundPlayEnabled) updateForegroundService()
-            } else {
-                speakCurrentTtsVerse()
-                if (devotionalBgmEnabled) DevotionalBgmManager.resumeBgm()
-            }
+            speakCurrentTtsVerse()
+            if (devotionalBgmEnabled) DevotionalBgmManager.resumeBgm()
+        }
+    }
+
+    fun playPause() {
+        if (_isPlaying.value) {
+            resumeOnFocusGain = false
+            pauseAudio()
+            abandonSystemAudioFocus()
+        } else {
+            resumeAudio()
         }
     }
 
@@ -569,6 +667,8 @@ class BibleAudioManager private constructor(private val context: Context) : Text
     }
 
     fun stop() {
+        resumeOnFocusGain = false
+        abandonSystemAudioFocus()
         stopMediaPlayer()
         if (isTtsReady) {
             textToSpeech?.stop()

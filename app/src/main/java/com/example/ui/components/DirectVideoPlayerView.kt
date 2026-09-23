@@ -96,95 +96,101 @@ fun DirectVideoPlayerView(
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
-                    WebView(ctx).apply {
-                        webViewRef = this
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        setBackgroundColor(android.graphics.Color.BLACK)
-                        isNestedScrollingEnabled = false
-                        overScrollMode = View.OVER_SCROLL_NEVER
+                    com.example.util.SharedVideoPlayerManager.getOrCreatePlayer(ctx, videoUrl) { createCtx ->
+                        WebView(createCtx).apply {
+                            webViewRef = this
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            setBackgroundColor(android.graphics.Color.BLACK)
+                            isNestedScrollingEnabled = false
+                            overScrollMode = View.OVER_SCROLL_NEVER
 
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            mediaPlaybackRequiresUserGesture = false
-                            loadWithOverviewMode = true
-                            useWideViewPort = true
-                            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            allowFileAccess = true
-                            allowContentAccess = true
-                        }
+                            settings.apply {
+                                javaScriptEnabled = true
+                                domStorageEnabled = true
+                                mediaPlaybackRequiresUserGesture = false
+                                loadWithOverviewMode = true
+                                useWideViewPort = true
+                                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                allowFileAccess = true
+                                allowContentAccess = true
+                            }
 
-                        webChromeClient = object : WebChromeClient() {}
+                            webChromeClient = object : WebChromeClient() {}
 
-                        webViewClient = object : WebViewClient() {
-                            override fun onReceivedError(
-                                view: WebView?,
-                                request: WebResourceRequest?,
-                                error: WebResourceError?
-                            ) {
-                                super.onReceivedError(view, request, error)
-                                if (request?.isForMainFrame == true) {
-                                    hasError = true
+                            webViewClient = object : WebViewClient() {
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    request: WebResourceRequest?,
+                                    error: WebResourceError?
+                                ) {
+                                    super.onReceivedError(view, request, error)
+                                    if (request?.isForMainFrame == true) {
+                                        hasError = true
+                                    }
                                 }
                             }
+
+                            val htmlContent = """
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                                    <style>
+                                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                                        html, body {
+                                            width: 100%;
+                                            height: 100%;
+                                            background-color: #000000;
+                                            overflow: hidden;
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                        }
+                                        video {
+                                            width: 100%;
+                                            height: 100%;
+                                            object-fit: contain;
+                                            background-color: #000000;
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <video 
+                                        src="$videoUrl" 
+                                        controls 
+                                        playsinline 
+                                        ${if (autoplay) "autoplay" else ""} 
+                                        controlsList="nodownload" 
+                                        preload="auto">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </body>
+                                </html>
+                            """.trimIndent()
+
+                            loadDataWithBaseURL("https://example.com", htmlContent, "text/html", "UTF-8", null)
                         }
-
-                        val htmlContent = """
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                                <style>
-                                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                                    html, body {
-                                        width: 100%;
-                                        height: 100%;
-                                        background-color: #000000;
-                                        overflow: hidden;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                    }
-                                    video {
-                                        width: 100%;
-                                        height: 100%;
-                                        object-fit: contain;
-                                        background-color: #000000;
-                                    }
-                                </style>
-                            </head>
-                            <body>
-                                <video 
-                                    src="$videoUrl" 
-                                    controls 
-                                    playsinline 
-                                    ${if (autoplay) "autoplay" else ""} 
-                                    controlsList="nodownload" 
-                                    preload="auto">
-                                    Your browser does not support the video tag.
-                                </video>
-                            </body>
-                            </html>
-                        """.trimIndent()
-
-                        loadDataWithBaseURL("https://example.com", htmlContent, "text/html", "UTF-8", null)
                     }
                 },
                 update = { webView ->
-                    // View updated
+                    webView.onResume()
+                    webView.resumeTimers()
                 },
                 onRelease = { webView ->
-                    try {
-                        webView.stopLoading()
-                        webView.loadUrl("about:blank")
-                        webView.onPause()
-                        webView.removeAllViews()
-                        webView.destroy()
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                    if (!com.example.util.SharedVideoPlayerManager.isCurrentVideo(videoUrl)) {
+                        (webView.parent as? ViewGroup)?.removeView(webView)
+                        try {
+                            webView.stopLoading()
+                            webView.loadUrl("about:blank")
+                            webView.onPause()
+                            webView.removeAllViews()
+                            webView.destroy()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             )

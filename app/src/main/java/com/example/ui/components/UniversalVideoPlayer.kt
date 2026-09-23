@@ -13,14 +13,15 @@ import com.example.util.VideoUrlParser
 /**
  * Universal Video Player embedded component.
  * Inspects the video URL/ID, automatically routes to:
+ * - Direct Video Player for mp4 / HLS streams
  * - Official YouTube IFrame Player API (via YouTubePlayerView) for YouTube URLs
- * - Hardware-accelerated WebView with WebChromeClient for Dailymotion URLs
  */
 @Composable
 fun UniversalVideoPlayer(
     videoUrlOrId: String,
     modifier: Modifier = Modifier,
-    autoplay: Boolean = true
+    autoplay: Boolean = true,
+    onSwipeDown: (() -> Unit)? = null
 ) {
     val parsed = VideoUrlParser.parse(videoUrlOrId)
 
@@ -31,13 +32,6 @@ fun UniversalVideoPlayer(
         contentAlignment = Alignment.Center
     ) {
         when (parsed.platform) {
-            VideoPlatform.DIRECT_STREAM -> {
-                DirectVideoPlayerView(
-                    videoUrl = parsed.originalUrl.ifBlank { videoUrlOrId },
-                    modifier = Modifier.fillMaxSize(),
-                    autoplay = autoplay
-                )
-            }
             VideoPlatform.DAILYMOTION -> {
                 DailymotionPlayerView(
                     videoId = parsed.videoId,
@@ -45,10 +39,18 @@ fun UniversalVideoPlayer(
                     autoplay = autoplay
                 )
             }
+            VideoPlatform.DIRECT_STREAM -> {
+                DirectVideoPlayerView(
+                    videoUrl = parsed.originalUrl.ifBlank { videoUrlOrId },
+                    modifier = Modifier.fillMaxSize(),
+                    autoplay = autoplay
+                )
+            }
             VideoPlatform.YOUTUBE, VideoPlatform.UNKNOWN -> {
                 YouTubePlayerView(
                     videoId = parsed.videoId,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    onSwipeDown = onSwipeDown
                 )
             }
         }

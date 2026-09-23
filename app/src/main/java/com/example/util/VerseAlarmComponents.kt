@@ -190,9 +190,10 @@ class VerseAlarmReceiver : BroadcastReceiver() {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createVerseNotificationChannel(context)
 
-        // Today's scripture text
-        val rawVerse = "विश्वास आशा की हुई वस्तुओं का निश्चय, और अनदेखी वस्तुओं का प्रमाण है। - इब्रानियों 11:1"
-        val cleanVerse = ScriptureSpeechUtils.formatScriptureTextForSpeech(rawVerse)
+        // Today's synchronized scripture
+        val todayVerse = com.example.data.bible.model.VerseOfTheDay.getTodayVerse()
+        val rawVerse = "${todayVerse.textHindi} — ${todayVerse.referenceHindi}"
+        val cleanVerse = ScriptureSpeechUtils.formatVerseForSpeech(todayVerse)
 
         // Effective speech volume
         val effectiveSpeechVolume = if (settings.syncGreetingVolumeWithAlarm) {

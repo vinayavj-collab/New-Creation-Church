@@ -34,16 +34,61 @@ class YouTubeFeedService {
         channelTitle: String,
         pageToken: String? = null
     ): YouTubePaginatedResult = withContext(Dispatchers.IO) {
-        // 1. Fetch from RSS feed
-        val xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=$channelId"
-        val xmlList = fetchAndParseXml(xmlUrl, channelId, channelTitle)
+        val playlistsForChannel = com.example.data.model.PredefinedPlaylists.items.filter {
+            if (channelId == com.example.data.model.PredefinedPlaylists.channelWorship.id) {
+                it.channelTitle.contains("Worship", ignoreCase = true)
+            } else if (channelId == com.example.data.model.PredefinedPlaylists.channelNewCreationChurch.id) {
+                it.channelTitle.contains("Creation", ignoreCase = true) || it.channelTitle.contains("Church", ignoreCase = true)
+            } else {
+                !it.channelTitle.contains("Worship", ignoreCase = true)
+            }
+        }.ifEmpty { com.example.data.model.PredefinedPlaylists.items }
 
-        // 2. Fetch full videos from HTML channel /videos tab for unlimited scroll
-        val htmlVideos = fetchVideosFromChannelHtml(channelId, channelTitle)
+        // Stages: 0 = Uploads & RSS, 1 = Channel HTML scraping (/videos, /streams), 2..N = Channel Playlists
+        val totalStages = 2 + playlistsForChannel.size
+        var currentStage = pageToken?.removePrefix("stage_")?.toIntOrNull() ?: 0
 
-        val merged = (xmlList + htmlVideos).distinctBy { it.id }
+        while (currentStage < totalStages) {
+            val stageVideos = when (currentStage) {
+                0 -> {
+                    // Uploads playlist (UU...) & Channel RSS
+                    val uploadsPlaylistId = if (channelId.startsWith("UC")) "UU" + channelId.removePrefix("UC") else channelId
+                    val uploadsXml = fetchAndParseXml("https://www.youtube.com/feeds/videos.xml?playlist_id=$uploadsPlaylistId", channelId, channelTitle)
+                    val channelXml = fetchAndParseXml("https://www.youtube.com/feeds/videos.xml?channel_id=$channelId", channelId, channelTitle)
+                    (uploadsXml + channelXml).distinctBy { it.id }
+                }
+                1 -> {
+                    // Channel HTML videos & streams tab
+                    fetchVideosFromChannelHtml(channelId, channelTitle)
+                }
+                else -> {
+                    // Playlist by playlist
+                    val playlistIndex = currentStage - 2
+                    if (playlistIndex in playlistsForChannel.indices) {
+                        val pl = playlistsForChannel[playlistIndex]
+                        fetchPlaylistVideos(pl.id, pl.channelTitle.ifBlank { channelTitle })
+                    } else {
+                        emptyList()
+                    }
+                }
+            }
+
+            val nextStage = currentStage + 1
+            val hasMore = nextStage < totalStages
+            val nextToken = if (hasMore) "stage_$nextStage" else null
+
+            if (stageVideos.isNotEmpty()) {
+                return@withContext YouTubePaginatedResult(
+                    videos = stageVideos,
+                    nextPageToken = nextToken,
+                    hasMore = hasMore
+                )
+            }
+            currentStage++
+        }
+
         YouTubePaginatedResult(
-            videos = if (merged.isNotEmpty()) merged else xmlList,
+            videos = emptyList(),
             nextPageToken = null,
             hasMore = false
         )
@@ -195,15 +240,18 @@ class YouTubeFeedService {
                 .replace("\\n", " ")
                 .trim()
             if (playlistId.isNotBlank() && title.isNotBlank() && seenIds.add(playlistId)) {
-                result.add(
-                    com.example.data.model.YouTubePlaylist(
-                        id = playlistId,
-                        title = title,
-                        channelTitle = fallbackChannelTitle,
-                        playlistUrl = "https://youtube.com/playlist?list=$playlistId",
-                        thumbnailUrl = "https://i.ytimg.com/vi/default/hqdefault.jpg"
+                if (!com.example.data.model.PredefinedPlaylists.isBlockedYouTubeChannel(fallbackChannelTitle) &&
+                    !com.example.data.model.PredefinedPlaylists.isBlockedYouTubeChannel(title)) {
+                    result.add(
+                        com.example.data.model.YouTubePlaylist(
+                            id = playlistId,
+                            title = title,
+                            channelTitle = fallbackChannelTitle,
+                            playlistUrl = "https://youtube.com/playlist?list=$playlistId",
+                            thumbnailUrl = null
+                        )
                     )
-                )
+                }
             }
         }
 
@@ -222,15 +270,18 @@ class YouTubeFeedService {
                 .replace("\\n", " ")
                 .trim()
             if (playlistId.isNotBlank() && title.isNotBlank() && seenIds.add(playlistId)) {
-                result.add(
-                    com.example.data.model.YouTubePlaylist(
-                        id = playlistId,
-                        title = title,
-                        channelTitle = fallbackChannelTitle,
-                        playlistUrl = "https://youtube.com/playlist?list=$playlistId",
-                        thumbnailUrl = "https://i.ytimg.com/vi/default/hqdefault.jpg"
+                if (!com.example.data.model.PredefinedPlaylists.isBlockedYouTubeChannel(fallbackChannelTitle) &&
+                    !com.example.data.model.PredefinedPlaylists.isBlockedYouTubeChannel(title)) {
+                    result.add(
+                        com.example.data.model.YouTubePlaylist(
+                            id = playlistId,
+                            title = title,
+                            channelTitle = fallbackChannelTitle,
+                            playlistUrl = "https://youtube.com/playlist?list=$playlistId",
+                            thumbnailUrl = null
+                        )
                     )
-                )
+                }
             }
         }
 
@@ -325,19 +376,21 @@ class YouTubeFeedService {
                                     thumbnailUrl = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg"
                                 }
                                 val (displayDate, timestamp) = parsePublished(published)
-                                videos.add(
-                                    YouTubeVideo(
-                                        id = videoId,
-                                        title = title.ifEmpty { "Worship & Fellowship Video" },
-                                        channelId = channelId,
-                                        channelTitle = channelTitle,
-                                        thumbnailUrl = thumbnailUrl,
-                                        publishedAt = displayDate,
-                                        publishedTimestamp = timestamp,
-                                        description = description,
-                                        videoUrl = "https://www.youtube.com/watch?v=$videoId"
+                                if (!com.example.data.model.PredefinedPlaylists.isBlockedYouTubeChannel(channelTitle, channelId)) {
+                                    videos.add(
+                                        YouTubeVideo(
+                                            id = videoId,
+                                            title = title.ifEmpty { "Worship & Fellowship Video" },
+                                            channelId = channelId,
+                                            channelTitle = channelTitle,
+                                            thumbnailUrl = thumbnailUrl,
+                                            publishedAt = displayDate,
+                                            publishedTimestamp = timestamp,
+                                            description = description,
+                                            videoUrl = "https://www.youtube.com/watch?v=$videoId"
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }

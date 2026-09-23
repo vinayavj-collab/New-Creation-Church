@@ -22,8 +22,7 @@ enum class BibleReadingStyle(val displayName: String) {
 enum class YouTubeDefaultTab(val displayName: String) {
     ALL("All Channels (सभी चैनल)"),
     AVJ_WORSHIP("Vinay Kumar AVJ Worship (Worship)"),
-    VINAY_KUMAR_AVJ("Vinay Kumar AVJ"),
-    NEW_CREATION_CHURCH("New Creation Church")
+    VINAY_KUMAR_AVJ("Vinay Kumar AVJ")
 }
 
 enum class CustomFourthTab(val titleHindi: String, val titleEnglish: String) {
@@ -43,6 +42,9 @@ enum class BloggerPhotoLayout(val columns: Int, val titleHindi: String, val titl
 
 enum class HomeSectionType(val id: String, val defaultTitle: String) {
     TODAYS_VERSE("verse", "Today's Bible Verse / आज का वचन"),
+    DID_YOU_KNOW("did_you_know", "क्या आप जानते हैं? (Did You Know)"),
+    DAILY_QUIZ("daily_quiz", "Daily Bible Quiz / आज का क्विज़"),
+    DAILY_DEVOTIONAL("daily_devotional", "Daily Devotional / दैनिक मनन"),
     UPCOMING_EVENTS("upcoming", "Upcoming Events"),
     FELLOWSHIP_EVENTS("fellowship", "Fellowship Events (Featured)"),
     LATEST_VIDEOS("latest_videos", "Latest YouTube Videos"),
@@ -69,10 +71,11 @@ enum class VerseAlarmContent(val titleHindi: String, val titleEnglish: String) {
 }
 
 enum class DailyPrayerSlot(val titleHindi: String, val titleEnglish: String, val defaultHour: Int, val defaultMinute: Int) {
-    MORNING("सुबह की प्रार्थना (Morning - 06:30 AM)", "Morning Prayer (06:30 AM)", 6, 30),
-    NOON("दोपहर की प्रार्थना (Noon - 12:30 PM)", "Noon Prayer (12:30 PM)", 12, 30),
-    EVENING("संध्या / रात्रि प्रार्थना (Evening - 08:30 PM)", "Evening Prayer (08:30 PM)", 20, 30),
-    CUSTOM("कस्टम समय (Custom Time)", "Custom Time", 6, 30)
+    MORNING("सुबह की प्रार्थना (Morning)", "Morning Prayer", 4, 0),
+    AFTERNOON("दोपहर की प्रार्थना (Afternoon)", "Afternoon Prayer", 12, 30),
+    EVENING("संध्या / शाम की प्रार्थना (Evening)", "Evening Prayer", 18, 0),
+    NIGHT("रात्रि की प्रार्थना (Night)", "Night Prayer", 21, 30),
+    CUSTOM("कस्टम समय (Custom Time)", "Custom Time", 4, 0)
 }
 
 data class UserSettings(
@@ -95,6 +98,9 @@ data class UserSettings(
     val favoriteCategories: Set<String> = emptySet(),
     val homeSectionsOrder: List<HomeSectionType> = listOf(
         HomeSectionType.TODAYS_VERSE,
+        HomeSectionType.DID_YOU_KNOW,
+        HomeSectionType.DAILY_QUIZ,
+        HomeSectionType.DAILY_DEVOTIONAL,
         HomeSectionType.UPCOMING_EVENTS,
         HomeSectionType.FELLOWSHIP_EVENTS,
         HomeSectionType.LATEST_VIDEOS,
@@ -105,6 +111,9 @@ data class UserSettings(
     ),
     val enabledHomeSections: Set<HomeSectionType> = setOf(
         HomeSectionType.TODAYS_VERSE,
+        HomeSectionType.DID_YOU_KNOW,
+        HomeSectionType.DAILY_QUIZ,
+        HomeSectionType.DAILY_DEVOTIONAL,
         HomeSectionType.UPCOMING_EVENTS,
         HomeSectionType.FELLOWSHIP_EVENTS,
         HomeSectionType.LATEST_VIDEOS,
@@ -130,7 +139,7 @@ data class UserSettings(
     val welcomeDialogDismissed: Boolean = false,
     // Verse of the Day Alarm & Voice Settings
     val verseAlarmEnabled: Boolean = true,
-    val verseAlarmHour: Int = 7,
+    val verseAlarmHour: Int = 6,
     val verseAlarmMinute: Int = 0,
     val verseAlarmFrequency: VerseAlarmFrequency = VerseAlarmFrequency.DAILY,
     val verseAlarmIntervalHours: Int = 4,
@@ -141,14 +150,49 @@ data class UserSettings(
     val greetingSpeechPitch: Float = 1.0f,
     val greetingSpeechSpeed: Float = 1.0f,
     val alarmVolume: Float = 1.0f,
-    // Reading Plan Reminder Settings
+    // Reading Plan Reminder Settings (Morning 5 am, Evening 9 pm)
     val readingPlanReminderEnabled: Boolean = true,
-    val readingPlanReminderHour: Int = 8,
+    val readingPlanReminderHour: Int = 5,
     val readingPlanReminderMinute: Int = 0,
-    // Daily Prayer & Motivational Verse Reminder Settings
+    val readingPlanReminderEveningEnabled: Boolean = true,
+    val readingPlanReminderEveningHour: Int = 21,
+    val readingPlanReminderEveningMinute: Int = 0,
+    // Daily Prayer & Motivational Verse Reminder Settings (4 am)
     val dailyPrayerReminderEnabled: Boolean = true,
-    val dailyPrayerReminderHour: Int = 6,
-    val dailyPrayerReminderMinute: Int = 30,
-    val dailyPrayerReminderSlot: DailyPrayerSlot = DailyPrayerSlot.MORNING
+    val dailyPrayerReminderHour: Int = 4,
+    val dailyPrayerReminderMinute: Int = 0,
+    val dailyPrayerReminderSlot: DailyPrayerSlot = DailyPrayerSlot.MORNING,
+    val morningPrayerHour: Int = 4,
+    val morningPrayerMinute: Int = 0,
+    val afternoonPrayerHour: Int = 12,
+    val afternoonPrayerMinute: Int = 30,
+    val eveningPrayerHour: Int = 18,
+    val eveningPrayerMinute: Int = 0,
+    val nightPrayerHour: Int = 21,
+    val nightPrayerMinute: Int = 30,
+    // Widget Settings (0 = Daily Once / Only Today's Verse; > 0 = Auto change interval hours)
+    val widgetAutoChangeIntervalHours: Int = 0,
+    // Master Admin Control & Security Policy
+    val personalBlogPassword: String = "1234",
+    val inactiveAdminAutoDisableDays: Int = 90,
+    val isGlobalAdminEmergencyLock: Boolean = false,
+    val hasSeenProfileAdminPrompt: Boolean = false,
+    val masterAdminPasswordEnabled: Boolean = true,
+    val masterAdminPin: String = "9876",
+    val masterAdminDualAuthEnabled: Boolean = false,
+    val masterAdminSecondaryPin: String = "123456",
+    val biometricTimeoutDays: Int = 30,
+    val isBiometricEnabled: Boolean = true,
+    val globalAuthBypass: Boolean = false,
+    val requireP2EveryLogin: Boolean = true,
+    val trustedDevices: List<String> = listOf("Android-Primary-Device", "Mobile-Auth-Terminal-01"),
+    val profileReminderIntervalDays: Int = 7,
+    val notificationMethod: String = "Local Notification",
+    // Chat Configuration & Access Controls
+    val isChatEnabled: Boolean = false,
+    val chatAllowOnlyVerified: Boolean = true,
+    val chatWhitelistedUserIds: List<String> = emptyList(),
+    val chatAllowedRoles: List<String> = emptyList(),
+    val delegatedGlobalEventCreators: List<String> = emptyList()
 )
 

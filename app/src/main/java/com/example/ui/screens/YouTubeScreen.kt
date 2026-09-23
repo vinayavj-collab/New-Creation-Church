@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material.icons.filled.Tune
@@ -40,6 +41,7 @@ import com.example.data.model.YouTubeChannelInfo
 import com.example.data.model.YouTubePlaylist
 import com.example.data.model.YouTubeVideo
 import com.example.data.model.YouTubeDefaultTab
+import com.example.data.remote.DailymotionFeedService
 import com.example.ui.components.PlaylistCard
 import com.example.ui.components.RandomVideoCard
 import com.example.ui.components.YouTubeVideoCard
@@ -51,7 +53,6 @@ enum class YouTubeTabFilter {
     ALL,
     AVJ_WORSHIP,
     VINAY_KUMAR_AVJ,
-    NEW_CREATION_CHURCH,
     DAILYMOTION
 }
 
@@ -68,36 +69,45 @@ fun YouTubeScreen(
     val allVideos by viewModel.youtubeVideos.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val isLoadingMoreVideos by viewModel.isLoadingMoreVideos.collectAsStateWithLifecycle()
+    val currentAdmin by viewModel.currentAdmin.collectAsStateWithLifecycle()
+    val isMasterOrAdmin = currentAdmin != null || com.example.util.ProfileManager.isVinayProfile()
+    var showVideoBarManagerDialog by remember { mutableStateOf(false) }
 
-    // Default tab comes from user settings (defaulting to ALL or user preference)
-    var selectedTab by remember {
+    val videoQuickAccessConfig by viewModel.videoQuickAccessConfig.collectAsStateWithLifecycle()
+    val visibleTabs = remember(videoQuickAccessConfig) {
+        val list = videoQuickAccessConfig.items.filter { it.isVisible }
+        if (list.isEmpty()) com.example.data.model.defaultVideoQuickAccessItems() else list
+    }
+
+    var selectedTabId by remember {
         mutableStateOf(
             when (settings.youtubeDefaultTab) {
-                YouTubeDefaultTab.ALL -> YouTubeTabFilter.ALL
-                YouTubeDefaultTab.AVJ_WORSHIP -> YouTubeTabFilter.AVJ_WORSHIP
-                YouTubeDefaultTab.VINAY_KUMAR_AVJ -> YouTubeTabFilter.VINAY_KUMAR_AVJ
-                YouTubeDefaultTab.NEW_CREATION_CHURCH -> YouTubeTabFilter.NEW_CREATION_CHURCH
+                YouTubeDefaultTab.ALL -> "all"
+                YouTubeDefaultTab.AVJ_WORSHIP -> "worship"
+                YouTubeDefaultTab.VINAY_KUMAR_AVJ -> "vinay_kumar"
             }
         )
+    }
+
+    val currentTab = remember(visibleTabs, selectedTabId) {
+        visibleTabs.firstOrNull { it.id == selectedTabId } ?: visibleTabs.firstOrNull() ?: com.example.data.model.VideoQuickAccessItem(id = "all", label = "ALL", filterType = "ALL")
     }
 
     var dynamicMixSeed by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     // Filtered & sorted videos: Dynamic non-definite order for ALL tab (sometimes latest, sometimes mixed random across sources)
-    val displayVideos = remember(allVideos, selectedTab, dynamicMixSeed) {
+    val displayVideos = remember(allVideos, currentTab, dynamicMixSeed) {
         val validVideos = allVideos
             .filter { !it.id.startsWith("local_vid") && !it.thumbnailUrl.contains("local_vid") }
         val sortedAll = validVideos.sortedByDescending { it.publishedTimestamp }
 
-        when (selectedTab) {
-            YouTubeTabFilter.ALL -> {
+        val rawList = when (currentTab.filterType) {
+            "ALL" -> {
                 val worshipVideos = validVideos.filter { it.channelId == PredefinedPlaylists.channelWorship.id }
                 val mainVideos = validVideos.filter { it.channelId == PredefinedPlaylists.channelMain.id }
-                val churchVideos = validVideos.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }
                 val otherSources = validVideos.filter {
                     it.channelId != PredefinedPlaylists.channelWorship.id &&
-                    it.channelId != PredefinedPlaylists.channelMain.id &&
-                    it.channelId != PredefinedPlaylists.channelNewCreationChurch.id
+                    it.channelId != PredefinedPlaylists.channelMain.id
                 }
 
                 // Dynamic generation: Seed-based alternation between Latest-On-Top and Multi-Source Randomized Interleaving
@@ -111,7 +121,6 @@ fun YouTubeScreen(
                     val shuffledSources = listOf(
                         worshipVideos.shuffled(),
                         mainVideos.shuffled(),
-                        churchVideos.shuffled(),
                         otherSources.shuffled()
                     ).filter { it.isNotEmpty() }
 
@@ -131,49 +140,70 @@ fun YouTubeScreen(
                     if (result.isEmpty()) sortedAll else result.distinctBy { it.id }
                 }
             }
-            YouTubeTabFilter.AVJ_WORSHIP -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelWorship.id }.ifEmpty { sortedAll }
-            YouTubeTabFilter.VINAY_KUMAR_AVJ -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelMain.id }.ifEmpty { sortedAll }
-            YouTubeTabFilter.NEW_CREATION_CHURCH -> sortedAll.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id }.ifEmpty { sortedAll }
-            YouTubeTabFilter.DAILYMOTION -> sortedAll.filter {
-                com.example.util.VideoUrlParser.isDailymotion(it.videoUrl) ||
-                it.id.startsWith("dm_") ||
-                it.videoUrl.contains("dailymotion", ignoreCase = true) ||
-                it.videoUrl.contains("dai.ly", ignoreCase = true)
+            "CHANNEL" -> {
+                if (currentTab.filterValue.equals("dailymotion", ignoreCase = true) || currentTab.id == "dailymotion") {
+                    sortedAll.filter { it.id.startsWith("dm_") || it.channelId == DailymotionFeedService.CHANNEL_MAIN_ID || it.channelId == DailymotionFeedService.CHANNEL_VLOG_ID }.ifEmpty { sortedAll }
+                } else if (currentTab.filterValue == PredefinedPlaylists.channelWorship.id || currentTab.id == "worship") {
+                    sortedAll.filter { it.channelId == PredefinedPlaylists.channelWorship.id }.ifEmpty { sortedAll }
+                } else if (currentTab.filterValue == PredefinedPlaylists.channelMain.id || currentTab.id == "vinay_kumar") {
+                    sortedAll.filter { it.channelId == PredefinedPlaylists.channelMain.id }.ifEmpty { sortedAll }
+                } else {
+                    sortedAll.filter { it.channelId == currentTab.filterValue || it.channelTitle.contains(currentTab.filterValue, ignoreCase = true) }.ifEmpty { sortedAll }
+                }
             }
+            "KEYWORD" -> {
+                val kw = currentTab.filterValue.trim().lowercase()
+                if (kw.isNotBlank()) {
+                    sortedAll.filter { it.title.lowercase().contains(kw) || it.description.lowercase().contains(kw) }.ifEmpty { sortedAll }
+                } else {
+                    sortedAll
+                }
+            }
+            else -> sortedAll
         }
+        val pinned = rawList.filter { it.isPinned }
+        val unpinned = rawList.filter { !it.isPinned }
+        (pinned + unpinned).distinctBy { it.id }
     }
 
-    val targetChannelIdForTab = when (selectedTab) {
-        YouTubeTabFilter.ALL -> null
-        YouTubeTabFilter.AVJ_WORSHIP -> PredefinedPlaylists.channelWorship.id
-        YouTubeTabFilter.VINAY_KUMAR_AVJ -> PredefinedPlaylists.channelMain.id
-        YouTubeTabFilter.NEW_CREATION_CHURCH -> PredefinedPlaylists.channelNewCreationChurch.id
-        YouTubeTabFilter.DAILYMOTION -> "DAILYMOTION"
+    val targetChannelIdForTab = when {
+        currentTab.filterType == "ALL" -> null
+        currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> PredefinedPlaylists.channelWorship.id
+        currentTab.id == "vinay_kumar" || currentTab.filterValue == PredefinedPlaylists.channelMain.id -> PredefinedPlaylists.channelMain.id
+        currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> DailymotionFeedService.CHANNEL_MAIN_ID
+        else -> currentTab.filterValue.ifBlank { null }
     }
 
     val allPlaylists by viewModel.youtubePlaylists.collectAsStateWithLifecycle()
 
-    val rawPlaylists = remember(allPlaylists, selectedTab) {
-        when (selectedTab) {
-            YouTubeTabFilter.ALL -> allPlaylists
-            YouTubeTabFilter.AVJ_WORSHIP -> allPlaylists.filter { it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
-            YouTubeTabFilter.VINAY_KUMAR_AVJ -> allPlaylists.filter { it.channelTitle.contains("Vinay Kumar", ignoreCase = true) && !it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
-            YouTubeTabFilter.NEW_CREATION_CHURCH -> allPlaylists.filter { it.channelTitle.contains("Creation", ignoreCase = true) }.ifEmpty { allPlaylists }
-            YouTubeTabFilter.DAILYMOTION -> emptyList()
+    val rawPlaylists = remember(allPlaylists, currentTab) {
+        when (currentTab.filterType) {
+            "ALL" -> allPlaylists
+            "CHANNEL" -> {
+                if (currentTab.filterValue.equals("dailymotion", ignoreCase = true) || currentTab.id == "dailymotion") {
+                    allPlaylists.filter { it.channelTitle.contains("Dailymotion", ignoreCase = true) }.ifEmpty { allPlaylists }
+                } else if (currentTab.filterValue == PredefinedPlaylists.channelWorship.id || currentTab.id == "worship") {
+                    allPlaylists.filter { it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
+                } else if (currentTab.filterValue == PredefinedPlaylists.channelMain.id || currentTab.id == "vinay_kumar") {
+                    allPlaylists.filter { it.channelTitle.contains("Vinay Kumar", ignoreCase = true) && !it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
+                } else {
+                    allPlaylists.filter { it.channelTitle.contains(currentTab.filterValue, ignoreCase = true) }.ifEmpty { allPlaylists }
+                }
+            }
+            "KEYWORD" -> {
+                val kw = currentTab.filterValue.trim().lowercase()
+                if (kw.isNotBlank()) {
+                    allPlaylists.filter { it.title.lowercase().contains(kw) || it.channelTitle.lowercase().contains(kw) }.ifEmpty { allPlaylists }
+                } else {
+                    allPlaylists
+                }
+            }
+            else -> allPlaylists
         }
     }
     // Skip empty / invalid playlists
     val playlists = remember(rawPlaylists) {
         rawPlaylists.filter { it.title.isNotBlank() && it.id.isNotBlank() }
-    }
-
-    val dmVideos = remember(allVideos) {
-        allVideos.filter {
-            com.example.util.VideoUrlParser.isDailymotion(it.videoUrl) ||
-            it.id.startsWith("dm_") ||
-            it.videoUrl.contains("dailymotion", ignoreCase = true) ||
-            it.videoUrl.contains("dai.ly", ignoreCase = true)
-        }
     }
 
     val openChannelInYouTube = { channelUrl: String ->
@@ -266,107 +296,101 @@ fun YouTubeScreen(
                 }
             }
 
-            // Segmented Tab Filter: ALL | AVJ WORSHIP | VINAY KUMAR AVJ | NEW CREATION CHURCH
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // ALL Tab (First Tab)
-                    FilterChip(
-                        selected = selectedTab == YouTubeTabFilter.ALL,
-                        onClick = {
-                            if (selectedTab == YouTubeTabFilter.ALL) {
-                                dynamicMixSeed = System.currentTimeMillis()
+            // Segmented Tab Filter: Dynamic Quick Access Bar (Controlled by Master Admin)
+            if (videoQuickAccessConfig.isBarVisible || isMasterOrAdmin) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        visibleTabs.forEach { tabItem ->
+                            val isSelected = (currentTab.id == tabItem.id)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    if (tabItem.filterType == "ALL" && isSelected) {
+                                        dynamicMixSeed = System.currentTimeMillis()
+                                    }
+                                    selectedTabId = tabItem.id
+                                },
+                                label = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (tabItem.isPinned) {
+                                            Icon(
+                                                Icons.Default.PushPin,
+                                                contentDescription = "Pinned",
+                                                modifier = Modifier.size(12.dp),
+                                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else GoldWarm
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                        }
+                                        Text(
+                                            text = tabItem.label,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                },
+                                leadingIcon = if (isSelected) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null
+                            )
+                        }
+
+                        // Admin Bar Quick Access Manager button
+                        if (isMasterOrAdmin) {
+                            OutlinedButton(
+                                onClick = { showVideoBarManagerDialog = true },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = if (!videoQuickAccessConfig.isBarVisible) {
+                                    ButtonDefaults.outlinedButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                } else ButtonDefaults.outlinedButtonColors()
+                            ) {
+                                Icon(Icons.Default.Tune, contentDescription = "Manage Bar", modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    if (!videoQuickAccessConfig.isBarVisible) "बार छिपा है (Settings)" else "बार सेटिंग्स",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
-                            selectedTab = YouTubeTabFilter.ALL
-                        },
-                        label = {
-                            Text(
-                                text = "ALL",
-                                fontWeight = if (selectedTab == YouTubeTabFilter.ALL) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        leadingIcon = if (selectedTab == YouTubeTabFilter.ALL) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
-
-                    // AVJ Worship Tab
-                    FilterChip(
-                        selected = selectedTab == YouTubeTabFilter.AVJ_WORSHIP,
-                        onClick = { selectedTab = YouTubeTabFilter.AVJ_WORSHIP },
-                        label = {
-                            Text(
-                                text = "Worship",
-                                fontWeight = if (selectedTab == YouTubeTabFilter.AVJ_WORSHIP) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        leadingIcon = if (selectedTab == YouTubeTabFilter.AVJ_WORSHIP) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
-
-                    // Vinay Kumar AVJ Tab
-                    FilterChip(
-                        selected = selectedTab == YouTubeTabFilter.VINAY_KUMAR_AVJ,
-                        onClick = { selectedTab = YouTubeTabFilter.VINAY_KUMAR_AVJ },
-                        label = {
-                            Text(
-                                text = "Vinay Kumar AVJ",
-                                fontWeight = if (selectedTab == YouTubeTabFilter.VINAY_KUMAR_AVJ) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        leadingIcon = if (selectedTab == YouTubeTabFilter.VINAY_KUMAR_AVJ) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
-
-                    // New Creation Church Tab
-                    FilterChip(
-                        selected = selectedTab == YouTubeTabFilter.NEW_CREATION_CHURCH,
-                        onClick = { selectedTab = YouTubeTabFilter.NEW_CREATION_CHURCH },
-                        label = {
-                            Text(
-                                text = "New Creation Church",
-                                fontWeight = if (selectedTab == YouTubeTabFilter.NEW_CREATION_CHURCH) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        leadingIcon = if (selectedTab == YouTubeTabFilter.NEW_CREATION_CHURCH) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
-
-                    // Dailymotion Tab (डेली मोशन सेक्शन)
-                    FilterChip(
-                        selected = selectedTab == YouTubeTabFilter.DAILYMOTION,
-                        onClick = { selectedTab = YouTubeTabFilter.DAILYMOTION },
-                        label = {
-                            Text(
-                                text = "Dailymotion",
-                                fontWeight = if (selectedTab == YouTubeTabFilter.DAILYMOTION) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        leadingIcon = if (selectedTab == YouTubeTabFilter.DAILYMOTION) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
+                        }
+                    }
                 }
             }
 
-            // Channel Hero Banner / Dailymotion Section Banner
+            // Channel Hero Banner
             item {
-                if (selectedTab == YouTubeTabFilter.DAILYMOTION) {
+                val currentInfo = when {
+                    currentTab.filterType == "ALL" -> null
+                    currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> PredefinedPlaylists.channelWorship
+                    currentTab.id == "vinay_kumar" || currentTab.filterValue == PredefinedPlaylists.channelMain.id -> PredefinedPlaylists.channelMain
+                    currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> YouTubeChannelInfo(
+                        id = DailymotionFeedService.CHANNEL_MAIN_ID,
+                        name = DailymotionFeedService.CHANNEL_MAIN_TITLE,
+                        handle = "dailymotion",
+                        channelUrl = "https://www.dailymotion.com/x27lzjr",
+                        description = "Official Dailymotion channel featuring Vinay Kumar AVJ videos and vlogs.",
+                        avatarUrl = ""
+                    )
+                    else -> null
+                }
+
+                if (currentInfo != null) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
                     ) {
                         Column(
@@ -382,12 +406,17 @@ fun YouTubeScreen(
                                     modifier = Modifier
                                         .size(52.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF0066DC)),
+                                        .background(NavyPrimary),
                                     contentAlignment = Alignment.Center
                                 ) {
+                                    val initials = when {
+                                        currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> "AVJ"
+                                        currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> "DM"
+                                        else -> "VK"
+                                    }
                                     Text(
-                                        text = "DM",
-                                        color = Color.White,
+                                        text = initials,
+                                        color = GoldWarm,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -397,13 +426,14 @@ fun YouTubeScreen(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Dailymotion Media & Streams",
+                                        text = currentInfo.name,
                                         style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     )
                                     Text(
-                                        text = "डेली मोशन वीडियो एवं लाइव स्ट्रीम्स",
+                                        text = currentInfo.handle,
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -414,124 +444,47 @@ fun YouTubeScreen(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = "Dailymotion वीडियो लिंक सीधे ऐप में बिना किसी रुकावट के उच्च गुणवत्ता में देखे जा सकते हैं।",
+                                text = currentInfo.description,
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                ),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
-                        }
-                    }
-                } else {
-                    val currentInfo = when (selectedTab) {
-                        YouTubeTabFilter.ALL -> null
-                        YouTubeTabFilter.AVJ_WORSHIP -> PredefinedPlaylists.channelWorship
-                        YouTubeTabFilter.VINAY_KUMAR_AVJ -> PredefinedPlaylists.channelMain
-                        YouTubeTabFilter.NEW_CREATION_CHURCH -> PredefinedPlaylists.channelNewCreationChurch
-                        YouTubeTabFilter.DAILYMOTION -> null
-                    }
 
-                    if (currentInfo != null) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Button(
+                                    onClick = { openChannelInYouTube(currentInfo.channelUrl) },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFCC0000)
+                                    )
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(52.dp)
-                                            .clip(CircleShape)
-                                            .background(NavyPrimary),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        val initials = when (selectedTab) {
-                                            YouTubeTabFilter.AVJ_WORSHIP -> "AVJ"
-                                            YouTubeTabFilter.NEW_CREATION_CHURCH -> "NCC"
-                                            else -> "VK"
-                                        }
-                                        Text(
-                                            text = initials,
-                                            color = GoldWarm,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(14.dp))
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = currentInfo.name,
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        )
-                                        Text(
-                                            text = currentInfo.handle,
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Subscriptions,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Subscribe", fontWeight = FontWeight.Bold)
                                 }
 
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Text(
-                                    text = currentInfo.description,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                OutlinedButton(
+                                    onClick = { openChannelInYouTube(currentInfo.channelUrl) },
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Button(
-                                        onClick = { openChannelInYouTube(currentInfo.channelUrl) },
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFFCC0000)
-                                        )
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Subscriptions,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Subscribe", fontWeight = FontWeight.Bold)
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = { openChannelInYouTube(currentInfo.channelUrl) },
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.OpenInNew,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Open Channel")
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.OpenInNew,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Open Channel")
                                 }
                             }
                         }
@@ -575,53 +528,12 @@ fun YouTubeScreen(
                 }
             }
 
-            // Section: Dailymotion Carousel (when on ALL tab and Dailymotion videos exist)
-            if (selectedTab == YouTubeTabFilter.ALL && dmVideos.isNotEmpty()) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "DAILYMOTION STREAMS & VIDEOS (डेली मोशन)",
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0066DC)
-                            )
-                        )
-                        TextButton(onClick = { selectedTab = YouTubeTabFilter.DAILYMOTION }) {
-                            Text("See All", fontSize = 12.sp)
-                        }
-                    }
-                }
-
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(dmVideos) { dmVid ->
-                            Box(modifier = Modifier.width(280.dp)) {
-                                YouTubeVideoCard(
-                                    video = dmVid,
-                                    onClick = { onVideoClick(dmVid) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
             // Section: Latest Videos (Newest -> Oldest)
             item {
                 SectionHeader(
-                    title = when (selectedTab) {
-                        YouTubeTabFilter.ALL -> "ALL VIDEOS (NEWEST FIRST / सभी वीडियो समय अनुसार)"
-                        YouTubeTabFilter.DAILYMOTION -> "DAILYMOTION VIDEOS & STREAMS (डेली मोशन वीडियो)"
-                        else -> "LATEST VIDEOS"
+                    title = when (currentTab.filterType) {
+                        "ALL" -> "ALL VIDEOS (NEWEST FIRST / सभी वीडियो समय अनुसार)"
+                        else -> "${currentTab.label.uppercase()} VIDEOS"
                     },
                     modifier = Modifier.padding(top = 16.dp)
                 )
@@ -645,7 +557,8 @@ fun YouTubeScreen(
             } else {
                 items(
                     items = displayVideos,
-                    key = { it.id }
+                    key = { it.id },
+                    contentType = { "youtube_video_item" }
                 ) { video ->
                     YouTubeVideoCard(
                         video = video,
@@ -654,20 +567,30 @@ fun YouTubeScreen(
                     )
                 }
 
-                // Subtle loading spinner at the bottom while fetching next batch
+                // Subtle loading spinner or end of source indicator at the bottom
                 if (isLoadingMoreVideos) {
-                    item {
+                    item(key = "loading_more_indicator", contentType = "status_indicator") {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(28.dp),
-                                strokeWidth = 2.5.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "और वीडियो लोड हो रहे हैं...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -690,8 +613,7 @@ fun YouTubeScreen(
                     listOf(
                         YouTubeDefaultTab.ALL to "All Channels (सभी वीडियो समय अनुसार)",
                         YouTubeDefaultTab.AVJ_WORSHIP to "AVJ Worship (आराधना गीत)",
-                        YouTubeDefaultTab.VINAY_KUMAR_AVJ to "Vinay Kumar AVJ (मुख्य चैनल / प्रचार)",
-                        YouTubeDefaultTab.NEW_CREATION_CHURCH to "New Creation Church (चर्च मिनिस्ट्री)"
+                        YouTubeDefaultTab.VINAY_KUMAR_AVJ to "Vinay Kumar AVJ (मुख्य चैनल / प्रचार)"
                     ).forEach { (tabOption, labelText) ->
                         val isSelected = settings.youtubeDefaultTab == tabOption
                         Surface(
@@ -699,11 +621,10 @@ fun YouTubeScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     viewModel.updateYouTubeDefaultTab(tabOption)
-                                    selectedTab = when (tabOption) {
-                                        YouTubeDefaultTab.ALL -> YouTubeTabFilter.ALL
-                                        YouTubeDefaultTab.AVJ_WORSHIP -> YouTubeTabFilter.AVJ_WORSHIP
-                                        YouTubeDefaultTab.VINAY_KUMAR_AVJ -> YouTubeTabFilter.VINAY_KUMAR_AVJ
-                                        YouTubeDefaultTab.NEW_CREATION_CHURCH -> YouTubeTabFilter.NEW_CREATION_CHURCH
+                                    selectedTabId = when (tabOption) {
+                                        YouTubeDefaultTab.ALL -> "all"
+                                        YouTubeDefaultTab.AVJ_WORSHIP -> "worship"
+                                        YouTubeDefaultTab.VINAY_KUMAR_AVJ -> "vinay_kumar"
                                     }
                                     showDefaultChannelDialog = false
                                     Toast.makeText(context, "डिफ़ॉल्ट चैनल सेट किया गया", Toast.LENGTH_SHORT).show()
@@ -719,11 +640,10 @@ fun YouTubeScreen(
                                     selected = isSelected,
                                     onClick = {
                                         viewModel.updateYouTubeDefaultTab(tabOption)
-                                        selectedTab = when (tabOption) {
-                                            YouTubeDefaultTab.ALL -> YouTubeTabFilter.ALL
-                                            YouTubeDefaultTab.AVJ_WORSHIP -> YouTubeTabFilter.AVJ_WORSHIP
-                                            YouTubeDefaultTab.VINAY_KUMAR_AVJ -> YouTubeTabFilter.VINAY_KUMAR_AVJ
-                                            YouTubeDefaultTab.NEW_CREATION_CHURCH -> YouTubeTabFilter.NEW_CREATION_CHURCH
+                                        selectedTabId = when (tabOption) {
+                                            YouTubeDefaultTab.ALL -> "all"
+                                            YouTubeDefaultTab.AVJ_WORSHIP -> "worship"
+                                            YouTubeDefaultTab.VINAY_KUMAR_AVJ -> "vinay_kumar"
                                         }
                                         showDefaultChannelDialog = false
                                         Toast.makeText(context, "डिफ़ॉल्ट चैनल सेट किया गया", Toast.LENGTH_SHORT).show()
@@ -745,6 +665,13 @@ fun YouTubeScreen(
                     Text("बंद करें")
                 }
             }
+        )
+    }
+
+    if (showVideoBarManagerDialog) {
+        com.example.ui.admin.VideoQuickAccessManagerDialog(
+            viewModel = viewModel,
+            onDismiss = { showVideoBarManagerDialog = false }
         )
     }
 }

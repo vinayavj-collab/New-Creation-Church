@@ -33,7 +33,8 @@ fun BlogsScreen(
     viewModel: MainViewModel,
     onPostClick: (BlogPost) -> Unit,
     onSearchClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialTab: BlogTab = BlogTab.FELLOWSHIP
 ) {
     val strings = appStrings()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -43,7 +44,11 @@ fun BlogsScreen(
     val isPersonalVlogAllowed by viewModel.isPersonalVlogAllowed.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableStateOf(BlogTab.FELLOWSHIP) }
+    var selectedTab by remember(initialTab, isPersonalVlogAllowed) {
+        mutableStateOf(
+            if (initialTab == BlogTab.PERSONAL && !isPersonalVlogAllowed) BlogTab.FELLOWSHIP else initialTab
+        )
+    }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
 
     // If personal vlog is disabled (either locally or server-side kill switch), ensure selected tab is not PERSONAL
@@ -63,7 +68,7 @@ fun BlogsScreen(
 
     val basePosts = when (selectedTab) {
         BlogTab.FELLOWSHIP -> fellowshipPosts
-        BlogTab.PERSONAL -> personalVlogPosts
+        BlogTab.PERSONAL -> if (isPersonalVlogAllowed) personalVlogPosts else emptyList()
         BlogTab.ALL -> allPosts
     }
 
@@ -99,15 +104,20 @@ fun BlogsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
                             Text(
                                 text = strings.blogsTitle,
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold
                                 )
                             )
+                            val currentSubtitle = when (selectedTab) {
+                                BlogTab.FELLOWSHIP -> strings.fellowshipEventsSub
+                                BlogTab.PERSONAL -> if (settings.appLanguage == com.example.data.model.AppLanguage.HINDI) "पर्सनल लाइफ़ ब्लॉग्स एवं संस्मरण" else "Personal Life stories & reflections"
+                                BlogTab.ALL -> if (settings.appLanguage == com.example.data.model.AppLanguage.HINDI) "समस्त फेलोशिप एवं पर्सनल ब्लॉग्स" else "All fellowship & personal posts"
+                            }
                             Text(
-                                text = strings.fellowshipEventsSub,
+                                text = currentSubtitle,
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -136,6 +146,12 @@ fun BlogsScreen(
                                 BlogTab.PERSONAL -> strings.filterVlog
                                 BlogTab.ALL -> strings.filterAll
                             }
+                            val count = when (tab) {
+                                BlogTab.FELLOWSHIP -> fellowshipPosts.size
+                                BlogTab.PERSONAL -> personalVlogPosts.size
+                                BlogTab.ALL -> allPosts.size
+                            }
+                            val displayText = if (count > 0) "$tabLabel ($count)" else tabLabel
                             Tab(
                                 selected = selectedTab == tab,
                                 onClick = {
@@ -144,7 +160,7 @@ fun BlogsScreen(
                                 },
                                 text = {
                                     Text(
-                                        text = tabLabel,
+                                        text = displayText,
                                         fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal
                                     )
                                 }

@@ -3,7 +3,6 @@ package com.example.ui.components
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,45 +26,6 @@ fun AppUpdateModalDialog(
 ) {
     val context = LocalContext.current
     val updateState by viewModel.updateState.collectAsState()
-    var showHelpDialog by remember { mutableStateOf(false) }
-    var isInstructionsReadChecked by remember { mutableStateOf(false) }
-
-    // Help Dialog with uninstall & website download instructions
-    if (showHelpDialog) {
-        AlertDialog(
-            onDismissRequest = { showHelpDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.HelpOutline,
-                    contentDescription = "Help",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(36.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "सहायता एवं निर्देश (Help)",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            },
-            text = {
-                Text(
-                    text = "यदि यहां से अपडेट नहीं हो रहा है तो वेबसाइट से डाउनलोड कर इंस्टॉल कर सकते हैं, यदि फिर भी इंस्टॉल नहीं होता है तो वर्तमान ऐप को अनइंस्टॉल करके उस नए ऐप को इंस्टॉल करें।",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showHelpDialog = false },
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("समझ गया (Got It)")
-                }
-            },
-            shape = RoundedCornerShape(20.dp)
-        )
-    }
 
     AlertDialog(
         onDismissRequest = {
@@ -90,34 +50,16 @@ fun AppUpdateModalDialog(
             }
         },
         title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = when {
-                        updateState.isChecking -> "जांच की जा रही है..."
-                        updateState.downloadedApkFile != null && updateState.downloadedApkFile!!.exists() -> "✅ इंस्टॉल के लिए तैयार"
-                        updateState.isUpdateAvailable -> "🆕 नया App Update उपलब्ध"
-                        else -> "ऐप अपडेट (App Update)"
-                    },
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-                
-                // Help Button
-                IconButton(
-                    onClick = { showHelpDialog = true }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.HelpOutline,
-                        contentDescription = "Help",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            Text(
+                text = when {
+                    updateState.isChecking -> "जांच की जा रही है... (Checking)"
+                    updateState.downloadedApkFile != null && updateState.downloadedApkFile!!.exists() -> "✅ अपडेट इंस्टॉल के लिए तैयार है"
+                    updateState.isUpdateAvailable -> "🆕 नया App Update उपलब्ध है"
+                    else -> "ऐप अपडेट (App Update)"
+                },
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         },
         text = {
             Column(
@@ -250,7 +192,7 @@ fun AppUpdateModalDialog(
                     )
                 }
 
-                // Guidance & Instructions Card
+                // Package Conflict Guidance Card & Quick Uninstall Shortcut
                 if (updateState.isUpdateAvailable || (updateState.downloadedApkFile != null && updateState.downloadedApkFile!!.exists())) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Surface(
@@ -268,7 +210,7 @@ fun AppUpdateModalDialog(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "अपडेट दिशा-निर्देश (Conflict Guidance):",
+                                    text = "अपडेट में कॉन्फ़्लिक्ट (Conflict) एरर आने पर:",
                                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -298,35 +240,6 @@ fun AppUpdateModalDialog(
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Checkbox requirement
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { isInstructionsReadChecked = !isInstructionsReadChecked }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = isInstructionsReadChecked,
-                                onCheckedChange = { isInstructionsReadChecked = it }
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "मैंने ऊपर दिए गए निर्देश पढ़ लिए हैं",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isInstructionsReadChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                )
-                            )
-                        }
-                    }
                 }
             }
         },
@@ -338,7 +251,6 @@ fun AppUpdateModalDialog(
                 if (updateState.downloadedApkFile != null && updateState.downloadedApkFile!!.exists()) {
                     Button(
                         onClick = { viewModel.installDownloadedApk() },
-                        enabled = isInstructionsReadChecked,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -346,26 +258,14 @@ fun AppUpdateModalDialog(
                         Text("इंस्टॉल करें (Install APK Now)")
                     }
                 } else if (updateState.isUpdateAvailable) {
-                    val directDownloadUrl = updateState.apkDownloadUrl 
-                        ?: "https://github.com/${updateState.repoPath}/releases/latest"
-
                     Button(
-                        onClick = {
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(directDownloadUrl)).apply {
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                }
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                viewModel.downloadAndInstallAppUpdate()
-                            }
-                        },
-                        enabled = isInstructionsReadChecked && !updateState.isDownloading,
+                        onClick = { viewModel.downloadAndInstallAppUpdate() },
+                        enabled = !updateState.isDownloading,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (updateState.isDownloading) "डाउनलोड हो रहा है..." else "डाउनलोड करें (Direct Download)")
+                        Text(if (updateState.isDownloading) "डाउनलोड हो रहा है..." else "अभी अपडेट करें (Update Now)")
                     }
                 } else {
                     Button(
@@ -393,5 +293,4 @@ fun AppUpdateModalDialog(
         shape = RoundedCornerShape(24.dp)
     )
 }
-
 

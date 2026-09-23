@@ -2,9 +2,11 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -15,9 +17,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.data.model.appStrings
 import com.example.ui.viewmodel.MainViewModel
 
@@ -33,6 +37,7 @@ fun MoreScreen(
     onBibleClick: () -> Unit,
     onReadingPlanClick: () -> Unit,
     onDailyPrayerClick: () -> Unit = {},
+    onUserProfileClick: () -> Unit = {},
     onNotesClick: () -> Unit,
     onLyricsClick: () -> Unit,
     onPhotosClick: () -> Unit = {},
@@ -46,6 +51,7 @@ fun MoreScreen(
 ) {
     val context = LocalContext.current
     val strings = appStrings()
+    val userProfile by viewModel.userProfile.collectAsState()
     val upcomingEvents by viewModel.upcomingEvents.collectAsState()
     val savedItems by viewModel.savedItems.collectAsState()
 
@@ -72,6 +78,62 @@ fun MoreScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(16.dp)
         ) {
+            // Section 0: User Profile Header Card
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                        .clickable(onClick = onUserProfileClick)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        Spacer(Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (userProfile.displayName.isNotBlank()) userProfile.displayName else "मेरा प्रोफ़ाइल (User Profile)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "${userProfile.role} • फोटो व गतिविधि इतिहास",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
             // Section 1: Bible & Spiritual Resources
             item {
                 Text(
@@ -158,19 +220,10 @@ fun MoreScreen(
                 ) {
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         SettingsClickableRow(
-                            title = "${strings.upcomingEvents} (${upcomingEvents.size})",
+                            title = "Event (${upcomingEvents.size})",
                             subtitle = strings.upcomingEventsSub,
-                            icon = Icons.Default.EventAvailable,
+                            icon = Icons.Default.Event,
                             onClick = onUpcomingEventsClick
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-
-                        SettingsClickableRow(
-                            title = strings.eventCalendar,
-                            subtitle = strings.eventCalendarSub,
-                            icon = Icons.Default.CalendarMonth,
-                            onClick = onEventCalendarClick
                         )
 
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))

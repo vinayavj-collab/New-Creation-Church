@@ -20,6 +20,14 @@ object GlobalVideoPlayerState {
     private val _isPlaying = MutableStateFlow(true)
     val isPlaying = _isPlaying.asStateFlow()
 
+    // Dynamic On-Screen Rect for Picture-in-Picture Source Rect Hint
+    private val _activePipBounds = MutableStateFlow<android.graphics.Rect?>(null)
+    val activePipBounds = _activePipBounds.asStateFlow()
+
+    fun updatePipBounds(bounds: android.graphics.Rect?) {
+        _activePipBounds.value = bounds
+    }
+
     private val _commandFlow = MutableSharedFlow<String>(extraBufferCapacity = 10)
     val commandFlow = _commandFlow.asSharedFlow()
 
@@ -53,12 +61,18 @@ object GlobalVideoPlayerState {
         val next = !_isPlaying.value
         setPlaying(next)
         _commandFlow.tryEmit(if (next) "PLAY" else "PAUSE")
+        if (next) {
+            SharedVideoPlayerManager.playVideo()
+        } else {
+            SharedVideoPlayerManager.pauseVideo()
+        }
     }
 
     fun closePlayer() {
         _currentVideo.value?.let { vid ->
             VideoPlaybackTracker.clear(vid.id)
         }
+        SharedVideoPlayerManager.releasePlayer()
         _currentVideo.value = null
         _isMiniPlayerActive.value = false
         _isPlaying.value = false

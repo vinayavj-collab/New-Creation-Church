@@ -17,8 +17,8 @@ android {
     applicationId = "com.vinay.newcreation.ncck"
     minSdk = 24
     targetSdk = 36
-    versionCode = 57
-    versionName = "57"
+    versionCode = 69
+    versionName = "69"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -77,6 +77,7 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
+  implementation("androidx.biometric:biometric:1.1.0")
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)
@@ -101,6 +102,7 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation("androidx.documentfile:documentfile:1.0.1")
+  implementation(libs.zxing.core)
   implementation(libs.coil.compose)
   implementation(libs.converter.moshi)
   implementation(libs.firebase.ai)

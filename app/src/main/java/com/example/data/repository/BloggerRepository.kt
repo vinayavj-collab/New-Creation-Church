@@ -87,10 +87,15 @@ class BloggerRepository(
                 dao.insertPosts(fellowshipPosts.map { BlogPostEntity.fromDomain(it) })
             }
 
-            if (showPersonalVlog) {
-                val personalPosts = feedService.fetchBlogPosts(BlogSourceType.PERSONAL_VLOG)
-                if (personalPosts.isNotEmpty()) {
-                    dao.insertPosts(personalPosts.map { BlogPostEntity.fromDomain(it) })
+            val shouldFetchPersonal = showPersonalVlog || com.example.util.ProfileManager.isVinayProfile()
+            if (shouldFetchPersonal) {
+                try {
+                    val personalPosts = feedService.fetchBlogPosts(BlogSourceType.PERSONAL_VLOG)
+                    if (personalPosts.isNotEmpty()) {
+                        dao.insertPosts(personalPosts.map { BlogPostEntity.fromDomain(it) })
+                    }
+                } catch (e: Exception) {
+                    // Ignored
                 }
             }
             Result.success(Unit)

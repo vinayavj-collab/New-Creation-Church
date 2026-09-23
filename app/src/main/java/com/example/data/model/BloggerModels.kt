@@ -3,12 +3,12 @@ package com.example.data.model
 enum class BlogSourceType(val id: String, val displayName: String, val homeUrl: String) {
     FELLOWSHIP_EVENTS(
         id = "fellowship_events",
-        displayName = "Fellowship Events",
+        displayName = "फेलोशिप",
         homeUrl = "https://vinaykumaravj.blogspot.com/"
     ),
     PERSONAL_VLOG(
         id = "personal_vlog",
-        displayName = "Personal Vlog",
+        displayName = "पर्सनल लाइफ़",
         homeUrl = "https://vinayavj.blogspot.com/"
     );
 

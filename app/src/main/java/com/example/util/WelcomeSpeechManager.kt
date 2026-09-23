@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.util.Log
+import com.example.data.bible.model.VerseOfTheDay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -20,18 +21,7 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
         try {
             tts = TextToSpeech(context.applicationContext, this)
         } catch (e: Exception) {
-            Log.e("WelcomeSpeechManager", "Failed to create TextToSpeech engine", e)
-        }
-    }
-
-    companion object {
-        @Volatile
-        private var instance: WelcomeSpeechManager? = null
-
-        fun getInstance(context: Context): WelcomeSpeechManager {
-            return instance ?: synchronized(this) {
-                instance ?: WelcomeSpeechManager(context.applicationContext).also { instance = it }
-            }
+            Log.e(TAG, "Failed to create TextToSpeech engine", e)
         }
     }
 
@@ -48,12 +38,12 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
         if (status == TextToSpeech.SUCCESS) {
             val hindiResult = tts?.setLanguage(Locale("hi", "IN"))
             if (hindiResult == TextToSpeech.LANG_MISSING_DATA || hindiResult == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.w("WelcomeSpeechManager", "Hindi locale not fully supported, falling back to default locale")
+                Log.w(TAG, "Hindi locale not fully supported, falling back to default locale")
                 tts?.setLanguage(Locale.getDefault())
             }
             isTtsInitialized = true
         } else {
-            Log.e("WelcomeSpeechManager", "TextToSpeech init failed with status $status")
+            Log.e(TAG, "TextToSpeech init failed with status $status")
             isTtsInitialized = false
         }
     }
@@ -64,22 +54,14 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
         enableVerseSpeech: Boolean,
         welcomeOncePerDay: Boolean,
         verseOncePerDay: Boolean,
-        todaysVerseText: String?,
+        todayVerse: VerseOfTheDay? = null,
+        todaysVerseText: String? = null,
         isUpdateAvailable: Boolean = false,
         speechPitch: Float = 1.0f,
         speechSpeed: Float = 1.0f,
         speechVolume: Float = 1.0f
     ) {
-        // STRICT FOREGROUND REQUIREMENT: Never speak if app is not active in foreground
-        if (!isAppInForeground) {
-            return
-        }
-
-        if (hasSpokenInCurrentSession) {
-            return
-        }
-
-        if (!isTtsInitialized || tts == null) {
+        if (!isAppInForeground || hasSpokenInCurrentSession || !isTtsInitialized || tts == null) {
             return
         }
 
@@ -88,9 +70,14 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
         val lastVerseDate = prefs.getString("last_verse_date", "") ?: ""
         val lastUpdateDate = prefs.getString("last_update_speech_date", "") ?: ""
 
-        val shouldSpeakWelcome = enableWelcomeSpeech && userName.isNotBlank() && (!welcomeOncePerDay || lastWelcomeDate != currentDate)
-        val shouldSpeakVerse = enableVerseSpeech && !todaysVerseText.isNullOrBlank() && (!verseOncePerDay || lastVerseDate != currentDate)
-        val shouldSpeakUpdate = isUpdateAvailable && (lastUpdateDate != currentDate)
+        val effectiveTodayVerse = todayVerse ?: VerseOfTheDay.getTodayVerse()
+        val effectiveVerseText = if (!todaysVerseText.isNullOrBlank()) todaysVerseText else effectiveTodayVerse.textHindi
+
+        val shouldSpeakWelcome = enableWelcomeSpeech && userName.isNotBlank() &&
+                (!welcomeOncePerDay || lastWelcomeDate != currentDate)
+        val shouldSpeakVerse = enableVerseSpeech && effectiveVerseText.isNotBlank() &&
+                (!verseOncePerDay || lastVerseDate != currentDate)
+        val shouldSpeakUpdate = isUpdateAvailable && lastUpdateDate != currentDate
 
         if (!shouldSpeakWelcome && !shouldSpeakVerse && !shouldSpeakUpdate) {
             return
@@ -101,14 +88,27 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
 
         if (shouldSpeakWelcome) {
             val cleanName = userName.trim()
-            val greeting = RemoteConfigHelper.dailyGreetingText.value.ifBlank { "जय मसीह की" }
-            val welcomeText = "$cleanName जी, $greeting"
+            val rawGreeting = RemoteConfigHelper.dailyGreetingText.value.ifBlank { "जय मसीह की" }
+            val nameTag = if (cleanName.isNotBlank()) "$cleanName जी" else ""
+            val welcomeText = if (rawGreeting.contains("{name}")) {
+                if (nameTag.isNotBlank()) {
+                    rawGreeting.replace("{name}", nameTag)
+                } else {
+                    rawGreeting.replace("{name}", "").replace("  ", " ").trim()
+                }
+            } else {
+                if (cleanName.isNotBlank()) "$cleanName जी, $rawGreeting" else rawGreeting
+            }
             speechQueue.add(welcomeText)
             prefs.edit().putString("last_welcome_date", currentDate).apply()
         }
 
         if (shouldSpeakVerse) {
-            val formattedVerse = ScriptureSpeechUtils.formatScriptureTextForSpeech(todaysVerseText!!.trim())
+            val formattedVerse = when {
+                todayVerse != null -> ScriptureSpeechUtils.formatVerseForSpeech(todayVerse)
+                !todaysVerseText.isNullOrBlank() -> ScriptureSpeechUtils.formatScriptureTextForSpeech(todaysVerseText)
+                else -> ScriptureSpeechUtils.formatVerseForSpeech(effectiveTodayVerse)
+            }
             val verseText = "आज का वचन है। $formattedVerse"
             speechQueue.add(verseText)
             prefs.edit().putString("last_verse_date", currentDate).apply()
@@ -122,38 +122,44 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
             prefs.edit().putString("last_update_speech_date", currentDate).apply()
         }
 
-        executeSpeechQueue(speechQueue, speechPitch, speechSpeed, speechVolume, requireForeground = true)
+        executeSpeechQueue(speechQueue, speechPitch, speechSpeed, speechVolume, true)
     }
 
     fun speakUpdateAnnouncement(userName: String) {
-        if (!isAppInForeground || !isTtsInitialized || tts == null) return
+        if (!isAppInForeground || !isTtsInitialized || tts == null) {
+            return
+        }
         val cleanName = userName.trim()
         val namePrefix = if (cleanName.isNotBlank()) "$cleanName जी, " else ""
         val updateText = "${namePrefix}इस ऐप का नया अपडेट उपलब्ध है, कृपया डाउनलोड करके इंस्टॉल करें।"
-        executeSpeechQueue(listOf(updateText), 1.0f, 1.0f, 1.0f, requireForeground = true)
+        executeSpeechQueue(listOf(updateText), 1.0f, 1.0f, 1.0f, true)
     }
 
     fun testSpeech(
         userName: String,
-        todaysVerseText: String?,
+        todayVerse: VerseOfTheDay? = null,
+        todaysVerseText: String? = null,
         speechPitch: Float = 1.0f,
         speechSpeed: Float = 1.0f,
         speechVolume: Float = 1.0f
     ) {
-        if (!isTtsInitialized || tts == null) return
-
+        if (!isTtsInitialized || tts == null) {
+            return
+        }
         val speechQueue = mutableListOf<String>()
         if (userName.isNotBlank()) {
             speechQueue.add("${userName.trim()} जी, जय मसीह की")
         } else {
             speechQueue.add("जय मसीह की")
         }
-
-        val rawVerse = if (!todaysVerseText.isNullOrBlank()) todaysVerseText.trim() else "परमेश्वर का वचन ही जीवन का मार्ग है।"
-        val formattedVerse = ScriptureSpeechUtils.formatScriptureTextForSpeech(rawVerse)
+        val effectiveTodayVerse = todayVerse ?: VerseOfTheDay.getTodayVerse()
+        val formattedVerse = when {
+            todayVerse != null -> ScriptureSpeechUtils.formatVerseForSpeech(todayVerse)
+            !todaysVerseText.isNullOrBlank() -> ScriptureSpeechUtils.formatScriptureTextForSpeech(todaysVerseText)
+            else -> ScriptureSpeechUtils.formatVerseForSpeech(effectiveTodayVerse)
+        }
         speechQueue.add("आज का वचन है। $formattedVerse")
-
-        executeSpeechQueue(speechQueue, speechPitch, speechSpeed, speechVolume, requireForeground = false)
+        executeSpeechQueue(speechQueue, speechPitch, speechSpeed, speechVolume, false)
     }
 
     fun speakDirect(
@@ -163,23 +169,27 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
         speechVolume: Float = 1.0f,
         requireForeground: Boolean = false
     ) {
-        executeSpeechQueue(messages, speechPitch, speechSpeed, speechVolume, requireForeground = requireForeground)
+        executeSpeechQueue(messages, speechPitch, speechSpeed, speechVolume, requireForeground)
     }
 
     private fun executeSpeechQueue(
         messages: List<String>,
-        speechPitch: Float = 1.0f,
-        speechSpeed: Float = 1.0f,
-        speechVolume: Float = 1.0f,
-        requireForeground: Boolean = false
+        speechPitch: Float,
+        speechSpeed: Float,
+        speechVolume: Float,
+        requireForeground: Boolean
     ) {
-        if (messages.isEmpty() || tts == null) return
-        if (requireForeground && !isAppInForeground) return
-
+        if (messages.isEmpty() || tts == null) {
+            return
+        }
+        if (requireForeground && !isAppInForeground) {
+            return
+        }
         try {
-            tts?.stop()
-            tts?.setPitch(speechPitch.coerceIn(0.5f, 2.0f))
-            tts?.setSpeechRate(speechSpeed.coerceIn(0.5f, 2.0f))
+            val engine = tts ?: return
+            engine.stop()
+            engine.setPitch(speechPitch.coerceIn(0.5f, 2.0f))
+            engine.setSpeechRate(speechSpeed.coerceIn(0.5f, 2.0f))
 
             val params = Bundle().apply {
                 putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, speechVolume.coerceIn(0.1f, 1.0f))
@@ -191,11 +201,11 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
                     return
                 }
                 val queueMode = if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
-                tts?.speak(message, queueMode, params, "welcome_speech_$index")
-                tts?.playSilentUtterance(1200L, TextToSpeech.QUEUE_ADD, "silence_$index")
+                engine.speak(message, queueMode, params, "welcome_speech_$index")
+                engine.playSilentUtterance(1200L, TextToSpeech.QUEUE_ADD, "silence_$index")
             }
         } catch (e: Exception) {
-            Log.e("WelcomeSpeechManager", "Error executing speech queue", e)
+            Log.e(TAG, "Error executing speech queue", e)
         }
     }
 
@@ -203,7 +213,7 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
         try {
             tts?.stop()
         } catch (e: Exception) {
-            // ignore
+            // Ignore
         }
     }
 
@@ -214,7 +224,20 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
             tts = null
             isTtsInitialized = false
         } catch (e: Exception) {
-            // ignore
+            // Ignore
+        }
+    }
+
+    companion object {
+        private const val TAG = "WelcomeSpeechManager"
+
+        @Volatile
+        private var instance: WelcomeSpeechManager? = null
+
+        fun getInstance(context: Context): WelcomeSpeechManager {
+            return instance ?: synchronized(this) {
+                instance ?: WelcomeSpeechManager(context.applicationContext).also { instance = it }
+            }
         }
     }
 }

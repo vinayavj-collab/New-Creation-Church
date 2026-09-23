@@ -109,6 +109,9 @@ class PreferencesManager(context: Context) {
         // Home sections enabled (Today's Scripture at top)
         val defaultEnabled = setOf(
             HomeSectionType.TODAYS_VERSE.id,
+            HomeSectionType.DID_YOU_KNOW.id,
+            HomeSectionType.DAILY_QUIZ.id,
+            HomeSectionType.DAILY_DEVOTIONAL.id,
             HomeSectionType.UPCOMING_EVENTS.id,
             HomeSectionType.FELLOWSHIP_EVENTS.id,
             HomeSectionType.LATEST_VIDEOS.id,
@@ -116,15 +119,39 @@ class PreferencesManager(context: Context) {
             HomeSectionType.LATEST_EVENTS.id
         )
         val enabledStrings = prefs.getStringSet("enabled_home_sections", defaultEnabled) ?: defaultEnabled
-        val enabledHomeSections = enabledStrings.mapNotNull { id ->
+        var enabledHomeSections = enabledStrings.mapNotNull { id ->
             HomeSectionType.entries.find { it.id == id }
-        }.toSet()
+        }.toMutableSet()
+
+        // Remove PHOTOS by default unless user has customized enabled_home_sections
+        if (!prefs.contains("enabled_home_sections")) {
+            enabledHomeSections.remove(HomeSectionType.PHOTOS)
+        }
+
+        // Auto-enable new features (DID_YOU_KNOW, DAILY_QUIZ, DAILY_DEVOTIONAL) if not explicitly set
+        if (!prefs.contains("enabled_home_sections")) {
+            enabledHomeSections.addAll(
+                listOf(
+                    HomeSectionType.DID_YOU_KNOW,
+                    HomeSectionType.DAILY_QUIZ,
+                    HomeSectionType.DAILY_DEVOTIONAL
+                )
+            )
+        } else {
+            // Also ensure these crucial spiritual feature sections are enabled
+            enabledHomeSections.add(HomeSectionType.DID_YOU_KNOW)
+            enabledHomeSections.add(HomeSectionType.DAILY_QUIZ)
+            enabledHomeSections.add(HomeSectionType.DAILY_DEVOTIONAL)
+        }
 
         // Order
         val orderStr = prefs.getString("home_sections_order", null)
         val homeSectionsOrder = if (orderStr.isNullOrBlank()) {
             listOf(
                 HomeSectionType.TODAYS_VERSE,
+                HomeSectionType.DID_YOU_KNOW,
+                HomeSectionType.DAILY_QUIZ,
+                HomeSectionType.DAILY_DEVOTIONAL,
                 HomeSectionType.UPCOMING_EVENTS,
                 HomeSectionType.FELLOWSHIP_EVENTS,
                 HomeSectionType.LATEST_VIDEOS,
@@ -215,7 +242,7 @@ class PreferencesManager(context: Context) {
             verseSpeechOncePerDay = prefs.getBoolean("verse_speech_once_day", false),
             welcomeDialogDismissed = prefs.getBoolean("welcome_dialog_dismissed", false),
             verseAlarmEnabled = prefs.getBoolean("verse_alarm_enabled", true),
-            verseAlarmHour = prefs.getInt("verse_alarm_hour", 7),
+            verseAlarmHour = prefs.getInt("verse_alarm_hour", 6),
             verseAlarmMinute = prefs.getInt("verse_alarm_minute", 0),
             verseAlarmFrequency = verseAlarmFreq,
             verseAlarmIntervalHours = prefs.getInt("verse_alarm_interval_hours", 4),
@@ -227,13 +254,146 @@ class PreferencesManager(context: Context) {
             greetingSpeechSpeed = prefs.getFloat("greeting_speech_speed", 1.0f),
             alarmVolume = prefs.getFloat("alarm_volume", 1.0f),
             readingPlanReminderEnabled = prefs.getBoolean("reading_plan_reminder_enabled", true),
-            readingPlanReminderHour = prefs.getInt("reading_plan_reminder_hour", 8),
+            readingPlanReminderHour = prefs.getInt("reading_plan_reminder_hour", 5),
             readingPlanReminderMinute = prefs.getInt("reading_plan_reminder_minute", 0),
+            readingPlanReminderEveningEnabled = prefs.getBoolean("reading_plan_reminder_evening_enabled", true),
+            readingPlanReminderEveningHour = prefs.getInt("reading_plan_reminder_evening_hour", 21),
+            readingPlanReminderEveningMinute = prefs.getInt("reading_plan_reminder_evening_minute", 0),
             dailyPrayerReminderEnabled = prefs.getBoolean("daily_prayer_reminder_enabled", true),
-            dailyPrayerReminderHour = prefs.getInt("daily_prayer_reminder_hour", 6),
-            dailyPrayerReminderMinute = prefs.getInt("daily_prayer_reminder_minute", 30),
-            dailyPrayerReminderSlot = dailyPrayerSlot
+            dailyPrayerReminderHour = prefs.getInt("daily_prayer_reminder_hour", 4),
+            dailyPrayerReminderMinute = prefs.getInt("daily_prayer_reminder_minute", 0),
+            dailyPrayerReminderSlot = dailyPrayerSlot,
+            morningPrayerHour = prefs.getInt("morning_prayer_hour", DailyPrayerSlot.MORNING.defaultHour),
+            morningPrayerMinute = prefs.getInt("morning_prayer_minute", DailyPrayerSlot.MORNING.defaultMinute),
+            afternoonPrayerHour = prefs.getInt("afternoon_prayer_hour", DailyPrayerSlot.AFTERNOON.defaultHour),
+            afternoonPrayerMinute = prefs.getInt("afternoon_prayer_minute", DailyPrayerSlot.AFTERNOON.defaultMinute),
+            eveningPrayerHour = prefs.getInt("evening_prayer_hour", DailyPrayerSlot.EVENING.defaultHour),
+            eveningPrayerMinute = prefs.getInt("evening_prayer_minute", DailyPrayerSlot.EVENING.defaultMinute),
+            nightPrayerHour = prefs.getInt("night_prayer_hour", DailyPrayerSlot.NIGHT.defaultHour),
+            nightPrayerMinute = prefs.getInt("night_prayer_minute", DailyPrayerSlot.NIGHT.defaultMinute),
+            widgetAutoChangeIntervalHours = prefs.getInt("widget_auto_change_interval_hours", 0),
+            personalBlogPassword = prefs.getString("personal_blog_password", "1234") ?: "1234",
+            inactiveAdminAutoDisableDays = prefs.getInt("inactive_admin_auto_disable_days", 90),
+            isGlobalAdminEmergencyLock = prefs.getBoolean("is_global_admin_emergency_lock", false),
+            hasSeenProfileAdminPrompt = prefs.getBoolean("has_seen_profile_admin_prompt", false),
+            masterAdminPasswordEnabled = prefs.getBoolean("master_admin_password_enabled", true),
+            masterAdminPin = prefs.getString("master_admin_pin", "9876") ?: "9876",
+            masterAdminDualAuthEnabled = prefs.getBoolean("master_admin_dual_auth_enabled", false),
+            masterAdminSecondaryPin = prefs.getString("master_admin_secondary_pin", "123456") ?: "123456",
+            biometricTimeoutDays = prefs.getInt("biometric_timeout_days", 30),
+            isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", true),
+            globalAuthBypass = prefs.getBoolean("global_auth_bypass", false),
+            requireP2EveryLogin = prefs.getBoolean("require_p2_every_login", true),
+            trustedDevices = prefs.getString("trusted_devices_list", "Android-Primary-Device,Mobile-Auth-Terminal-01")?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: listOf("Android-Primary-Device"),
+            profileReminderIntervalDays = prefs.getInt("profile_reminder_interval_days", 7),
+            notificationMethod = prefs.getString("notification_method", "Local Notification") ?: "Local Notification",
+            isChatEnabled = prefs.getBoolean("is_chat_enabled", false),
+            chatAllowOnlyVerified = prefs.getBoolean("chat_allow_only_verified", true),
+            chatWhitelistedUserIds = prefs.getString("chat_whitelisted_user_ids", "")?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList(),
+            chatAllowedRoles = prefs.getString("chat_allowed_roles", "")?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList(),
+            delegatedGlobalEventCreators = prefs.getString("delegated_global_event_creators", "")?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
         )
+    }
+
+    fun updateDelegatedGlobalEventCreators(creators: List<String>) {
+        val str = creators.joinToString(",")
+        prefs.edit().putString("delegated_global_event_creators", str).apply()
+        _settings.value = _settings.value.copy(delegatedGlobalEventCreators = creators)
+    }
+
+    fun updateChatSettings(
+        isChatEnabled: Boolean,
+        chatAllowOnlyVerified: Boolean,
+        chatWhitelistedUserIds: List<String>,
+        chatAllowedRoles: List<String>
+    ) {
+        val whitelistedStr = chatWhitelistedUserIds.joinToString(",")
+        val rolesStr = chatAllowedRoles.joinToString(",")
+        prefs.edit()
+            .putBoolean("is_chat_enabled", isChatEnabled)
+            .putBoolean("chat_allow_only_verified", chatAllowOnlyVerified)
+            .putString("chat_whitelisted_user_ids", whitelistedStr)
+            .putString("chat_allowed_roles", rolesStr)
+            .apply()
+        _settings.value = _settings.value.copy(
+            isChatEnabled = isChatEnabled,
+            chatAllowOnlyVerified = chatAllowOnlyVerified,
+            chatWhitelistedUserIds = chatWhitelistedUserIds,
+            chatAllowedRoles = chatAllowedRoles
+        )
+    }
+
+    fun updateMasterAdminSecurity(
+        passwordEnabled: Boolean,
+        pin: String,
+        dualAuthEnabled: Boolean,
+        secondaryPin: String,
+        biometricTimeout: Int = _settings.value.biometricTimeoutDays,
+        biometricEnabled: Boolean = _settings.value.isBiometricEnabled,
+        authBypass: Boolean = _settings.value.globalAuthBypass,
+        p2EveryLogin: Boolean = _settings.value.requireP2EveryLogin,
+        trustedDevicesList: List<String> = _settings.value.trustedDevices,
+        reminderInterval: Int = _settings.value.profileReminderIntervalDays,
+        notifMethod: String = _settings.value.notificationMethod
+    ) {
+        val devicesString = trustedDevicesList.joinToString(",")
+        prefs.edit()
+            .putBoolean("master_admin_password_enabled", passwordEnabled)
+            .putString("master_admin_pin", pin)
+            .putBoolean("master_admin_dual_auth_enabled", dualAuthEnabled)
+            .putString("master_admin_secondary_pin", secondaryPin)
+            .putInt("biometric_timeout_days", biometricTimeout)
+            .putBoolean("is_biometric_enabled", biometricEnabled)
+            .putBoolean("global_auth_bypass", authBypass)
+            .putBoolean("require_p2_every_login", p2EveryLogin)
+            .putString("trusted_devices_list", devicesString)
+            .putInt("profile_reminder_interval_days", reminderInterval)
+            .putString("notification_method", notifMethod)
+            .apply()
+        _settings.value = _settings.value.copy(
+            masterAdminPasswordEnabled = passwordEnabled,
+            masterAdminPin = pin,
+            masterAdminDualAuthEnabled = dualAuthEnabled,
+            masterAdminSecondaryPin = secondaryPin,
+            biometricTimeoutDays = biometricTimeout,
+            isBiometricEnabled = biometricEnabled,
+            globalAuthBypass = authBypass,
+            requireP2EveryLogin = p2EveryLogin,
+            trustedDevices = trustedDevicesList,
+            profileReminderIntervalDays = reminderInterval,
+            notificationMethod = notifMethod
+        )
+    }
+
+    fun updatePersonalBlogPassword(password: String) {
+        prefs.edit().putString("personal_blog_password", password).apply()
+        _settings.value = _settings.value.copy(personalBlogPassword = password)
+    }
+
+    fun updateInactiveAdminAutoDisableDays(days: Int) {
+        prefs.edit().putInt("inactive_admin_auto_disable_days", days).apply()
+        _settings.value = _settings.value.copy(inactiveAdminAutoDisableDays = days)
+    }
+
+    fun enableAdminLockSystem() {
+        prefs.edit()
+            .putBoolean("master_admin_password_enabled", true)
+            .putBoolean("global_auth_bypass", false)
+            .apply()
+        _settings.value = _settings.value.copy(
+            masterAdminPasswordEnabled = true,
+            globalAuthBypass = false
+        )
+    }
+
+    fun updateGlobalAdminEmergencyLock(locked: Boolean) {
+        prefs.edit().putBoolean("is_global_admin_emergency_lock", locked).apply()
+        _settings.value = _settings.value.copy(isGlobalAdminEmergencyLock = locked)
+    }
+
+    fun markProfileAdminPromptSeen() {
+        prefs.edit().putBoolean("has_seen_profile_admin_prompt", true).apply()
+        _settings.value = _settings.value.copy(hasSeenProfileAdminPrompt = true)
     }
 
     fun updateThemeMode(mode: ThemeMode) {
@@ -429,11 +589,26 @@ class PreferencesManager(context: Context) {
         _settings.value = _settings.value.copy(verseAlarmEnabled = enabled)
     }
 
-    fun updateVerseAlarmTime(hour: Int, minute: Int) {
-        prefs.edit()
+    fun isPrayerTimeCustomizedByUser(): Boolean {
+        return prefs.getBoolean("user_customized_prayer_time", false)
+    }
+
+    fun isVerseAlarmTimeCustomizedByUser(): Boolean {
+        return prefs.getBoolean("user_customized_verse_alarm_time", false)
+    }
+
+    fun isReadingReminderTimeCustomizedByUser(): Boolean {
+        return prefs.getBoolean("user_customized_reading_reminder_time", false)
+    }
+
+    fun updateVerseAlarmTime(hour: Int, minute: Int, isManual: Boolean = true) {
+        val editor = prefs.edit()
             .putInt("verse_alarm_hour", hour)
             .putInt("verse_alarm_minute", minute)
-            .apply()
+        if (isManual) {
+            editor.putBoolean("user_customized_verse_alarm_time", true)
+        }
+        editor.apply()
         _settings.value = _settings.value.copy(
             verseAlarmHour = hour,
             verseAlarmMinute = minute
@@ -494,14 +669,36 @@ class PreferencesManager(context: Context) {
         _settings.value = _settings.value.copy(readingPlanReminderEnabled = enabled)
     }
 
-    fun updateReadingPlanReminderTime(hour: Int, minute: Int) {
-        prefs.edit()
+    fun updateReadingPlanReminderTime(hour: Int, minute: Int, isManual: Boolean = true) {
+        val editor = prefs.edit()
             .putInt("reading_plan_reminder_hour", hour)
             .putInt("reading_plan_reminder_minute", minute)
-            .apply()
+        if (isManual) {
+            editor.putBoolean("user_customized_reading_reminder_time", true)
+        }
+        editor.apply()
         _settings.value = _settings.value.copy(
             readingPlanReminderHour = hour,
             readingPlanReminderMinute = minute
+        )
+    }
+
+    fun updateReadingPlanReminderEveningEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("reading_plan_reminder_evening_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(readingPlanReminderEveningEnabled = enabled)
+    }
+
+    fun updateReadingPlanReminderEveningTime(hour: Int, minute: Int, isManual: Boolean = true) {
+        val editor = prefs.edit()
+            .putInt("reading_plan_reminder_evening_hour", hour)
+            .putInt("reading_plan_reminder_evening_minute", minute)
+        if (isManual) {
+            editor.putBoolean("user_customized_reading_reminder_time", true)
+        }
+        editor.apply()
+        _settings.value = _settings.value.copy(
+            readingPlanReminderEveningHour = hour,
+            readingPlanReminderEveningMinute = minute
         )
     }
 
@@ -510,11 +707,14 @@ class PreferencesManager(context: Context) {
         _settings.value = _settings.value.copy(dailyPrayerReminderEnabled = enabled)
     }
 
-    fun updateDailyPrayerReminderTime(hour: Int, minute: Int) {
-        prefs.edit()
+    fun updateDailyPrayerReminderTime(hour: Int, minute: Int, isManual: Boolean = true) {
+        val editor = prefs.edit()
             .putInt("daily_prayer_reminder_hour", hour)
             .putInt("daily_prayer_reminder_minute", minute)
-            .apply()
+        if (isManual) {
+            editor.putBoolean("user_customized_prayer_time", true)
+        }
+        editor.apply()
         _settings.value = _settings.value.copy(
             dailyPrayerReminderHour = hour,
             dailyPrayerReminderMinute = minute
@@ -523,18 +723,105 @@ class PreferencesManager(context: Context) {
 
     fun updateDailyPrayerReminderSlot(slot: DailyPrayerSlot) {
         val editor = prefs.edit().putString("daily_prayer_reminder_slot", slot.name)
-        if (slot != DailyPrayerSlot.CUSTOM) {
-            editor.putInt("daily_prayer_reminder_hour", slot.defaultHour)
-            editor.putInt("daily_prayer_reminder_minute", slot.defaultMinute)
+        val (h, m) = when (slot) {
+            DailyPrayerSlot.MORNING -> {
+                val hour = prefs.getInt("morning_prayer_hour", DailyPrayerSlot.MORNING.defaultHour)
+                val min = prefs.getInt("morning_prayer_minute", DailyPrayerSlot.MORNING.defaultMinute)
+                hour to min
+            }
+            DailyPrayerSlot.AFTERNOON -> {
+                val hour = prefs.getInt("afternoon_prayer_hour", DailyPrayerSlot.AFTERNOON.defaultHour)
+                val min = prefs.getInt("afternoon_prayer_minute", DailyPrayerSlot.AFTERNOON.defaultMinute)
+                hour to min
+            }
+            DailyPrayerSlot.EVENING -> {
+                val hour = prefs.getInt("evening_prayer_hour", DailyPrayerSlot.EVENING.defaultHour)
+                val min = prefs.getInt("evening_prayer_minute", DailyPrayerSlot.EVENING.defaultMinute)
+                hour to min
+            }
+            DailyPrayerSlot.NIGHT -> {
+                val hour = prefs.getInt("night_prayer_hour", DailyPrayerSlot.NIGHT.defaultHour)
+                val min = prefs.getInt("night_prayer_minute", DailyPrayerSlot.NIGHT.defaultMinute)
+                hour to min
+            }
+            DailyPrayerSlot.CUSTOM -> {
+                _settings.value.dailyPrayerReminderHour to _settings.value.dailyPrayerReminderMinute
+            }
+        }
+        editor.putInt("daily_prayer_reminder_hour", h)
+        editor.putInt("daily_prayer_reminder_minute", m)
+        editor.apply()
+        _settings.value = _settings.value.copy(
+            dailyPrayerReminderSlot = slot,
+            dailyPrayerReminderHour = h,
+            dailyPrayerReminderMinute = m
+        )
+    }
+
+    fun updatePrayerSlotCustomTime(slot: DailyPrayerSlot, hour: Int, minute: Int) {
+        val editor = prefs.edit()
+        when (slot) {
+            DailyPrayerSlot.MORNING -> {
+                editor.putInt("morning_prayer_hour", hour).putInt("morning_prayer_minute", minute)
+                _settings.value = _settings.value.copy(morningPrayerHour = hour, morningPrayerMinute = minute)
+            }
+            DailyPrayerSlot.AFTERNOON -> {
+                editor.putInt("afternoon_prayer_hour", hour).putInt("afternoon_prayer_minute", minute)
+                _settings.value = _settings.value.copy(afternoonPrayerHour = hour, afternoonPrayerMinute = minute)
+            }
+            DailyPrayerSlot.EVENING -> {
+                editor.putInt("evening_prayer_hour", hour).putInt("evening_prayer_minute", minute)
+                _settings.value = _settings.value.copy(eveningPrayerHour = hour, eveningPrayerMinute = minute)
+            }
+            DailyPrayerSlot.NIGHT -> {
+                editor.putInt("night_prayer_hour", hour).putInt("night_prayer_minute", minute)
+                _settings.value = _settings.value.copy(nightPrayerHour = hour, nightPrayerMinute = minute)
+            }
+            DailyPrayerSlot.CUSTOM -> {}
+        }
+        // If this slot is currently selected or if it's custom, also update active reminder time
+        if (_settings.value.dailyPrayerReminderSlot == slot || slot == DailyPrayerSlot.CUSTOM) {
+            editor.putInt("daily_prayer_reminder_hour", hour)
+            editor.putInt("daily_prayer_reminder_minute", minute)
             _settings.value = _settings.value.copy(
-                dailyPrayerReminderSlot = slot,
-                dailyPrayerReminderHour = slot.defaultHour,
-                dailyPrayerReminderMinute = slot.defaultMinute
+                dailyPrayerReminderHour = hour,
+                dailyPrayerReminderMinute = minute
             )
-        } else {
-            _settings.value = _settings.value.copy(dailyPrayerReminderSlot = slot)
         }
         editor.apply()
+    }
+
+    fun updateWidgetAutoChangeIntervalHours(hours: Int) {
+        val safeHours = if (hours < 0) 0 else hours
+        prefs.edit().putInt("widget_auto_change_interval_hours", safeHours).apply()
+        _settings.value = _settings.value.copy(widgetAutoChangeIntervalHours = safeHours)
+    }
+
+    fun isNotificationOnboardingCompleted(): Boolean {
+        return prefs.getBoolean("notification_onboarding_completed", false)
+    }
+
+    fun setNotificationOnboardingCompleted(completed: Boolean = true) {
+        prefs.edit().putBoolean("notification_onboarding_completed", completed).apply()
+    }
+
+    fun isNotificationPromptShownForVersion(versionCode: Int): Boolean {
+        return prefs.getBoolean("notification_prompt_shown_v$versionCode", false)
+    }
+
+    fun setNotificationPromptShownForVersion(versionCode: Int, shown: Boolean = true) {
+        prefs.edit().putBoolean("notification_prompt_shown_v$versionCode", shown).apply()
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: PreferencesManager? = null
+
+        fun getInstance(context: Context): PreferencesManager {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: PreferencesManager(context.applicationContext).also { INSTANCE = it }
+            }
+        }
     }
 }
 

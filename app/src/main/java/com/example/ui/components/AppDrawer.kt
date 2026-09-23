@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,15 +20,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
+import com.example.data.model.AdminHierarchy
+import com.example.data.model.AdminUser
 import com.example.data.model.LocalAppProfile
 import com.example.data.model.ThemeMode
+import com.example.data.model.UserProfileData
 import com.example.data.model.UserSettings
 import com.example.ui.theme.GoldWarm
 
@@ -44,6 +51,9 @@ fun SidebarContent(
     onOpenFeedback: () -> Unit = {},
     isUpdateAvailable: Boolean = false,
     drawerPosition: String = "left",
+    userProfile: UserProfileData? = null,
+    currentAdmin: AdminUser? = null,
+    allAdmins: List<AdminUser> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val cornerShape = if (drawerPosition == "right") {
@@ -82,11 +92,11 @@ fun SidebarContent(
         ) {
             val activeProfile = LocalAppProfile.current
 
-            // 1. Top Header Logo (Transparent background, height: 52dp, anti-squash)
+            // 1. Top Header Logo (Transparent background, height: 46dp, anti-squash)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 18.dp, horizontal = 16.dp),
+                    .padding(top = 16.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -94,54 +104,273 @@ fun SidebarContent(
                     contentDescription = activeProfile.displayNameEnglish,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .height(52.dp)
+                        .height(46.dp)
                         .wrapContentWidth()
                         .wrapContentHeight()
                 )
             }
 
-            HorizontalDivider(color = Color.White.copy(alpha = 0.15f), thickness = 1.dp)
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 2. Quick App Controls (App Theme, App Update, Sidebar Position)
+            // 1.1 QUICK APP CONTROLS: Sidebar Left/Right Option + App Theme Toggle Icon (Moved above User Profile)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 4.dp),
+                    .padding(horizontal = 14.dp, vertical = 2.dp),
                 shape = RoundedCornerShape(14.dp),
                 color = Color.White.copy(alpha = 0.08f)
             ) {
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    // App Theme Option
-                    SidebarActionItem(
-                        label = "App Theme: " + when (settings.themeMode) {
-                            ThemeMode.DARK -> "Dark (डार्क)"
-                            ThemeMode.LIGHT -> "Light (लाइट)"
-                            ThemeMode.SYSTEM -> "System (सिस्टम)"
-                            ThemeMode.DYNAMIC -> "Dynamic (वॉलपेपर)"
-                        },
-                        icon = when (settings.themeMode) {
-                            ThemeMode.DARK -> Icons.Default.DarkMode
-                            ThemeMode.LIGHT -> Icons.Default.LightMode
-                            ThemeMode.DYNAMIC -> Icons.Default.Palette
-                            ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
-                        },
-                        onClick = onToggleTheme
-                    )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Sidebar Left/Right Toggle
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onToggleSidebarPosition),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.SwapHoriz,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Sidebar: " + if (settings.drawerPosition == "right") "Right (दाईं)" else "Left (बाईं)",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "साइडबार स्थिति टॉगल करें",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
 
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 12.dp))
+                    // Theme Toggle Icon Button directly beside Sidebar Left/Right
+                    Surface(
+                        onClick = onToggleTheme,
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color.White.copy(alpha = 0.14f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = when (settings.themeMode) {
+                                    ThemeMode.DARK -> Icons.Default.DarkMode
+                                    ThemeMode.LIGHT -> Icons.Default.LightMode
+                                    ThemeMode.DYNAMIC -> Icons.Default.Palette
+                                    ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
+                                },
+                                contentDescription = "App Theme Toggle",
+                                tint = GoldWarm,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = when (settings.themeMode) {
+                                    ThemeMode.DARK -> "Dark"
+                                    ThemeMode.LIGHT -> "Light"
+                                    ThemeMode.SYSTEM -> "Auto"
+                                    ThemeMode.DYNAMIC -> "Color"
+                                },
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
 
-                    // Sidebar Left / Right Customization
-                    SidebarActionItem(
-                        label = "Sidebar: " + if (settings.drawerPosition == "right") "Right (दाईं ओर)" else "Left (बाईं ओर)",
-                        icon = Icons.Default.SwapHoriz,
-                        onClick = onToggleSidebarPosition
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 1.2 UNIFIED "MY PROFILE" BUTTON (Single unified entry point)
+            val profile = userProfile ?: UserProfileData(displayName = settings.userName)
+            val effectiveAdmin = currentAdmin
+
+            val isVerifiedVishwasiCategory = effectiveAdmin?.designation == AdminHierarchy.ROLE_VERIFIED_VISHWASI || profile.isVerifiedVishwasi
+            val isAdminLoggedIn = effectiveAdmin != null && !effectiveAdmin.roleTier.equals("believer", ignoreCase = true) && effectiveAdmin.rank > 0 && effectiveAdmin.designation != AdminHierarchy.ROLE_VERIFIED_VISHWASI
+            val isPasswordVerified = (effectiveAdmin != null) || profile.isVerifiedVishwasi
+
+            // Format: पदनाम/श्रेणी (Bottom) + नाम (Top)
+            val cleanUserCategory = when {
+                effectiveAdmin != null -> {
+                    val desig = effectiveAdmin.designation
+                        .replace(" (Profile B)", "")
+                        .replace("(Profile B)", "")
+                        .replace("Profile B", "")
+                        .trim()
+                    if (desig.isBlank() || desig.equals("Vinay Kumar Avj", ignoreCase = true) || effectiveAdmin.isMasterAdmin()) {
+                        "मास्टर एडमिन (Master Admin)"
+                    } else {
+                        desig
+                    }
+                }
+                profile.isVerifiedVishwasi -> "सत्यापित विश्वासी"
+                profile.role.isNotBlank() -> profile.role.replace(" (Profile B)", "").replace("(Profile B)", "").trim()
+                settings.userName.isNotBlank() || userProfile?.displayName?.isNotBlank() == true -> "विश्वासी (Believer)"
+                else -> "लॉगिन / प्रोफाइल"
+            }
+
+            // नाम प्राथमिकता: 1. लॉगिन एडमिन, 2. प्रोफाइल का नाम, 3. अभिवादन का नाम, 4. खाली
+            val rawName = when {
+                effectiveAdmin?.name?.isNotBlank() == true -> effectiveAdmin.name
+                userProfile?.displayName?.isNotBlank() == true -> userProfile.displayName
+                settings.userName.isNotBlank() -> settings.userName
+                else -> ""
+            }
+
+            val userName = rawName
+                .replace(" (Profile B)", "")
+                .replace("(Profile B)", "")
+                .replace("Profile B", "")
+                .trim()
+
+            val topDisplayName = if (userName.isNotBlank()) userName else "अतिथि विश्वासी"
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 4.dp)
+                    .clickable {
+                        if (isAdminLoggedIn) {
+                            onNavigate("ADMIN_PANEL")
+                        } else {
+                            onNavigate("USER_PROFILE")
+                        }
+                        onCloseSidebar()
+                    },
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.12f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, GoldWarm.copy(alpha = 0.45f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Profile Avatar (Photo / Initial / Default)
+                    val photoFile = if (profile.photoUriOrPath.isNotBlank()) java.io.File(profile.photoUriOrPath) else null
+                    if (photoFile != null && photoFile.exists()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(photoFile),
+                            contentDescription = "Profile Photo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .border(1.5.dp, GoldWarm, CircleShape)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(GoldWarm.copy(alpha = 0.25f))
+                                .border(1.5.dp, GoldWarm, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val initial = userName.trim().take(1).uppercase()
+                            if (initial.isNotBlank()) {
+                                Text(
+                                    text = initial,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GoldWarm
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.AccountCircle,
+                                    contentDescription = null,
+                                    tint = GoldWarm,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        // ऊपर नाम + बगल में badge / verified tick
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = topDisplayName,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+
+                            // Verified Tick (जितने लोगों का पासवर्ड वेरिफाइड हो)
+                            if (isPasswordVerified) {
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Verified Tick",
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            if (isAdminLoggedIn) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = GoldWarm.copy(alpha = 0.25f),
+                                    border = androidx.compose.foundation.BorderStroke(0.5.dp, GoldWarm)
+                                ) {
+                                    Text(
+                                        text = "Admin",
+                                        color = GoldWarm,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // नीचे पदनाम / श्रेणी (Always at the bottom)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = cleanUserCategory,
+                            color = GoldWarm,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Open Profile",
+                        tint = GoldWarm,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.12f), thickness = 1.dp, modifier = Modifier.padding(top = 8.dp))
+
+            Spacer(modifier = Modifier.height(6.dp))
 
             // 3. Features moved from "More":
             // --- Section: BIBLE & WORSHIP ---
@@ -197,23 +426,12 @@ fun SidebarContent(
             SidebarSectionHeader(title = "EVENTS & SAVED")
 
             SidebarNavItem(
-                label = "Upcoming Events (आगामी कार्यक्रम)",
-                subtitle = "तारीख, समय व स्थान विवरण",
-                icon = Icons.Default.EventAvailable,
-                selected = currentRouteName == "EVENTS",
+                label = "Event (कार्यक्रम)",
+                subtitle = "कैलेंडर व आगामी कार्यक्रम विवरण",
+                icon = Icons.Default.Event,
+                selected = currentRouteName == "EVENTS" || currentRouteName == "CALENDAR",
                 onClick = {
                     onNavigate("EVENTS")
-                    onCloseSidebar()
-                }
-            )
-
-            SidebarNavItem(
-                label = "इवेंट कैलेंडर (Event Calendar)",
-                subtitle = "मासिक कैलेंडर व्यू",
-                icon = Icons.Default.CalendarMonth,
-                selected = currentRouteName == "CALENDAR",
-                onClick = {
-                    onNavigate("CALENDAR")
                     onCloseSidebar()
                 }
             )
@@ -380,7 +598,7 @@ fun SidebarContent(
             SidebarSectionHeader(title = "OFFICIAL CHANNELS")
 
             SidebarNavItem(
-                label = "New Creation Church (यूट्यूब चैनल)",
+                label = "New Creation Church Ministry (यूट्यूब चैनल)",
                 subtitle = "मुख्य प्रचार एवं चर्च गतिविधि (@newcreationchurchministry51015)",
                 icon = Icons.Default.Subscriptions,
                 selected = false,

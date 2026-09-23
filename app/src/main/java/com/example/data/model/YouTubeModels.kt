@@ -1,5 +1,7 @@
 package com.example.data.model
 
+import androidx.annotation.Keep
+
 data class YouTubeVideo(
     val id: String,
     val title: String,
@@ -10,7 +12,32 @@ data class YouTubeVideo(
     val publishedTimestamp: Long,
     val description: String = "",
     val videoUrl: String = "https://www.youtube.com/watch?v=$id",
-    val isRemote: Boolean = false
+    val isRemote: Boolean = false,
+    val isPinned: Boolean = false
+)
+
+@Keep
+data class VideoQuickAccessItem(
+    val id: String = "",
+    val label: String = "",
+    val filterType: String = "ALL", // "ALL", "CHANNEL", "KEYWORD"
+    val filterValue: String = "",
+    val isVisible: Boolean = true,
+    val isPinned: Boolean = false,
+    val order: Int = 0
+)
+
+@Keep
+data class VideoQuickAccessConfig(
+    val isBarVisible: Boolean = true,
+    val items: List<VideoQuickAccessItem> = defaultVideoQuickAccessItems()
+)
+
+fun defaultVideoQuickAccessItems(): List<VideoQuickAccessItem> = listOf(
+    VideoQuickAccessItem(id = "all", label = "ALL", filterType = "ALL", filterValue = "", isVisible = true, isPinned = true, order = 0),
+    VideoQuickAccessItem(id = "worship", label = "Worship", filterType = "CHANNEL", filterValue = "UC92tSCn2I6lwcUyAdyS_MMw", isVisible = true, isPinned = false, order = 1),
+    VideoQuickAccessItem(id = "vinay_kumar", label = "Vinay Kumar AVJ", filterType = "CHANNEL", filterValue = "UClFK75L0wsDMf10Tj77hlsg", isVisible = true, isPinned = false, order = 2),
+    VideoQuickAccessItem(id = "dailymotion", label = "Dailymotion", filterType = "CHANNEL", filterValue = "dailymotion", isVisible = true, isPinned = false, order = 3)
 )
 
 data class YouTubePlaylist(
@@ -127,28 +154,22 @@ object PredefinedPlaylists {
 
     val channelNewCreationChurch = YouTubeChannelInfo(
         id = "UCK4HLm9WeAILv2CfPU9nCmw",
-        name = "New Creation Church",
+        name = "New Creation Church Ministry",
         handle = "@newcreationchurchministry51015",
         channelUrl = "https://youtube.com/@newcreationchurchministry51015",
         description = "Official channel of New Creation Church Ministry featuring Sermons, Prayers, Worship & Fellowship Services.",
         avatarUrl = "https://yt3.googleusercontent.com/ytc/AIdro_k..."
     )
 
-    val channelDailymotionChristian = YouTubeChannelInfo(
-        id = "dm_x27lzjr",
-        name = "Christian Media (Dailymotion)",
-        handle = "@x27lzjr",
-        channelUrl = "https://www.dailymotion.com/partner/x27lzjr/media/video",
-        description = "Christian songs, sermons, worship, and spiritual media broadcasted via Dailymotion.",
-        avatarUrl = "https://www.dailymotion.com/thumbnail/user/x27lzjr"
-    )
-
-    val channelDailymotionVlog = YouTubeChannelInfo(
-        id = "dm_x4sr8o4",
-        name = "Personal Vlog (Dailymotion)",
-        handle = "@x4sr8o4",
-        channelUrl = "https://www.dailymotion.com/partner/x4sr8o4/media/video",
-        description = "Pastor Vinay's Personal Vlogs and reflections on Dailymotion.",
-        avatarUrl = "https://www.dailymotion.com/thumbnail/user/x4sr8o4"
-    )
+    fun isBlockedYouTubeChannel(channelTitle: String, channelId: String = ""): Boolean {
+        if (channelId.isNotBlank() && channelId == channelNewCreationChurch.id) return false
+        val title = channelTitle.trim().lowercase()
+        // If it explicitly says "Ministry", it's our allowed ministry channel
+        if (title.contains("ministry")) return false
+        // Block external "New Creation Church" (Singapore / external entity)
+        return title == "new creation church" ||
+               title.startsWith("new creation church ") ||
+               title.startsWith("new creation church -") ||
+               title.startsWith("new creation church |")
+    }
 }

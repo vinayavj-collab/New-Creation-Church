@@ -14,8 +14,13 @@ object PersonalVlogSecurity {
     /**
      * Checks if Firebase (Server) allows Personal Vlog to be displayed.
      * Firebase has master override authority over local app settings.
+     * EXCEPTION: In "Vinay Kumar Avj" profile, all content is always shown
+     * even if Firebase has set the switch to OFF.
      */
     fun isVlogServerAllowed(): Boolean {
+        if (ProfileManager.isVinayProfile()) {
+            return true
+        }
         val serverDbEnabled = FirebaseDataRepository.getInstance().isPersonalVlogEnabled.value
         val remoteConfigEnabled = RemoteConfigHelper.isVlogServerEnabled()
         return serverDbEnabled && remoteConfigEnabled
@@ -25,6 +30,9 @@ object PersonalVlogSecurity {
      * Verifies the entered password against Firebase Realtime DB, Remote Config, or default 9479.
      */
     fun verifyPassword(input: String): Boolean {
+        if (ProfileManager.isVinayProfile()) {
+            return true
+        }
         val fbPass = FirebaseDataRepository.getInstance().personalVlogPassword.value.trim()
         val rcPass = RemoteConfigHelper.getPersonalVlogPassword().trim()
         val expectedPassword = when {

@@ -36,9 +36,14 @@ import androidx.compose.ui.unit.sp
 import com.example.data.prayer.model.DailyPrayerVerse
 import com.example.data.prayer.repository.DailyPrayerRepository
 import com.example.data.prayer.repository.FirebaseDailyPrayerManager
+import com.example.data.prayer.repository.PersonalPrayerJournalRepository
+import com.example.data.repository.FirebaseDataRepository
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyDark
 import com.example.ui.theme.NavyPrimary
+import com.example.util.AmbientWorshipAudio
+import com.example.util.PrayerCardImageGenerator
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -47,7 +52,8 @@ import java.util.*
 fun DailyPrayerScreen(
     initialPrayerId: Int? = null,
     onBackClick: () -> Unit,
-    onOpenBible: (bookId: Int, chapter: Int, verse: Int) -> Unit
+    onOpenBible: (bookId: Int, chapter: Int, verse: Int) -> Unit,
+    viewModel: com.example.ui.viewmodel.MainViewModel? = null
 ) {
     val context = LocalContext.current
     val prayerManager = remember { FirebaseDailyPrayerManager.getInstance(context) }
@@ -67,21 +73,60 @@ fun DailyPrayerScreen(
         prayerManager.getEffectivePrayer(selectedPrayerId)
     }
 
-    var showCustomizeDialog by remember { mutableStateOf(false) }
     var showEnglishPrayer by remember { mutableStateOf(false) }
     var amenCount by remember { mutableIntStateOf(128 + currentPrayer.id * 7) }
     var hasAmened by remember { mutableStateOf(false) }
 
+    // New Prayer Suite State Managers
+    val journalRepo = remember { PersonalPrayerJournalRepository.getInstance(context) }
+    val streakCount by journalRepo.streakCount.collectAsState()
+    val isCompletedToday by journalRepo.isCompletedToday.collectAsState()
+
+    val ambientAudio = remember { AmbientWorshipAudio.getInstance() }
+    val isAmbientPlaying by com.example.util.BackgroundMusicManager.isPlaying.collectAsState()
+    LaunchedEffect(Unit) {
+        com.example.util.BackgroundMusicManager.init(context)
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+    var isSharingCard by remember { mutableStateOf(false) }
+    var showPrayerTimer by remember { mutableStateOf(false) }
+    var showPersonalJournal by remember { mutableStateOf(false) }
+    var showCommunityRequestsDialog by remember { mutableStateOf(false) }
+
+    val fbRepo = remember { FirebaseDataRepository.getInstance() }
+    val communityRequests by fbRepo.prayerRequests.collectAsState()
+    val publicCommunityRequests = remember(communityRequests) {
+        communityRequests.filter { !it.isPrivate }.take(4)
+    }
+
     // Quick add name state inside card
     var showQuickAddName by remember { mutableStateOf(false) }
     var quickNameText by remember { mutableStateOf("") }
+    var mainTabSelection by remember { mutableIntStateOf(0) } // 0: दैनिक प्रार्थना, 1: निवेदन, 2: उत्तरित प्रार्थना और गवाही
 
-    if (showCustomizeDialog) {
-        CustomizeDailyPrayerDialog(
-            prayer = currentPrayer,
-            prayerManager = prayerManager,
-            onDismissRequest = { showCustomizeDialog = false },
-            onSaved = { refreshTrigger++ }
+    if (showPrayerTimer) {
+        PrayerTimerDialog(
+            onDismissRequest = { showPrayerTimer = false },
+            onPrayerCompleted = {
+                val (streak, isNew) = journalRepo.recordDailyPrayerCompleted()
+                if (isNew) {
+                    Toast.makeText(context, "🔥 अद्भुत! आपकी प्रार्थना स्ट्रीक $streak दिन हो गई है!", Toast.LENGTH_LONG).show()
+                }
+            }
+        )
+    }
+
+    if (showPersonalJournal) {
+        PersonalPrayerJournalDialog(
+            onDismissRequest = { showPersonalJournal = false }
+        )
+    }
+
+    if (showCommunityRequestsDialog && viewModel != null) {
+        com.example.ui.components.PrayerRequestsDialog(
+            viewModel = viewModel,
+            onDismiss = { showCommunityRequestsDialog = false }
         )
     }
 
@@ -104,8 +149,9 @@ fun DailyPrayerScreen(
         }
         ttsEngine = tts
         onDispose {
-            tts.stop()
-            tts.shutdown()
+            tts?.stop()
+            tts?.shutdown()
+            com.example.util.BackgroundMusicManager.stopMusic()
         }
     }
 
@@ -157,6 +203,19 @@ fun DailyPrayerScreen(
         context.startActivity(Intent.createChooser(shareIntent, "शेयर करें (Share)"))
     }
 
+    fun sharePrayerCard() {
+        if (isSharingCard) return
+        isSharingCard = true
+        Toast.makeText(context, "प्रार्थना कार्ड तैयार हो रहा है...", Toast.LENGTH_SHORT).show()
+        coroutineScope.launch {
+            val success = PrayerCardImageGenerator.generateAndShareCard(context, currentPrayer)
+            isSharingCard = false
+            if (!success) {
+                Toast.makeText(context, "कार्ड शेयर करने में असमर्थ", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -184,12 +243,12 @@ fun DailyPrayerScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { showCustomizeDialog = true }
+                        onClick = { sharePrayerCard() }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.EditCalendar,
-                            contentDescription = "कस्टमाइज़ करें (Customize)",
-                            tint = MaterialTheme.colorScheme.primary
+                            imageVector = Icons.Default.Image,
+                            contentDescription = "पोस्टर कार्ड शेयर करें (Share Poster Card)",
+                            tint = GoldWarm
                         )
                     }
                     IconButton(
@@ -230,13 +289,63 @@ fun DailyPrayerScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        val effectiveViewModel = viewModel ?: androidx.lifecycle.viewmodel.compose.viewModel<com.example.ui.viewmodel.MainViewModel>()
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 32.dp)
+                .padding(paddingValues)
         ) {
-            // 1. Hero Date & Theme Card
+            PrimaryTabRow(
+                selectedTabIndex = mainTabSelection,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Tab(
+                    selected = mainTabSelection == 0,
+                    onClick = { mainTabSelection = 0 },
+                    text = {
+                        Text(
+                            text = "दैनिक प्रार्थना",
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+                )
+                Tab(
+                    selected = mainTabSelection == 1,
+                    onClick = { mainTabSelection = 1 },
+                    text = {
+                        val count = communityRequests.count { !it.isAnswered && !it.isPrivate }
+                        Text(
+                            text = if (count > 0) "निवेदन ($count)" else "निवेदन",
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+                )
+                Tab(
+                    selected = mainTabSelection == 2,
+                    onClick = { mainTabSelection = 2 },
+                    text = {
+                        val count = communityRequests.count { it.isAnswered }
+                        Text(
+                            text = if (count > 0) "उत्तरित प्रार्थना ($count)" else "उत्तरित प्रार्थना और गवाही",
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+                )
+            }
+
+            when (mainTabSelection) {
+                0 -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        // 1. Hero Date & Theme Card
             item {
                 Card(
                     modifier = Modifier
@@ -368,6 +477,154 @@ fun DailyPrayerScreen(
                                     Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp))
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            // 1.5 PRAYER STREAK & QUICK ACTIONS SUITE
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (streakCount > 0) Color(0xFFFEF3C7) else MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier.size(42.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(text = "🔥", fontSize = 22.sp)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = if (streakCount > 0) "$streakCount दिन की प्रार्थना स्ट्रीक!" else "दैनिक प्रार्थना स्ट्रीक",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = if (isCompletedToday) "आज की प्रार्थना पूरी हुई ✅" else "आज की प्रार्थना पूरी कर स्ट्रीक दर्ज करें",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = if (isCompletedToday) Color(0xFF059669) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = if (isCompletedToday) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    )
+                                }
+                            }
+
+                            if (!isCompletedToday) {
+                                Button(
+                                    onClick = {
+                                        val (streak, isNew) = journalRepo.recordDailyPrayerCompleted()
+                                        Toast.makeText(context, "प्रार्थना पूर्ण! $streak दिन की स्ट्रीक दर्ज। आमीन! 🙌", Toast.LENGTH_SHORT).show()
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = GoldWarm)
+                                ) {
+                                    Text("पूर्ण हुआ ✓", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                                }
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF10B981).copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "✓ पूर्ण",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = Color(0xFF059669),
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Quick Action Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            AssistChip(
+                                onClick = { com.example.util.BackgroundMusicManager.togglePrayerMusic(context) },
+                                label = { Text(if (isAmbientPlaying) "संगीत ऑन" else "शांत संगीत") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (isAmbientPlaying) Icons.Default.MusicNote else Icons.Default.MusicOff,
+                                        contentDescription = null,
+                                        tint = if (isAmbientPlaying) GoldWarm else MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = if (isAmbientPlaying) GoldWarm.copy(alpha = 0.25f) else Color.Transparent
+                                ),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            AssistChip(
+                                onClick = { showPrayerTimer = true },
+                                label = { Text("शांत टाइमर") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Timer,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            AssistChip(
+                                onClick = { sharePrayerCard() },
+                                label = { Text("पोस्टर") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Image,
+                                        contentDescription = null,
+                                        tint = GoldWarm,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            AssistChip(
+                                onClick = { showPersonalJournal = true },
+                                label = { Text("डायरी") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.MenuBook,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            )
                         }
                     }
                 }
@@ -863,30 +1120,11 @@ fun DailyPrayerScreen(
                                         }
                                     }
                                 }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    TextButton(
-                                        onClick = { showCustomizeDialog = true },
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                    ) {
-                                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "सूची कस्टमाइज़ करें (Edit List)",
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    }
-                                }
                             }
                         }
 
                         // 7. SERMON NOTES BOX (प्रवचन / संदेश नोट्स)
-                        if (currentPrayer.sermonNotes.isNotBlank() || currentPrayer.isCustomized) {
+                        if (currentPrayer.sermonNotes.isNotBlank()) {
                             Spacer(modifier = Modifier.height(14.dp))
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
@@ -897,42 +1135,27 @@ fun DailyPrayerScreen(
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Default.MenuBook,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(18.dp)
+                                        Icon(
+                                            imageVector = Icons.Default.MenuBook,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "📜 प्रवचन व संदेश नोट्स (Sermon Notes)",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "📜 प्रवचन व संदेश नोट्स (Sermon Notes)",
-                                                style = MaterialTheme.typography.labelMedium.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                            )
-                                        }
-
-                                        IconButton(
-                                            onClick = { showCustomizeDialog = true },
-                                            modifier = Modifier.size(28.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Edit,
-                                                contentDescription = "Edit Notes",
-                                                modifier = Modifier.size(14.dp),
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
+                                        )
                                     }
 
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = currentPrayer.sermonNotes.ifBlank { "संदेश नोट्स जोड़ने के लिए कस्टमाइज़ बटन दबाएं।" },
+                                        text = currentPrayer.sermonNotes,
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             lineHeight = 22.sp
                                         ),
@@ -943,7 +1166,7 @@ fun DailyPrayerScreen(
                         }
 
                         // 8. ANNOUNCEMENTS BOX (घोषणाएं व विशेष सूचनाएं)
-                        if (currentPrayer.announcements.isNotBlank() || currentPrayer.isCustomized) {
+                        if (currentPrayer.announcements.isNotBlank()) {
                             Spacer(modifier = Modifier.height(14.dp))
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
@@ -954,42 +1177,27 @@ fun DailyPrayerScreen(
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Default.Campaign,
-                                                contentDescription = null,
-                                                tint = Color(0xFFB45309),
-                                                modifier = Modifier.size(20.dp)
+                                        Icon(
+                                            imageVector = Icons.Default.Campaign,
+                                            contentDescription = null,
+                                            tint = Color(0xFFB45309),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "📢 विशेष घोषणाएं व सूचनाएं (Announcements)",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFB45309)
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "📢 विशेष घोषणाएं व सूचनाएं (Announcements)",
-                                                style = MaterialTheme.typography.labelMedium.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFFB45309)
-                                                )
-                                            )
-                                        }
-
-                                        IconButton(
-                                            onClick = { showCustomizeDialog = true },
-                                            modifier = Modifier.size(28.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Edit,
-                                                contentDescription = "Edit Announcements",
-                                                modifier = Modifier.size(14.dp),
-                                                tint = Color(0xFFB45309)
-                                            )
-                                        }
+                                        )
                                     }
 
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = currentPrayer.announcements.ifBlank { "घोषणाएं जोड़ने के लिए कस्टमाइज़ बटन दबाएं।" },
+                                        text = currentPrayer.announcements,
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             lineHeight = 22.sp,
                                             fontWeight = FontWeight.Medium
@@ -1012,7 +1220,12 @@ fun DailyPrayerScreen(
                                     if (!hasAmened) {
                                         hasAmened = true
                                         amenCount++
-                                        Toast.makeText(context, "🙏 आमीन! आपकी प्रार्थना परमेश्वर के सम्मुख पहुँची।", Toast.LENGTH_SHORT).show()
+                                        val (streak, isNew) = journalRepo.recordDailyPrayerCompleted()
+                                        if (isNew) {
+                                            Toast.makeText(context, "🙏 आमीन! आपकी प्रार्थना स्ट्रीक $streak दिन हो गई!", Toast.LENGTH_LONG).show()
+                                        } else {
+                                            Toast.makeText(context, "🙏 आमीन! आपकी प्रार्थना परमेश्वर के सम्मुख पहुँची।", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 },
                                 shape = RoundedCornerShape(12.dp),
@@ -1049,6 +1262,135 @@ fun DailyPrayerScreen(
                                 Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("शेयर")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 5.5 COMMUNITY PRAYER WALL
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.VolunteerActivism,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "🤝 कलीसिया के प्रार्थना निवेदन",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+
+                            if (viewModel != null) {
+                                TextButton(
+                                    onClick = { showCommunityRequestsDialog = true }
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("निवेदन भेजें")
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = "एक-दूसरे के भार उठाएं और इस रीति से मसीह की व्यवस्था को पूरा करें। (गलतियों 6:2)",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontStyle = FontStyle.Italic
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        if (publicCommunityRequests.isEmpty()) {
+                            Text(
+                                text = "अभी कोई सार्वजनिक निवेदन नहीं है। प्रार्थना निवेदन भेजने के लिए ऊपर टैप करें।",
+                                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.outline),
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                publicCommunityRequests.forEach { req ->
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = req.name + if (req.city.isNotBlank()) " (${req.city})" else "",
+                                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = req.requestText,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    maxLines = 2
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            FilledTonalButton(
+                                                onClick = {
+                                                    fbRepo.incrementPrayingCount(req.id)
+                                                    Toast.makeText(context, "प्रार्थना के लिए धन्यवाद! 🙏", Toast.LENGTH_SHORT).show()
+                                                },
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text("प्रार्थना की 🙏 (${req.prayingCount})", style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Navigation to tabs inside card
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilledTonalButton(
+                                onClick = { mainTabSelection = 1 },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("सभी निवेदन देखें 📜", style = MaterialTheme.typography.labelSmall)
+                            }
+                            OutlinedButton(
+                                onClick = { mainTabSelection = 2 },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("उत्तरित गवाही देखें 🎉", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -1125,6 +1467,41 @@ fun DailyPrayerScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+                }
+                1 -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        item {
+                            PrayerRequestAndTestimonySection(
+                                viewModel = effectiveViewModel,
+                                initialTab = 0,
+                                showTabRow = false,
+                                onTabChange = { newTab -> mainTabSelection = if (newTab == 0) 1 else 2 },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+                2 -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        item {
+                            PrayerRequestAndTestimonySection(
+                                viewModel = effectiveViewModel,
+                                initialTab = 1,
+                                showTabRow = false,
+                                onTabChange = { newTab -> mainTabSelection = if (newTab == 0) 1 else 2 },
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }

@@ -1,7 +1,14 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +23,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +47,7 @@ import com.example.ui.components.*
 import com.example.ui.theme.GoldWarm
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.prayer.UrgentPrayerAlertWindow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +61,7 @@ fun HomeScreen(
     onRecentlyViewedClick: () -> Unit,
     onCustomizeHomeClick: () -> Unit,
     onViewAllPosts: () -> Unit,
+    onViewAllPersonalPosts: () -> Unit = {},
     onViewAllVideos: () -> Unit,
     onViewGallery: () -> Unit,
     onReadVerse: ((bookId: Int, chapter: Int, verse: Int) -> Unit)? = null,
@@ -95,6 +106,7 @@ fun HomeScreen(
     val todaysVerse = remember { VerseOfTheDay.getTodayVerse() }
     val dynamicTodayScripture by viewModel.todayScripture.collectAsStateWithLifecycle()
     val dailyGreetingText by viewModel.dailyGreetingText.collectAsStateWithLifecycle()
+    val dailyGreetingConfig by viewModel.dailyGreetingConfig.collectAsStateWithLifecycle()
     val verseOfTheDayText by viewModel.verseOfTheDayText.collectAsStateWithLifecycle()
     val specialAnnouncementText by viewModel.specialAnnouncementText.collectAsStateWithLifecycle()
 
@@ -105,10 +117,116 @@ fun HomeScreen(
         firebasePrayers.containsKey(todayPrayerId)
     }
 
+    // New Firebase Features: Live Stream, Banners, Audio Devotional, Prayer Requests
+    val liveStreamInfo by viewModel.liveStreamInfo.collectAsStateWithLifecycle()
+    val featuredBanners by viewModel.featuredBanners.collectAsStateWithLifecycle()
+    val dailyAudioDevotional by viewModel.dailyAudioDevotional.collectAsStateWithLifecycle()
+    val prayerRequests by viewModel.prayerRequests.collectAsStateWithLifecycle()
+    val quickAccessConfig by viewModel.quickAccessConfig.collectAsStateWithLifecycle()
+
+    val prayerCountText = remember(prayerRequests, quickAccessConfig.prayerCountMode) {
+        when (quickAccessConfig.prayerCountMode.uppercase()) {
+            "TODAY" -> {
+                val calToday = java.util.Calendar.getInstance().apply {
+                    set(java.util.Calendar.HOUR_OF_DAY, 0)
+                    set(java.util.Calendar.MINUTE, 0)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }.timeInMillis
+                prayerRequests.count { it.timestamp >= calToday }.toString()
+            }
+            "TESTIMONY" -> {
+                prayerRequests.count { it.isAnswered || it.testimonyText.isNotBlank() }.toString()
+            }
+            "ACTIVE" -> {
+                prayerRequests.count { !it.isAnswered }.toString()
+            }
+            else -> { // TOTAL
+                prayerRequests.size.toString()
+            }
+        }
+    }
+
+    // Remote Config Dynamic Controls & Feature Flags
+    val isLiveStreamEnabled by viewModel.isLiveStreamEnabled.collectAsStateWithLifecycle()
+    val isGalleryEnabled by viewModel.isGalleryEnabled.collectAsStateWithLifecycle()
+    val isPrayerRequestEnabled by viewModel.isPrayerRequestEnabled.collectAsStateWithLifecycle()
+    val promoBannerImageUrl by viewModel.promoBannerImageUrl.collectAsStateWithLifecycle()
+    val promoBannerTitle by viewModel.promoBannerTitle.collectAsStateWithLifecycle()
+    val promoBannerLinkUrl by viewModel.promoBannerLinkUrl.collectAsStateWithLifecycle()
+    val isPromoBannerEnabled by viewModel.isPromoBannerEnabled.collectAsStateWithLifecycle()
+
+    var showPrayerRequestsDialog by remember { mutableStateOf(false) }
+
+    var dismissedPrayerNotificationId by rememberSaveable { mutableStateOf("") }
+    val latestPrayerRequest = remember(prayerRequests) {
+        prayerRequests.firstOrNull { !it.isPrivate && !it.isAnswered }
+    }
+    val isNewPrayerRequestAvailable = remember(latestPrayerRequest, dismissedPrayerNotificationId) {
+        if (latestPrayerRequest == null) false
+        else if (latestPrayerRequest.id == dismissedPrayerNotificationId) false
+        else {
+            val lastSeenTime = com.example.util.UserDeviceHelper.getLastSeenPrayerTime(context)
+            val isMine = com.example.util.UserDeviceHelper.isMyRequest(context, latestPrayerRequest.id, latestPrayerRequest.senderDeviceId)
+            !isMine && (latestPrayerRequest.timestamp > lastSeenTime)
+        }
+    }
+
+    // Active Urgent Prayer Alert & Automatic Window Trigger
+    val activeUrgentPrayer = remember(prayerRequests) {
+        prayerRequests.firstOrNull { it.isUrgent && !it.isAnswered }
+    }
+    var urgentPrayerDismissedId by rememberSaveable { mutableStateOf("") }
+    var showUrgentPrayerWindow by remember { mutableStateOf(false) }
+
+    val shouldAutoOpenUrgentWindow = remember(activeUrgentPrayer, urgentPrayerDismissedId) {
+        if (activeUrgentPrayer == null) false
+        else if (activeUrgentPrayer.id == urgentPrayerDismissedId) false
+        else !com.example.util.UserDeviceHelper.isUrgentPrayerDismissed(context, activeUrgentPrayer.id)
+    }
+
+    LaunchedEffect(shouldAutoOpenUrgentWindow, activeUrgentPrayer?.id) {
+        if (shouldAutoOpenUrgentWindow && activeUrgentPrayer != null) {
+            showUrgentPrayerWindow = true
+        }
+    }
+
     // Welcome Customisation Dialog State
     var showWelcomeDialog by remember { mutableStateOf(false) }
     var showUpdateModalDialog by remember { mutableStateOf(false) }
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
+
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        )
+    }
+    var isNotificationBannerDismissed by rememberSaveable { mutableStateOf(false) }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasNotificationPermission = isGranted
+        if (isGranted) {
+            isNotificationBannerDismissed = true
+        }
+    }
+
+    val homeSectionsConfig by viewModel.homeSectionsConfig.collectAsStateWithLifecycle()
+    val currentAdmin by viewModel.currentAdmin.collectAsStateWithLifecycle()
+    var showHomeLayoutDialog by remember { mutableStateOf(false) }
+
+    val isMasterAdmin = currentAdmin?.isMasterAdmin() == true ||
+            currentAdmin?.rank == AdminHierarchy.RANK_VINAY_KUMAR ||
+            (currentAdmin?.designation?.contains("Vinay", ignoreCase = true) == true) ||
+            com.example.util.ProfileManager.isVinayProfile()
 
     LaunchedEffect(Unit) {
         // Automatic update check on app launch
@@ -143,9 +261,48 @@ fun HomeScreen(
         )
     }
 
-    // Source posts from the given blog source(s)
-    val sourcePosts = remember(allPosts, fellowshipPosts) {
-        if (allPosts.isNotEmpty()) allPosts else fellowshipPosts
+    if (showPrayerRequestsDialog) {
+        PrayerRequestsDialog(
+            viewModel = viewModel,
+            onDismiss = { showPrayerRequestsDialog = false }
+        )
+    }
+
+    if (showUrgentPrayerWindow && activeUrgentPrayer != null) {
+        UrgentPrayerAlertWindow(
+            item = activeUrgentPrayer,
+            viewModel = viewModel,
+            onDismiss = {
+                urgentPrayerDismissedId = activeUrgentPrayer.id
+                com.example.util.UserDeviceHelper.dismissUrgentPrayer(context, activeUrgentPrayer.id)
+                showUrgentPrayerWindow = false
+            },
+            onOpenPrayerList = {
+                urgentPrayerDismissedId = activeUrgentPrayer.id
+                com.example.util.UserDeviceHelper.dismissUrgentPrayer(context, activeUrgentPrayer.id)
+                showUrgentPrayerWindow = false
+                showPrayerRequestsDialog = true
+            }
+        )
+    }
+
+    if (showHomeLayoutDialog) {
+        com.example.ui.admin.HomeLayoutManagerDialog(
+            viewModel = viewModel,
+            onDismiss = { showHomeLayoutDialog = false }
+        )
+    }
+
+    val isPersonalVlogOn = isPersonalVlogAllowed && (settings.personalVlogMode != com.example.data.model.PersonalVlogMode.HIDDEN || settings.showPersonalVlog)
+
+    // Source posts from the given blog source(s), including personal vlog posts when active
+    val sourcePosts = remember(allPosts, fellowshipPosts, personalVlogPosts, isPersonalVlogOn) {
+        val base = if (allPosts.isNotEmpty()) allPosts else fellowshipPosts
+        if (isPersonalVlogOn && personalVlogPosts.isNotEmpty()) {
+            (base + personalVlogPosts).distinctBy { it.id }
+        } else {
+            base
+        }
     }
 
     // By default, select and show random posts from given source
@@ -172,12 +329,14 @@ fun HomeScreen(
         if (youtubeVideos.isNotEmpty()) youtubeVideos else latestVideos
     }
 
-    // By default, select and show random videos from given source
+    // By default, select and show random videos from given source, keeping pinned video on top
     val randomVideos = remember(sourceVideos, shuffleVideoSeed) {
         if (sourceVideos.isEmpty()) {
             emptyList()
         } else {
-            sourceVideos.shuffled(kotlin.random.Random(shuffleVideoSeed)).take(4)
+            val pinned = sourceVideos.filter { it.isPinned }
+            val unpinned = sourceVideos.filter { !it.isPinned }
+            (pinned + unpinned.shuffled(kotlin.random.Random(shuffleVideoSeed))).distinctBy { it.id }.take(4)
         }
     }
 
@@ -191,6 +350,40 @@ fun HomeScreen(
             sourceVideos.take(12).forEach { merged.add(MixedFeedItem.VideoItem(it)) }
             merged.shuffled(kotlin.random.Random(shufflePostSeed))
         }
+    }
+
+    // Dynamic Customizable Sections according to Master Admin & User order
+    val effectiveOrder = remember(homeSectionsConfig, settings.homeSectionsOrder) {
+        if (homeSectionsConfig.sections.isNotEmpty()) {
+            val orderMap = mutableMapOf<HomeSectionType, Int>()
+            homeSectionsConfig.sections.forEachIndexed { index, item ->
+                when (item.id) {
+                    "SEC_UPCOMING" -> orderMap[HomeSectionType.UPCOMING_EVENTS] = index
+                    "SEC_FEATURED_FELLOWSHIP", "SEC_RECENT_FELLOWSHIP_HEADER" -> {
+                        if (!orderMap.containsKey(HomeSectionType.FELLOWSHIP_EVENTS)) {
+                            orderMap[HomeSectionType.FELLOWSHIP_EVENTS] = index
+                        }
+                    }
+                    "SEC_LATEST_VIDEOS_HEADER" -> orderMap[HomeSectionType.LATEST_VIDEOS] = index
+                    "SEC_PLAYLISTS_ROW" -> orderMap[HomeSectionType.PLAYLISTS] = index
+                    "SEC_LATEST_EVENTS" -> orderMap[HomeSectionType.LATEST_EVENTS] = index
+                    "SEC_PHOTOS" -> orderMap[HomeSectionType.PHOTOS] = index
+                    "SEC_TODAYS_VERSE" -> orderMap[HomeSectionType.TODAYS_VERSE] = index
+                    "HOME_DID_YOU_KNOW" -> orderMap[HomeSectionType.DID_YOU_KNOW] = index
+                    "HOME_DAILY_QUIZ" -> orderMap[HomeSectionType.DAILY_QUIZ] = index
+                    "HOME_DAILY_DEVOTIONAL" -> orderMap[HomeSectionType.DAILY_DEVOTIONAL] = index
+                    "SEC_PERSONAL_VLOG_HEADER" -> orderMap[HomeSectionType.PERSONAL_VLOG] = index
+                }
+            }
+            settings.homeSectionsOrder.sortedBy { orderMap[it] ?: 999 }
+        } else {
+            settings.homeSectionsOrder
+        }
+    }
+
+    // Dynamic Custom Sections added by Master Admin
+    val customSections = remember(homeSectionsConfig) {
+        homeSectionsConfig.sections.filter { it.type == "CUSTOM" && it.isCurrentlyVisible() }
     }
 
     PullToRefreshBox(
@@ -219,8 +412,372 @@ fun HomeScreen(
                 )
             }
 
+            // Master Admin Home Customization Quick Bar
+            if (isMasterAdmin) {
+                item(key = "MASTER_ADMIN_HOME_LAYOUT_CHIP") {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clickable { showHomeLayoutDialog = true },
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, GoldWarm.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Default.Tune, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text("होम पेज कस्टमाइज़र (Master Admin)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text("क्रम बदलें, जोड़ें/हटाएं, समय सीमा (टाइमर) या स्थायी", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+            }
+
+            // High Priority Urgent Prayer Card (Red Emergency Alert)
+            if (activeUrgentPrayer != null) {
+                item(key = "HOME_URGENT_PRAYER_ALERT") {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clickable { showUrgentPrayerWindow = true },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.92f)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.error),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "🚨 तत्काल प्रार्थना अलर्ट",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.error
+                                    ) {
+                                        Text(
+                                            text = "#${activeUrgentPrayer.serialNumber}",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "${activeUrgentPrayer.name} (${activeUrgentPrayer.userRole}): ${activeUrgentPrayer.requestText}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.95f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = { showUrgentPrayerWindow = true },
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("तत्काल विंडो खोलें 🚨", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    OutlinedButton(
+                                        onClick = {
+                                            viewModel.incrementPrayingCountWithLimit(context, activeUrgentPrayer.id) { success, msg ->
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("प्रार्थना की 🙏 (${activeUrgentPrayer.prayingCount})", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (isNewPrayerRequestAvailable && latestPrayerRequest != null) {
+                item(key = "HOME_NEW_PRAYER_REQUEST_ALERT") {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f)
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.tertiary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.VolunteerActivism,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onTertiary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "🔔 नया प्रार्थना निवेदन प्राप्त हुआ",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = MaterialTheme.colorScheme.primary
+                                    ) {
+                                        Text(
+                                            text = "#${latestPrayerRequest.serialNumber}",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "${latestPrayerRequest.name}: ${latestPrayerRequest.requestText}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.9f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = {
+                                            com.example.util.UserDeviceHelper.setLastSeenPrayerTime(context, latestPrayerRequest.timestamp)
+                                            showPrayerRequestsDialog = true
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("प्रार्थना करें 🙏", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    OutlinedButton(
+                                        onClick = {
+                                            dismissedPrayerNotificationId = latestPrayerRequest.id
+                                            com.example.util.UserDeviceHelper.setLastSeenPrayerTime(context, latestPrayerRequest.timestamp)
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("हटाएं", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!hasNotificationPermission && !isNotificationBannerDismissed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                item(key = "HOME_NOTIFICATION_REMINDER_BANNER") {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (settings.appLanguage == com.example.data.model.AppLanguage.HINDI)
+                                        "सूचनाएं (Notifications) चालू करें"
+                                    else
+                                        "Enable Notifications",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = if (settings.appLanguage == com.example.data.model.AppLanguage.HINDI)
+                                        "दैनिक वचन, प्रार्थना समय और नए अपडेट पाने के लिए अनुमति दें।"
+                                    else
+                                        "Stay updated with daily verses, prayer times, and announcements.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                                    lineHeight = 16.sp
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Button(
+                                    onClick = {
+                                        try {
+                                            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        } catch (e: Exception) {
+                                            try {
+                                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                }
+                                                context.startActivity(intent)
+                                            } catch (e2: Exception) {
+                                                val fallback = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                    data = Uri.fromParts("package", context.packageName, null)
+                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                }
+                                                context.startActivity(fallback)
+                                            }
+                                        }
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(34.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = if (settings.appLanguage == com.example.data.model.AppLanguage.HINDI) "चालू करें" else "Enable",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { isNotificationBannerDismissed = true },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Dismiss",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Master Admin Home Customization Quick-Access Bar
+            if (isMasterAdmin) {
+                item(key = "HOME_MASTER_ADMIN_BAR") {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clickable { showHomeLayoutDialog = true },
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.DashboardCustomize,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "👑 मास्टर एडमिन: होम लेआउट कस्टमाइज़ करें",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             // Dynamic Greeting Banner (controlled by Remote Config daily_greeting_text)
-            item(key = "HOME_DAILY_GREETING") {
+            if (homeSectionsConfig.isSectionVisible("HOME_DAILY_GREETING")) {
+                item(key = "HOME_DAILY_GREETING") {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -244,10 +801,21 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            val greetingFormatted = if (settings.userName.isNotBlank()) {
-                                "${dailyGreetingText.ifBlank { "जय मसीह की" }}, ${settings.userName.trim()} जी!"
-                            } else {
-                                "${dailyGreetingText.ifBlank { "जय मसीह की" }}!"
+                            val activeGreeting = if (dailyGreetingConfig.isExpired()) "जय मसीह की" else dailyGreetingConfig.greetingText.ifBlank { dailyGreetingText.ifBlank { "जय मसीह की" } }
+                            val rawGreeting = activeGreeting.ifBlank { "जय मसीह की" }
+                            val cleanName = settings.userName.trim()
+                            val nameTag = if (cleanName.isNotBlank()) "$cleanName जी" else ""
+                            val greetingFormatted = when {
+                                rawGreeting.contains("{name}") -> {
+                                    if (nameTag.isNotBlank()) rawGreeting.replace("{name}", nameTag)
+                                    else rawGreeting.replace("{name}", "").replace("  ", " ").trim()
+                                }
+                                nameTag.isNotBlank() -> {
+                                    "$rawGreeting, $nameTag!"
+                                }
+                                else -> {
+                                    "$rawGreeting!"
+                                }
                             }
                             Text(
                                 text = greetingFormatted,
@@ -263,9 +831,10 @@ fun HomeScreen(
                     }
                 }
             }
+        }
 
             // Special Announcement Banner (controlled by Remote Config special_announcement_text - View.GONE if blank/null)
-            if (!specialAnnouncementText.isNullOrBlank()) {
+            if (homeSectionsConfig.isSectionVisible("HOME_SPECIAL_ANNOUNCEMENT") && !specialAnnouncementText.isNullOrBlank()) {
                 item(key = "HOME_SPECIAL_ANNOUNCEMENT") {
                     Card(
                         modifier = Modifier
@@ -312,7 +881,7 @@ fun HomeScreen(
             }
 
             // Slim, compact scrolling marquee news ticker at the very top of Home
-            if (activeAdminNotice != null && activeAdminNotice!!.isActive && activeAdminNotice!!.message.isNotBlank()) {
+            if (homeSectionsConfig.isSectionVisible("HOME_ADMIN_NOTICE") && activeAdminNotice != null && activeAdminNotice!!.isActive && activeAdminNotice!!.message.isNotBlank()) {
                 item(key = "HOME_ADMIN_NOTICE") {
                     AdminNoticeBanner(
                         notice = activeAdminNotice,
@@ -330,27 +899,136 @@ fun HomeScreen(
                 }
             }
 
+            // Live Stream Banner (Pulsing Red Live Worship Indicator)
+            if (homeSectionsConfig.isSectionVisible("HOME_LIVE_STREAM_BANNER") && isLiveStreamEnabled && liveStreamInfo.isLive && liveStreamInfo.url.isNotBlank()) {
+                item(key = "HOME_LIVE_STREAM_BANNER") {
+                    LiveStreamBanner(
+                        liveStreamInfo = liveStreamInfo,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            // Dynamic Promotional Banner from Firebase Remote Config
+            if (homeSectionsConfig.isSectionVisible("HOME_REMOTE_PROMO_BANNER") && isPromoBannerEnabled && promoBannerImageUrl.isNotBlank()) {
+                item(key = "HOME_REMOTE_PROMO_BANNER") {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clickable(enabled = promoBannerLinkUrl.isNotBlank()) {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(promoBannerLinkUrl))
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(promoBannerImageUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = promoBannerTitle.ifBlank { "Promotional Banner" },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 140.dp, max = 220.dp)
+                                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            if (promoBannerTitle.isNotBlank()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = promoBannerTitle,
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (promoBannerLinkUrl.isNotBlank()) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                            contentDescription = "Open Link",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Featured Banners & Posters Slider from Firebase
+            if (homeSectionsConfig.isSectionVisible("HOME_FEATURED_BANNERS_SLIDER") && featuredBanners.isNotEmpty()) {
+                item(key = "HOME_FEATURED_BANNERS_SLIDER") {
+                    FeaturedBannerCarousel(
+                        banners = featuredBanners,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
+            }
+
+            // Daily Audio Devotional Card
+            if (homeSectionsConfig.isSectionVisible("HOME_DAILY_AUDIO_DEVOTIONAL") && dailyAudioDevotional != null && dailyAudioDevotional!!.audioUrl.isNotBlank()) {
+                item(key = "HOME_DAILY_AUDIO_DEVOTIONAL") {
+                    DailyAudioDevotionalCard(
+                        devotional = dailyAudioDevotional!!,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
             // Update Notice Banner (if update is available)
             item(key = "HOME_UPDATE_NOTICE") {
                 UpdateNoticeCard(viewModel = viewModel)
             }
 
-            // Quick Access Bar (Upcoming, Saved, Recently Viewed, Customize)
-            item(key = "HOME_QUICK_ACCESS_BAR") {
+            // Quick Access Bar (Upcoming, Saved, Recently Viewed, Prayer Requests, Customize)
+            if (homeSectionsConfig.isSectionVisible("HOME_QUICK_ACCESS_BAR")) {
+                item(key = "HOME_QUICK_ACCESS_BAR") {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (upcomingEvents.isNotEmpty()) {
+                    if (isPrayerRequestEnabled && quickAccessConfig.showPrayerChip) {
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { showPrayerRequestsDialog = true },
+                                label = { Text("${quickAccessConfig.prayerChipLabel.ifBlank { "🙏 निवेदन" }} ($prayerCountText)", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                    labelColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+                    if (quickAccessConfig.showEventChip) {
                         item {
                             FilterChip(
                                 selected = false,
                                 onClick = onUpcomingEventsClick,
-                                label = { Text("${strings.chipEvents} (${upcomingEvents.size})", fontWeight = FontWeight.SemiBold) }
+                                label = { Text("📅 Event (${upcomingEvents.size})", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                    labelColor = MaterialTheme.colorScheme.secondary
+                                )
                             )
                         }
                     }
-                    if (onSongBookClick != null) {
+                    if (onSongBookClick != null && quickAccessConfig.showSongbookChip) {
                         item {
                             FilterChip(
                                 selected = false,
@@ -359,21 +1037,23 @@ fun HomeScreen(
                             )
                         }
                     }
-                    if (onDailyPrayerClick != null) {
+                    if (onDailyPrayerClick != null && quickAccessConfig.showDailyPrayerChip) {
                         item {
                             FilterChip(
                                 selected = false,
                                 onClick = onDailyPrayerClick,
-                                label = { Text(if (isTodayPrayerFromFirebase) "🙏 दैनिक प्रार्थना 🔥" else "🙏 दैनिक प्रार्थना", fontWeight = FontWeight.SemiBold) }
+                                label = { Text(if (isTodayPrayerFromFirebase) "🙏 प्रार्थना 🔥" else "🙏 प्रार्थना", fontWeight = FontWeight.SemiBold) }
                             )
                         }
                     }
-                    item {
-                        FilterChip(
-                            selected = false,
-                            onClick = onSavedClick,
-                            label = { Text("${strings.chipSaved} (${savedItems.size})", fontWeight = FontWeight.SemiBold) }
-                        )
+                    if (quickAccessConfig.showSavedChip) {
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = onSavedClick,
+                                label = { Text("${strings.chipSaved} (${savedItems.size})", fontWeight = FontWeight.SemiBold) }
+                            )
+                        }
                     }
                     item {
                         FilterChip(
@@ -391,6 +1071,7 @@ fun HomeScreen(
                     }
                 }
             }
+        }
 
             // Offline banner if disconnected
             if (isOffline) {
@@ -399,12 +1080,12 @@ fun HomeScreen(
                 }
             }
 
-            // Render Dynamic Customizable Sections according to user order & toggle settings
-            settings.homeSectionsOrder.forEach { sectionType ->
+            // Render Dynamic Customizable Sections according to Master Admin & User order
+            effectiveOrder.forEach { sectionType ->
                 if (settings.enabledHomeSections.contains(sectionType)) {
                     when (sectionType) {
                         HomeSectionType.UPCOMING_EVENTS -> {
-                            if (upcomingEvents.isNotEmpty()) {
+                            if (homeSectionsConfig.isSectionVisible("SEC_UPCOMING") && upcomingEvents.isNotEmpty()) {
                                 item(key = "SEC_UPCOMING") {
                                     Column {
                                         SectionHeader(
@@ -428,7 +1109,7 @@ fun HomeScreen(
                         }
 
                         HomeSectionType.FELLOWSHIP_EVENTS -> {
-                            if (featuredPost != null) {
+                            if (homeSectionsConfig.isSectionVisible("SEC_FEATURED_FELLOWSHIP") && featuredPost != null) {
                                 item(key = "SEC_FEATURED_FELLOWSHIP") {
                                     Column(
                                         modifier = Modifier
@@ -453,7 +1134,7 @@ fun HomeScreen(
                                 }
                             }
 
-                            if (displayMixedFeed.isNotEmpty()) {
+                            if (homeSectionsConfig.isSectionVisible("SEC_RECENT_FELLOWSHIP_HEADER") && displayMixedFeed.isNotEmpty()) {
                                 item(key = "SEC_RECENT_FELLOWSHIP_HEADER") {
                                     SectionHeader(
                                         title = if (settings.favoriteCategories.isNotEmpty()) {
@@ -505,7 +1186,7 @@ fun HomeScreen(
 
                         HomeSectionType.LATEST_VIDEOS -> {
                             // Random videos across channels (AVJ Worship & Vinay Kumar AVJ) by default
-                            if (randomVideos.isNotEmpty()) {
+                            if (homeSectionsConfig.isSectionVisible("SEC_LATEST_VIDEOS_HEADER") && randomVideos.isNotEmpty()) {
                                 item(key = "SEC_LATEST_VIDEOS_HEADER") {
                                     SectionHeader(
                                         title = strings.secLatestVideos,
@@ -533,7 +1214,7 @@ fun HomeScreen(
                         }
 
                         HomeSectionType.PLAYLISTS -> {
-                            if (settings.showYouTube && featuredPlaylists.isNotEmpty()) {
+                            if (homeSectionsConfig.isSectionVisible("SEC_PLAYLISTS_ROW") && settings.showYouTube && featuredPlaylists.isNotEmpty()) {
                                 item(key = "SEC_PLAYLISTS_HEADER") {
                                     SectionHeader(
                                         title = strings.secFeaturedPlaylists,
@@ -562,7 +1243,7 @@ fun HomeScreen(
 
                         HomeSectionType.LATEST_EVENTS -> {
                             // Secondary / Latest events stream
-                            if (recentFellowshipPosts.isNotEmpty()) {
+                            if (homeSectionsConfig.isSectionVisible("SEC_LATEST_EVENTS") && recentFellowshipPosts.isNotEmpty()) {
                                 item(key = "SEC_LATEST_EVENTS") {
                                     SectionHeader(
                                         title = strings.secLatestEvents,
@@ -583,7 +1264,7 @@ fun HomeScreen(
                         }
 
                         HomeSectionType.PHOTOS -> {
-                            if (previewPhotos.isNotEmpty()) {
+                            if (homeSectionsConfig.isSectionVisible("SEC_PHOTOS") && isGalleryEnabled && previewPhotos.isNotEmpty()) {
                                 item(key = "SEC_PHOTOS") {
                                     Column {
                                         SectionHeader(
@@ -624,7 +1305,8 @@ fun HomeScreen(
                         }
 
                         HomeSectionType.TODAYS_VERSE -> {
-                            item(key = "SEC_TODAYS_VERSE") {
+                            if (homeSectionsConfig.isSectionVisible("SEC_TODAYS_VERSE")) {
+                                item(key = "SEC_TODAYS_VERSE") {
                                 Column(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
@@ -648,7 +1330,7 @@ fun HomeScreen(
                                             dynamicTodayScripture.isNotBlank() -> dynamicTodayScripture
                                             else -> todaysVerse.textHindi
                                         }
-                                        val hasCustomScriptureOverride = activeVerseText != todaysVerse.textHindi
+                                        val hasCustomScriptureOverride = verseOfTheDayText.isNotBlank() || dynamicTodayScripture.isNotBlank()
 
                                         Column(modifier = Modifier.padding(16.dp)) {
                                             Row(
@@ -699,21 +1381,46 @@ fun HomeScreen(
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text(
-                                                    text = "${todaysVerse.bookNameEnglish} (${todaysVerse.bookNameHindi}) ${todaysVerse.chapter}:${todaysVerse.verseNumber}",
-                                                    style = MaterialTheme.typography.labelMedium.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = NavyPrimary
-                                                    )
-                                                )
+                                                Surface(
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Bookmark,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        Text(
+                                                            text = "${todaysVerse.bookNameHindi} (${todaysVerse.bookNameEnglish}) ${todaysVerse.chapter}:${todaysVerse.verseNumber}",
+                                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                                fontSize = 13.sp
+                                                            )
+                                                        )
+                                                    }
+                                                }
 
                                                 if (onReadVerse != null) {
-                                                    TextButton(
+                                                    FilledTonalButton(
                                                         onClick = {
                                                             onReadVerse(todaysVerse.bookId, todaysVerse.chapter, todaysVerse.verseNumber)
-                                                        }
+                                                        },
+                                                        shape = RoundedCornerShape(8.dp),
+                                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                                     ) {
-                                                        Text(strings.readChapter, fontSize = 12.sp)
+                                                        Text(
+                                                            text = strings.readChapter,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        )
                                                     }
                                                 }
                                             }
@@ -855,25 +1562,128 @@ fun HomeScreen(
                                 }
                             }
                         }
+                    }
 
-                        HomeSectionType.PERSONAL_VLOG -> {
-                            if (isPersonalVlogAllowed && personalVlogPosts.isNotEmpty()) {
-                                item(key = "SEC_PERSONAL_VLOG_HEADER") {
-                                    SectionHeader(
-                                        title = strings.secPersonalVlog,
-                                        actionTitle = strings.allVlogPosts,
-                                        onAction = onViewAllPosts,
-                                        modifier = Modifier.padding(top = 22.dp)
+                    HomeSectionType.DID_YOU_KNOW -> {
+                        if (homeSectionsConfig.isSectionVisible("HOME_DID_YOU_KNOW")) {
+                            item(key = "HOME_DID_YOU_KNOW") {
+                                DidYouKnowFactCard()
+                            }
+                        }
+                    }
+
+                    HomeSectionType.DAILY_QUIZ -> {
+                        if (homeSectionsConfig.isSectionVisible("HOME_DAILY_QUIZ")) {
+                            item(key = "HOME_DAILY_QUIZ") {
+                                DailyBibleQuizCard()
+                            }
+                        }
+                    }
+
+                    HomeSectionType.DAILY_DEVOTIONAL -> {
+                        if (homeSectionsConfig.isSectionVisible("HOME_DAILY_DEVOTIONAL")) {
+                            item(key = "HOME_DAILY_DEVOTIONAL") {
+                                DailyDevotionalCard()
+                            }
+                        }
+                    }
+
+                    HomeSectionType.PERSONAL_VLOG -> {
+                        if (homeSectionsConfig.isSectionVisible("SEC_PERSONAL_VLOG_HEADER") && isPersonalVlogAllowed && personalVlogPosts.isNotEmpty()) {
+                            item(key = "SEC_PERSONAL_VLOG_HEADER") {
+                                SectionHeader(
+                                    title = strings.secPersonalVlog,
+                                    actionTitle = strings.allVlogPosts,
+                                    onAction = onViewAllPersonalPosts,
+                                    modifier = Modifier.padding(top = 22.dp)
+                                )
+                            }
+
+                            items(personalVlogPosts.take(3), key = { "VLOG_${it.id}" }) { post ->
+                                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                                    BlogPostCard(
+                                        post = post,
+                                        onClick = { onPostClick(post) }
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-                                items(personalVlogPosts.take(3), key = { "VLOG_${it.id}" }) { post ->
-                                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                                        BlogPostCard(
-                                            post = post,
-                                            onClick = { onPostClick(post) }
-                                        )
-                                    }
+        // Dynamic Custom Sections added by Master Admin
+        customSections.forEach { customSec ->
+                item(key = "CUSTOM_SEC_${customSec.id}") {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clickable(enabled = customSec.customActionUrl.isNotBlank()) {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(customSec.customActionUrl))
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            if (customSec.customImageUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(customSec.customImageUrl)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = customSec.customTitle,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(150.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+                            Text(
+                                text = customSec.customTitle.ifBlank { customSec.title },
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            if (customSec.customSubtitle.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = customSec.customSubtitle,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (customSec.customActionUrl.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(customSec.customActionUrl))
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {}
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = customSec.customActionText.ifBlank { "यहाँ क्लिक करें" },
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
                                 }
                             }
                         }

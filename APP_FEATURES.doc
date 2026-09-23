@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>New Creation Church (NCCK) - App Features</title>
+<style>
+  body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; line-height: 1.6; color: #222; margin: 40px; }
+  h1 { color: #1a4480; border-bottom: 3px solid #1a4480; padding-bottom: 8px; font-size: 26pt; }
+  h2 { color: #006699; border-bottom: 1.5px solid #d0d7de; padding-bottom: 5px; margin-top: 25px; font-size: 16pt; }
+  h3 { color: #333333; margin-top: 15px; font-size: 12pt; }
+  ul { margin-top: 5px; margin-bottom: 15px; }
+  li { margin-bottom: 6px; }
+  .badge { background-color: #e7f3fe; color: #1a4480; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 10pt; }
+  .table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; }
+  .table th, .table td { border: 1px solid #d0d7de; padding: 10px; text-align: left; }
+  .table th { background-color: #f6f8fa; color: #24292f; }
+  .header-box { background: #f0f7ff; border-left: 6px solid #1a4480; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header-box">
+  <h1>New Creation Church (NCCK)</h1>
+  <p><strong>एप्लिकेशन का नाम:</strong> New Creation Church (NCCK)<br>
+  <strong>वर्तमान संस्करण:</strong> Version 64 (v64)<br>
+  <strong>दस्तावेज़ प्रकार:</strong> संपूर्ण फीचर्स एवं कार्यप्रणाली विनिर्देश (Comprehensive Features & Capabilities Specification)</p>
+</div>
+
+<h2>1. होम एवं मुख्य डैशबोर्ड (Home & Interactive Dashboard)</h2>
+<ul>
+  <li><strong>विशेष बैनर कैरोसेल (Featured Banners Carousel):</strong> कलीसिया की प्रमुख घोषणाओं, आत्मिक सम्मेलनों और वचनों के आकर्षक स्लाइडर बैनर्स।</li>
+  <li><strong>लाइव स्ट्रीम अलर्ट बैनर (Live Stream Integration):</strong> संडे सर्विस, यूथ मीटिंग अथवा विशेष प्रार्थना सभा के यूट्यूब/फेसबुक लाइव होते ही होम स्क्रीन पर स्वतः अलर्ट व वन-टैप जॉइन बटन।</li>
+  <li><strong>प्रतिदिन का वचन (Verse of the Day):</strong> प्रत्येक दिन नया वचन, एचडी बैकग्राउंड, ऑडियो उच्चारण तथा व्हाट्सएप/फेसबुक पर शेयर करने की सुविधा।</li>
+  <li><strong>दैनिक ऑडियो भक्ति संदेश (Daily Audio Devotional):</strong> पादरी व अगुवों द्वारा प्रतिदिन का संक्षिप्त ऑडियो संदेश व प्रार्थना।</li>
+  <li><strong>त्वरित एक्सेस ग्रिड (Quick Access Navigation):</strong> बाइबल, प्रार्थना, उपदेश, गीत, कार्यक्रम और ब्लॉग्स तक एक टैप में पहुँच।</li>
+  <li><strong>पठन प्रगति सारांश (Reading Progress Summary):</strong> बाइबल पढ़ने का दैनिक स्ट्रीक (Streak), पूर्णता प्रतिशत और अंतिम पढ़े गए अध्याय का ट्रैकर।</li>
+  <li><strong>होम स्क्रीन लेआउट कस्टमाइज़र (Layout Manager):</strong> एडमिन द्वारा विभिन्न सेक्शन्स का क्रम बदलने, चालू/बंद करने का नियंत्रण।</li>
+  <li><strong>आवाज द्वारा स्वागत (Welcome Speech Manager):</strong> ऐप शुरू होने पर उपयोगकर्ता को मधुर अभिवादन संदेश।</li>
+</ul>
+
+<h2>2. पवित्र बाइबल इंजन (Holy Bible Engine)</h2>
+<ul>
+  <li><strong>बहु-संस्करण समर्थन (Multi-Version Support):</strong> पवित्र बाइबिल (BSI Hindi), सरल हिंदी (IRV), King James Version (KJV) एवं अन्य मुख्य संस्करण।</li>
+  <li><strong>USFM सटीक रेंडरिंग:</strong> यीशु मसीह के वचनों को पारंपरिक रूप से लाल अक्षरों (Words of Jesus in Red) में प्रदर्शित करने की व्यवस्था।</li>
+  <li><strong>अध्याय व वचन चयनकर्ता:</strong> पुरानी व नई वाचा की सभी 66 पुस्तकों का अत्यंत सुगम व तीव्र नेविगेशन।</li>
+  <li><strong>बाइबल ऑडियो प्लेयर (Audio Bible Player):</strong> प्रत्येक अध्याय का उच्च-गुणवत्ता ऑडियो प्लेबैक, गति नियंत्रण (0.75x से 2.0x) और बैकग्राउंड प्लेबैक।</li>
+  <li><strong>वचन हाइलाइटिंग व स्टाइल्स:</strong> विविध रंगों (पीला, हरा, नीला, गुलाबी, जामुनी) व अंडरलाइन विकल्पों के साथ हाइलाइटिंग।</li>
+  <li><strong>व्यक्तिगत वचन नोट्स व बुकमार्क्स:</strong> किसी भी वचन पर विस्तृत अध्ययन नोट्स लिखना व टैग्स के साथ सुरक्षित करना।</li>
+  <li><strong>वचन तुलना (Verse Compare Dialog):</strong> एक ही वचन को अलग-अलग अनुवादों में आमने-सामने तुलना करके पढ़ना।</li>
+  <li><strong>वचन फोटो निर्माता (Verse-to-Photo Generator):</strong> मनपसंद बैकग्राउंड, ग्रेडिएंट्स, फॉन्ट स्टाइल और चर्च के लोगो के साथ सोशल मीडिया/व्हाट्सएप स्टेटस के लिए इमेज बनाना।</li>
+  <li><strong>बाइबल पठन योजनाएँ (Reading Plans):</strong> 30 दिन, 90 दिन, और 1 वर्ष में सम्पूर्ण बाइबल पढ़ने की सुव्यवस्थित योजनाएँ।</li>
+  <li><strong>बाइबल खोज (Fast Full-Text Bible Search):</strong> पूरे पवित्र शास्त्र में किसी भी शब्द या संदर्भ की त्वरित खोज।</li>
+</ul>
+
+<h2>3. दैनिक प्रार्थना व कलीसियाई मध्यस्थता (Prayer & Intercession Hub)</h2>
+<ul>
+  <li><strong>व्यक्तिगत प्रार्थना डायरी (Personal Prayer Journal):</strong> अपनी व्यक्तिगत प्रार्थनाओं को सुरक्षित रखना, 'प्रतीक्षारत (Pending)' व 'उत्तरित (Answered)' स्थिति में ट्रैक करना।</li>
+  <li><strong>कलीसियाई प्रार्थना निवेदन (Community Prayer Requests):</strong> विश्वासी अपने प्रार्थना निवेदन साझा कर सकते हैं; अन्य विश्वासी "Prayed" बटन दबाकर प्रार्थना में सहभागिता दर्ज कर सकते हैं।</li>
+  <li><strong>गवाही अनुभाग (Testimonies Section):</strong> प्रभु द्वारा दिए गए उत्तरों और चमत्कारों की गवाहियाँ साझा करना।</li>
+  <li><strong>इंटरएक्टिव प्रार्थना टाइमर (Prayer Timer with Ambient Worship):</strong> 5, 15, 30 या 60 मिनट का प्रार्थना टाइमर जिसमें बैकग्राउंड में शांत आराधना संगीत बजता है।</li>
+  <li><strong>अति-आवश्यक प्रार्थना विंडो (Urgent Prayer Alert Window):</strong> आपातकालीन प्रार्थना (बीमारी, संकट आदि) के लिए तुरंत सभी कलीसिया को अलर्ट भेजना।</li>
+</ul>
+
+<h2>4. वीडियो प्रवचन व लाइव आराधना (Sermons & Media)</h2>
+<ul>
+  <li><strong>यूट्यूब चैनल एकीकरण (NCCK YouTube Integration):</strong> संडे सर्विस, यूथ मीटिंग, कॉन्फ्रेंस और विशेष उपदेशों की स्वतः अपडेट होने वाली सूची।</li>
+  <li><strong>प्लेलिस्ट व्यूअर (Playlist Detail Screen):</strong> विषयवार संदेशों की श्रृंखला (Faith, Grace, Healing, Holy Spirit आदि)।</li>
+  <li><strong>यूनिवर्सल वीडियो प्लेयर (Universal Player):</strong> YouTube, Dailymotion और सीधे MP4/HLS वीडियो का सुगम प्लेबैक। पिक्चर-इन-पिक्चर (PiP) और फ्लोटिंग मिनी प्लेयर समर्थन।</li>
+  <li><strong>हाल ही में देखे गए वीडियो (Recently Viewed):</strong> जहां छोड़ा था वहीं से दोबारा देखना शुरू करने की सुविधा।</li>
+</ul>
+
+<h2>5. गीत व आराधना (Worship Lyrics Library)</h2>
+<ul>
+  <li><strong>मसीही गीतों का विशाल संग्रह:</strong> हिंदी, अंग्रेजी और रोमन लिपि में आराधना गीतों के बोल।</li>
+  <li><strong>शीर्षक व बोल द्वारा तीव्र खोज:</strong> कोरस, छंद या लेखक के नाम से खोजना।</li>
+  <li><strong>फॉन्ट स्केलिंग व डार्क मोड:</strong> चर्च में गाते समय स्क्रीन की ब्राइटनेस और फॉन्ट आकार को बड़ा करना।</li>
+</ul>
+
+<h2>6. चर्च कार्यक्रम व कैलेंडर (Events & Church Calendar)</h2>
+<ul>
+  <li><strong>आगामी कार्यक्रम (Upcoming Events Screen):</strong> संडे आराधना, उपवास प्रार्थना, यूथ फेस्ट, क्रिसमस और ईस्टर के विवरण।</li>
+  <li><strong>मासिक कैलेंडर दृश्य (Event Calendar View):</strong> पूरे महीने के कार्यक्रमों का कैलेंडर में स्पष्ट दृश्य।</li>
+  <li><strong>स्मार्ट रिमाइंडर (Event Reminders):</strong> कार्यक्रम शुरू होने से पहले उपयोगकर्ता को पुश नोटिफिकेशन द्वारा याद दिलाना।</li>
+  <li><strong>स्थान व गूगल मैप्स लिंकिंग:</strong> कार्यक्रम स्थल का गूगल मैप्स नेविगेशन।</li>
+</ul>
+
+<h2>7. आत्मिक अध्ययन लेख व ब्लॉग (Articles & Study Notes)</h2>
+<ul>
+  <li><strong>गंभीर बाइबल अध्ययन (Theological Study Notes):</strong> विश्वास, उद्धार, अनुग्रह और आत्मिक जीवन पर सुविचारित लेख।</li>
+  <li><strong>रिच टेक्स्ट फॉरमेटिंग:</strong> हेडिंग्स, कोट्स, बुलेट पॉइंट्स और बाइबल संदर्भों के साथ पठनीय डिज़ाइन।</li>
+  <li><strong>ऑफ़लाइन सहेजना:</strong> बिना इंटरनेट के कभी भी पढ़ने के लिए लेखों को बुकमार्क करना।</li>
+</ul>
+
+<h2>8. प्रोफ़ाइल, क्लाउड सिंक व कस्टमाइज़ेशन (User Profile & Sync)</h2>
+<ul>
+  <li><strong>व्यक्तिगत प्रोफ़ाइल:</strong> नाम, ईमेल, संपर्क, और प्रोफ़ाइल फ़ोटो क्रॉपिंग।</li>
+  <li><strong>क्लाउड बैकअप व रिस्टोर (Sync Center):</strong> बुकमार्क्स, हाइलाइट्स, नोट्स और प्रार्थना डायरी का बैकअप व रिस्टोर।</li>
+  <li><strong>दैनिक वचन अलार्म (Verse Alarm):** सुबह व शाम अपनी सुविधानुसार अलार्म व नोटिफिकेशन समय सेट करना।</li>
+  <li><strong>थीम व डिज़ाइन (Material 3 Dynamic Theming):</strong> लाइट (Light), डार्क (Dark) एवं सिस्टम डिफ़ॉल्ट थीम, डायनामिक कलर्स।</li>
+</ul>
+
+<h2>9. एडमिन पैनल व सुरक्षा प्रणाली (Admin Panel & Master Admin)</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>फ़ीचर (Feature)</th>
+      <th>विवरण (Description)</th>
+      <th>अनुमति स्तर (Role Access)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>बायोमेट्रिक प्रमाणीकरण (Biometric Auth)</strong></td>
+      <td>सभी एडमिन के लिए फिंगरप्रिंट/फेस आईडी को चालू या बंद (ON/OFF) करने का मास्टर स्विच तथा सेशन टाइमआउट निर्धारण।</td>
+      <td>Master Admin</td>
+    </tr>
+    <tr>
+      <td><strong>भूमिका प्रबंधन (Role Manager)</strong></td>
+      <td>Master Admin, Content Admin, Prayer Moderator, Event Coordinator आदि के अधिकार तय करना।</td>
+      <td>Master Admin</td>
+    </tr>
+    <tr>
+      <td><strong>पुश नोटिफिकेशन कंसोल (Push Broadcast)</strong></td>
+      <td>शीर्षक, संदेश, छवि और डीप लिंक के साथ पूरी कलीसिया को तुरंत नोटिफिकेशन भेजना।</td>
+      <td>Master & Content Admin</td>
+    </tr>
+    <tr>
+      <td><strong>कलीसियाई सदस्य व उपस्थिति (Members & Attendance)</strong></td>
+      <td>सदस्यों की सूची देखना, खोज करना और सभाओं में उपस्थिति दर्ज करना।</td>
+      <td>Admin Staff</td>
+    </tr>
+    <tr>
+      <td><strong>ऑडिट लॉग्स (Audit Logs)</strong></td>
+      <td>किस एडमिन ने कब क्या बदलाव किया, उसका सुरक्षित टाइमस्टैम्प रिकॉर्ड।</td>
+      <td>Master Admin</td>
+    </tr>
+    <tr>
+      <td><strong>कंटेंट प्रबंधन (Content CMS)</strong></td>
+      <td>बैनर्स, वीडियो लिंक्स, इवेंट्स, ब्लॉग्स, बैकग्राउंड म्यूज़िक जोड़ना व संपादित करना।</td>
+      <td>Content Admin</td>
+    </tr>
+    <tr>
+      <td><strong>ऐप अपडेट कंट्रोलर (In-App Update)</strong></td>
+      <td>नए वर्जन की सूचना देना या अनिवार्य अपडेट लागू करना।</td>
+      <td>Master Admin</td>
+    </tr>
+  </tbody>
+</table>
+
+</body>
+</html>

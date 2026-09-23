@@ -1,5 +1,6 @@
 package com.example.data.remote
 
+import android.util.Log
 import com.example.data.model.YouTubeVideo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,27 +12,19 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-data class DailymotionPaginatedResult(
-    val videos: List<YouTubeVideo>,
-    val page: Int,
-    val limit: Int,
-    val hasMore: Boolean,
-    val total: Int = 0
-)
-
 /**
- * Service for fetching Dailymotion videos using Dailymotion Public REST API with pagination parameters:
- * Supports `page` (1-based index), `limit`, user/channel search, and tags.
- * Includes dedicated channels:
- * 1. Christian Channel: `x27lzjr` (https://www.dailymotion.com/partner/x27lzjr/media/video)
- * 2. Personal Vlog Channel: `x4sr8o4` (https://www.dailymotion.com/partner/x4sr8o4/media/video)
+ * Service for fetching video feeds from Dailymotion's REST API.
+ * Supports public channels (e.g. x27lzjr - Vinay Kumar AVJ)
+ * and Personal Vlog channel (x4sr8o4) under dual-layer security rules.
  */
-class DailymotionFeedService(
-    private val dataParser: DailymotionDataParser = DailymotionDataParser()
-) {
+class DailymotionFeedService {
+    private val TAG = "DailymotionFeedService"
+
     companion object {
-        const val CHRISTIAN_USER_ID = DailymotionDataParser.PARTNER_CHRISTIAN
-        const val PERSONAL_VLOG_USER_ID = DailymotionDataParser.PARTNER_VLOG
+        const val CHANNEL_MAIN_ID = "x27lzjr"
+        const val CHANNEL_MAIN_TITLE = "Vinay Kumar AVJ (Dailymotion)"
+        const val CHANNEL_VLOG_ID = "x4sr8o4"
+        const val CHANNEL_VLOG_TITLE = "Vinay AVJ Vlog (Dailymotion)"
     }
 
     private val client = OkHttpClient.Builder()
@@ -39,115 +32,79 @@ class DailymotionFeedService(
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
-    suspend fun fetchVideos(
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+
+    suspend fun fetchUserVideos(
+        userId: String,
+        channelTitle: String,
         page: Int = 1,
-        limit: Int = 15,
-        searchQuery: String = "Vinay Kumar AVJ christian hindi worship",
-        channelOrUser: String? = null
-    ): DailymotionPaginatedResult = withContext(Dispatchers.IO) {
-        if (!channelOrUser.isNullOrBlank()) {
-            return@withContext dataParser.fetchPartnerVideos(channelOrUser, page, limit)
-        }
-        val encodedQuery = java.net.URLEncoder.encode(searchQuery, "UTF-8")
-        val endpoint = "https://api.dailymotion.com/videos?search=$encodedQuery&page=$page&limit=$limit&fields=id,title,description,thumbnail_720_url,thumbnail_480_url,thumbnail_360_url,created_time,owner.screenname,url,duration"
-
-        val request = Request.Builder()
-            .url(endpoint)
-            .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36")
-            .build()
-
+        limit: Int = 50
+    ): List<YouTubeVideo> = withContext(Dispatchers.IO) {
+        val url = "https://api.dailymotion.com/user/$userId/videos?fields=id,title,description,thumbnail_720_url,thumbnail_large_url,thumbnail_url,created_time,duration,url&limit=$limit&page=$page"
         try {
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    return@withContext DailymotionPaginatedResult(emptyList(), page, limit, hasMore = false)
-                }
-                val bodyStr = response.body?.string() ?: return@withContext DailymotionPaginatedResult(emptyList(), page, limit, hasMore = false)
-                dataParser.parseDailymotionApiResponse(bodyStr, page, limit, "dm_search", "Vinay Kumar AVJ Christian")
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 10; K)")
+                .build()
+
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Dailymotion API returned code: ${response.code} for user $userId")
+                return@withContext emptyList()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            DailymotionPaginatedResult(emptyList(), page, limit, hasMore = false)
-        }
-    }
 
-    suspend fun fetchChristianVideos(page: Int = 1, limit: Int = 15): DailymotionPaginatedResult {
-        return dataParser.fetchPartnerVideos(CHRISTIAN_USER_ID, page, limit)
-    }
+            val bodyString = response.body?.string().orEmpty()
+            if (bodyString.isBlank()) return@withContext emptyList()
 
-    suspend fun fetchPersonalVlogVideos(page: Int = 1, limit: Int = 15): DailymotionPaginatedResult {
-        return dataParser.fetchPartnerVideos(PERSONAL_VLOG_USER_ID, page, limit)
-    }
+            val jsonObject = JSONObject(bodyString)
+            val listArray = jsonObject.optJSONArray("list") ?: return@withContext emptyList()
 
-    private fun parseDailymotionJson(jsonString: String, requestedPage: Int, requestedLimit: Int, channelUser: String? = null): DailymotionPaginatedResult {
-        val videos = mutableListOf<YouTubeVideo>()
-        var hasMore = false
-        var total = 0
-        try {
-            val root = JSONObject(jsonString)
-            hasMore = root.optBoolean("has_more", false)
-            val page = root.optInt("page", requestedPage)
-            val limit = root.optInt("limit", requestedLimit)
-            total = root.optInt("total", 0)
+            val resultList = mutableListOf<YouTubeVideo>()
+            for (i in 0 until listArray.length()) {
+                val item = listArray.getJSONObject(i)
+                val dmId = item.optString("id").trim()
+                if (dmId.isBlank()) continue
 
-            val isVlog = channelUser == PERSONAL_VLOG_USER_ID
-            val defaultOwner = if (isVlog) "Pastor Vinay (Personal Vlog)" else "Vinay Kumar AVJ Christian"
-            val defaultChannelId = if (isVlog) "dm_$PERSONAL_VLOG_USER_ID" else "dm_$CHRISTIAN_USER_ID"
+                val title = item.optString("title", "Dailymotion Video")
+                val description = item.optString("description", "")
 
-            val list = root.optJSONArray("list")
-            if (list != null) {
-                for (i in 0 until list.length()) {
-                    val item = list.optJSONObject(i) ?: continue
-                    val id = item.optString("id", "")
-                    val title = item.optString("title", "Dailymotion Video")
-                    val description = item.optString("description", "")
-                    val videoUrl = item.optString("url", "https://www.dailymotion.com/video/$id")
-
-                    // Hide specified excluded videos
-                    if (id.equals("x2dzbsk", ignoreCase = true) ||
-                        videoUrl.contains("x2dzbsk", ignoreCase = true) ||
-                        title.contains("JOEL OSTEEN", ignoreCase = true)
-                    ) {
-                        continue
-                    }
-                    var thumb = item.optString("thumbnail_480_url", "")
-                    if (thumb.isBlank()) {
-                        thumb = item.optString("thumbnail_360_url", "https://www.dailymotion.com/thumbnail/video/$id")
-                    }
-                    val createdTime = item.optLong("created_time", 0L) * 1000L
-                    val owner = item.optString("owner.screenname", defaultOwner)
-
-                    val displayDate = if (createdTime > 0) {
-                        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                        sdf.format(Date(createdTime))
-                    } else "Recent"
-
-                    if (id.isNotBlank()) {
-                        videos.add(
-                            YouTubeVideo(
-                                id = "dm_$id",
-                                title = title,
-                                channelId = defaultChannelId,
-                                channelTitle = owner.ifBlank { defaultOwner },
-                                thumbnailUrl = thumb,
-                                publishedAt = displayDate,
-                                publishedTimestamp = if (createdTime > 0) createdTime else System.currentTimeMillis(),
-                                description = description,
-                                videoUrl = videoUrl
-                            )
-                        )
-                    }
+                val lowerTitle = title.lowercase(Locale.ROOT)
+                val lowerDesc = description.lowercase(Locale.ROOT)
+                if (lowerTitle.contains("metdaan") || lowerDesc.contains("metdaan") ||
+                    lowerTitle.contains("met daan") || lowerDesc.contains("met daan")) {
+                    continue
                 }
+                val thumb720 = item.optString("thumbnail_720_url", "")
+                val thumbLarge = item.optString("thumbnail_large_url", "")
+                val thumbDefault = item.optString("thumbnail_url", "")
+                val bestThumb = when {
+                    thumb720.isNotBlank() -> thumb720
+                    thumbLarge.isNotBlank() -> thumbLarge
+                    thumbDefault.isNotBlank() -> thumbDefault
+                    else -> "https://www.dailymotion.com/thumbnail/video/$dmId"
+                }
+
+                val createdSec = item.optLong("created_time", 0L)
+                val timestamp = if (createdSec > 0) createdSec * 1000L else System.currentTimeMillis()
+                val dateStr = dateFormat.format(Date(timestamp))
+
+                val videoItem = YouTubeVideo(
+                    id = "dm_${userId}_$dmId",
+                    title = title,
+                    channelId = userId,
+                    channelTitle = channelTitle,
+                    thumbnailUrl = bestThumb,
+                    publishedAt = dateStr,
+                    publishedTimestamp = timestamp,
+                    description = description,
+                    videoUrl = "https://www.dailymotion.com/video/$dmId"
+                )
+                resultList.add(videoItem)
             }
-            return DailymotionPaginatedResult(
-                videos = videos,
-                page = page,
-                limit = limit,
-                hasMore = hasMore || videos.size >= requestedLimit,
-                total = total
-            )
+            resultList
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Failed to fetch Dailymotion videos for $userId", e)
+            emptyList()
         }
-        return DailymotionPaginatedResult(videos, requestedPage, requestedLimit, hasMore = false)
     }
 }

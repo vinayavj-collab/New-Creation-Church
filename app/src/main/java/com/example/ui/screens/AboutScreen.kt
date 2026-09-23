@@ -35,6 +35,7 @@ import com.example.ui.theme.NavyPrimary
 @Composable
 fun AboutScreen(
     onBack: () -> Unit,
+    isPersonalVlogAllowed: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -208,14 +209,16 @@ fun AboutScreen(
                             onClick = { openLink("https://youtube.com/@vinaykumaravjworship") }
                         )
 
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+                        if (isPersonalVlogAllowed) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
 
-                        AboutLinkRow(
-                            title = "Personal Vlog Blog",
-                            subtitle = "vinayavj.blogspot.com",
-                            icon = Icons.Default.Language,
-                            onClick = { openLink("https://vinayavj.blogspot.com/") }
-                        )
+                            AboutLinkRow(
+                                title = "Personal Life Blog (पर्सनल लाइफ़)",
+                                subtitle = "vinayavj.blogspot.com",
+                                icon = Icons.Default.Language,
+                                onClick = { openLink("https://vinayavj.blogspot.com/") }
+                            )
+                        }
                     }
                 }
             }

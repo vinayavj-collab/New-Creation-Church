@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -46,6 +47,7 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
                         return
                     }
                 }
+                subscribeToTopicsInternal()
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to initialize FCM topic subscription: ${e.message}")
             }
@@ -65,9 +67,61 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
                             Log.d(TAG, "Subscribed to 'notices' topic")
                         }
                     }
+                FirebaseMessaging.getInstance().subscribeToTopic("admin_alerts")
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            Log.d(TAG, "Subscribed to 'admin_alerts' topic")
+                        }
+                    }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to subscribe to FCM topics: ${e.message}")
             }
+        }
+
+        fun showSystemNotification(context: Context, title: String, body: String) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "प्रशासनिक एवं सामान्य सूचनाएं"
+                    enableVibration(true)
+                    enableLights(true)
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            val launchIntent = Intent(context, MainActivity::class.java).apply {
+                action = Intent.ACTION_MAIN
+                addCategory(Intent.CATEGORY_LAUNCHER)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("open_tab", "HOME")
+            }
+
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                System.currentTimeMillis().toInt(),
+                launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+            )
+
+            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSound(soundUri)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+
+            val notifId = (System.currentTimeMillis() % 100000).toInt()
+            notificationManager.notify(notifId, notificationBuilder.build())
         }
     }
 
@@ -114,49 +168,6 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
         }
 
         // 2. Display push notification in system tray
-        showSystemNotification(title, body)
-    }
-
-    private fun showSystemNotification(title: String, body: String) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "प्रशासनिक एवं सामान्य सूचनाएं"
-                enableVibration(true)
-                enableLights(true)
-            }
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val launchIntent = Intent(this, MainActivity::class.java).apply {
-            action = Intent.ACTION_MAIN
-            addCategory(Intent.CATEGORY_LAUNCHER)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("open_tab", "HOME")
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            System.currentTimeMillis().toInt(),
-            launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
-        )
-
-        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-
-        val notifId = (System.currentTimeMillis() % 100000).toInt()
-        notificationManager.notify(notifId, notificationBuilder.build())
+        showSystemNotification(applicationContext, title, body)
     }
 }

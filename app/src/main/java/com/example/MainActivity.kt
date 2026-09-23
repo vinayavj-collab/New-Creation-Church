@@ -1,20 +1,26 @@
 package com.example
 
+import android.Manifest
 import android.app.Activity
-import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import android.os.Bundle
 import android.util.Log
-import android.util.Rational
 import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +72,7 @@ import com.example.ui.components.BibleMiniAudioPlayer
 import com.example.ui.components.YouTubeMiniPlayer
 import com.example.ui.components.UniversalVideoPlayer
 import com.example.util.GlobalVideoPlayerState
+import com.example.util.VideoPlaybackTracker
 import com.example.util.VideoPlaybackForegroundService
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
@@ -78,6 +85,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
 
 enum class MainDestination(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     HOME("Home", Icons.Default.Home),
+    CHAT("Chat", Icons.Default.Chat),
     BLOGS("Blogs", Icons.Default.Article),
     YOUTUBE("YouTube", Icons.Default.PlayCircle),
     BIBLE("Bible", Icons.Default.MenuBook),
@@ -86,8 +94,15 @@ enum class MainDestination(val title: String, val icon: androidx.compose.ui.grap
 
 sealed interface AppRoute {
     data object Main : AppRoute
-    data class PostDetail(val post: BlogPost) : AppRoute
-    data class YouTubePlayer(val video: YouTubeVideo) : AppRoute
+    data class PostDetail(
+        val post: BlogPost,
+        val previousRoute: AppRoute = AppRoute.Main,
+        val originDestination: MainDestination = MainDestination.HOME
+    ) : AppRoute
+    data class YouTubePlayer(
+        val video: YouTubeVideo,
+        val previousRoute: AppRoute = AppRoute.Main
+    ) : AppRoute
     data class PlaylistDetail(val playlist: YouTubePlaylist) : AppRoute
     data class PhotoViewer(
         val photos: List<GalleryPhoto>,
@@ -127,9 +142,11 @@ sealed interface AppRoute {
     data object HomeScreenSettings : AppRoute
     data class DailyPrayer(val prayerId: Int? = null) : AppRoute
     data object NotificationHistory : AppRoute
+    data object UserProfile : AppRoute
+    data object AdminPanel : AppRoute
 }
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private val viewModel: MainViewModel by viewModels {
         MainViewModel.Factory(application)
     }
@@ -143,22 +160,60 @@ class MainActivity : ComponentActivity() {
     private lateinit var remoteConfig: FirebaseRemoteConfig
 
     fun enterPipModeIfSupported() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
             try {
-                val params = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(16, 9))
-                    .build()
-                enterPictureInPictureMode(params)
+                val aspectRatio = android.util.Rational(16, 9)
+                val builder = android.app.PictureInPictureParams.Builder()
+                    .setAspectRatio(aspectRatio)
+
+                // Use current active video player bounds (portrait player or floating mini player)
+                val activeBounds = GlobalVideoPlayerState.activePipBounds.value
+                if (activeBounds != null && !activeBounds.isEmpty) {
+                    builder.setSourceRectHint(activeBounds)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    builder.setAutoEnterEnabled(true)
+                }
+
+                enterPictureInPictureMode(builder.build())
             } catch (e: Exception) {
-                Log.e("MainActivity", "Failed to enter PiP mode: ${e.message}")
+                e.printStackTrace()
+                GlobalVideoPlayerState.minimizeToMiniPlayer()
             }
+        } else {
+            GlobalVideoPlayerState.minimizeToMiniPlayer()
         }
     }
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (isCurrentlyPlayingVideo) {
-            enterPipModeIfSupported()
+        val ytSettings = com.example.util.YouTubeSettingsManager.settings.value
+        if (ytSettings.enableBackgroundPip && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val isPlaying = VideoPlaybackTracker.activeVideoId != null ||
+                            GlobalVideoPlayerState.currentVideo.value != null
+            if (isPlaying) {
+                try {
+                    val aspectRatio = android.util.Rational(16, 9)
+                    val builder = android.app.PictureInPictureParams.Builder()
+                        .setAspectRatio(aspectRatio)
+
+                    // Pass exact on-screen coordinates where video is currently playing
+                    val activeBounds = GlobalVideoPlayerState.activePipBounds.value
+                    if (activeBounds != null && !activeBounds.isEmpty) {
+                        builder.setSourceRectHint(activeBounds)
+                    }
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        builder.setAutoEnterEnabled(true)
+                    }
+
+                    enterPictureInPictureMode(builder.build())
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
@@ -173,6 +228,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initRemoteConfig()
+        com.example.util.YouTubeSettingsManager.init(applicationContext)
         val initialProfile = ProfileManager.getActiveProfile(applicationContext)
         title = if (initialProfile == AppProfile.VINAY) initialProfile.displayNameEnglish else getString(R.string.app_name)
 
@@ -215,6 +271,9 @@ class MainActivity : ComponentActivity() {
                 AppStrings.forLanguage(settings.appLanguage)
             }
 
+            val remotePrimaryColor by viewModel.themePrimaryColor.collectAsState()
+            val remoteSecondaryColor by viewModel.themeSecondaryColor.collectAsState()
+
             CompositionLocalProvider(
                 LocalAppStrings provides appStrings,
                 LocalAppLanguage provides settings.appLanguage,
@@ -222,13 +281,81 @@ class MainActivity : ComponentActivity() {
             ) {
                 MyApplicationTheme(
                     darkTheme = isDarkTheme,
-                    dynamicColor = isDynamicTheme
+                    dynamicColor = isDynamicTheme,
+                    customPrimaryHex = remotePrimaryColor,
+                    customSecondaryHex = remoteSecondaryColor
                 ) {
                     var showSplash by remember { mutableStateOf(true) }
+                    var showNotificationOnboardingModal by remember { mutableStateOf(false) }
+
+                    val context = LocalContext.current
+                    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.RequestPermission()
+                    ) { isGranted ->
+                        if (isGranted) {
+                            if (settings.dailyPrayerReminderEnabled) {
+                                com.example.util.DailyPrayerReminderScheduler.scheduleDailyReminder(
+                                    context,
+                                    settings.dailyPrayerReminderHour,
+                                    settings.dailyPrayerReminderMinute,
+                                    settings.dailyPrayerReminderEnabled
+                                )
+                            }
+                            if (settings.verseAlarmEnabled) {
+                                com.example.util.VerseAlarmScheduler.scheduleNextAlarm(context, settings)
+                            }
+                            if (settings.readingPlanReminderEnabled) {
+                                com.example.util.ReadingPlanReminderScheduler.scheduleAllReminders(context, settings)
+                            }
+                        }
+                    }
+
+                    LaunchedEffect(showSplash) {
+                        if (!showSplash && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val hasPermission = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            val isPromptedForUpdate = viewModel.isNotificationPromptShownForVersion(61)
+                            if (!hasPermission && (!viewModel.isNotificationOnboardingCompleted() || !isPromptedForUpdate)) {
+                                showNotificationOnboardingModal = true
+                            }
+                        }
+                    }
 
                     if (showSplash) {
                         SplashScreen(onFinished = { showSplash = false })
                     } else {
+                        // Dynamically register PictureInPicture params with OS so gestures/Home press seamlessly
+                        // shrink from the real on-screen player bounds (MiniPlayer or Portrait player)
+                        val activePipBounds by GlobalVideoPlayerState.activePipBounds.collectAsState()
+                        val activeVideo by GlobalVideoPlayerState.currentVideo.collectAsState()
+                        val isMiniPlayerActive by GlobalVideoPlayerState.isMiniPlayerActive.collectAsState()
+                        val ytSettings by com.example.util.YouTubeSettingsManager.settings.collectAsState()
+
+                        LaunchedEffect(activePipBounds, activeVideo, isMiniPlayerActive, ytSettings.enableBackgroundPip) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && ytSettings.enableBackgroundPip) {
+                                val isVideoActive = activeVideo != null
+                                if (isVideoActive) {
+                                    try {
+                                        val builder = android.app.PictureInPictureParams.Builder()
+                                            .setAspectRatio(android.util.Rational(16, 9))
+                                        
+                                        if (activePipBounds != null && !activePipBounds!!.isEmpty) {
+                                            builder.setSourceRectHint(activePipBounds)
+                                        }
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                            builder.setAutoEnterEnabled(true)
+                                        }
+                                        setPictureInPictureParams(builder.build())
+                                    } catch (e: Exception) {
+                                        // Ignore any OS-level PIP param exceptions gracefully
+                                    }
+                                }
+                            }
+                        }
+
                         AppNavigationHost(
                             viewModel = viewModel,
                             bibleViewModel = bibleViewModel,
@@ -238,6 +365,24 @@ class MainActivity : ComponentActivity() {
                             externalRoute = externalRouteState.value,
                             onClearExternalRoute = { externalRouteState.value = null }
                         )
+
+                        if (showNotificationOnboardingModal) {
+                            com.example.ui.components.NotificationOnboardingModal(
+                                onDismiss = {
+                                    showNotificationOnboardingModal = false
+                                    viewModel.setNotificationPromptShownForVersion(61, true)
+                                    viewModel.setNotificationOnboardingCompleted(true)
+                                },
+                                onGrantPermission = {
+                                    showNotificationOnboardingModal = false
+                                    viewModel.setNotificationPromptShownForVersion(61, true)
+                                    viewModel.setNotificationOnboardingCompleted(true)
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -342,12 +487,30 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         com.example.util.WelcomeSpeechManager.getInstance(applicationContext).setAppInForeground(true)
+        val prefs = getSharedPreferences("vinay_app_prefs", Context.MODE_PRIVATE)
+        val lastActive = prefs.getLong("last_active_timestamp", System.currentTimeMillis())
+        val timeoutDays = prefs.getInt("biometric_timeout_days", 30)
+        val timeoutMillis = timeoutDays * 24L * 60L * 60L * 1000L
+        val now = System.currentTimeMillis()
+
+        if (now - lastActive > timeoutMillis) {
+            prefs.edit().remove("current_admin_id").putLong("last_active_timestamp", now).apply()
+            Toast.makeText(
+                this,
+                "सत्र समाप्त (Session Expired): निष्क्रियता के कारण सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।",
+                Toast.LENGTH_LONG
+            ).show()
+        } else {
+            prefs.edit().putLong("last_active_timestamp", now).apply()
+        }
     }
 
     override fun onPause() {
         super.onPause()
         com.example.util.WelcomeSpeechManager.getInstance(applicationContext).setAppInForeground(false)
         com.example.util.WelcomeSpeechManager.getInstance(applicationContext).stop()
+        val prefs = getSharedPreferences("vinay_app_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putLong("last_active_timestamp", System.currentTimeMillis()).apply()
     }
 
     override fun onStop() {
@@ -445,6 +608,27 @@ fun AppNavigationHost(
     var readingPlanTabMode by remember { mutableStateOf(com.example.ui.bible.ReadingTabMode.PLANS) }
     val galleryPhotos by viewModel.galleryPhotos.collectAsState()
 
+    // Global Video State handling across all screens and interfaces
+    val activeVideo by GlobalVideoPlayerState.currentVideo.collectAsState()
+    val isMiniPlayerActive by GlobalVideoPlayerState.isMiniPlayerActive.collectAsState()
+    val isVideoPlaying by GlobalVideoPlayerState.isPlaying.collectAsState()
+
+    // Manage background playback service notification
+    LaunchedEffect(activeVideo, isMiniPlayerActive, isVideoPlaying) {
+        val video = activeVideo
+        if (video != null && isMiniPlayerActive) {
+            VideoPlaybackForegroundService.startService(
+                context = context,
+                videoId = video.id,
+                title = video.title,
+                channel = video.channelTitle,
+                isPlaying = isVideoPlaying
+            )
+        } else if (video == null || !isMiniPlayerActive) {
+            VideoPlaybackForegroundService.stopService(context)
+        }
+    }
+
     // Notify activity of video playing state for PiP onUserLeaveHint and reset orientation when leaving video
     LaunchedEffect(currentRoute) {
         val isVideo = currentRoute is AppRoute.YouTubePlayer
@@ -475,20 +659,33 @@ fun AppNavigationHost(
         if (drawerState.isOpen) {
             coroutineScope.launch { drawerState.close() }
         } else {
-            when (currentRoute) {
+            when (val route = currentRoute) {
+                is AppRoute.PostDetail -> {
+                    currentDestination = route.originDestination
+                    currentRoute = route.previousRoute
+                }
+                is AppRoute.YouTubePlayer -> {
+                    (context as? ComponentActivity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    GlobalVideoPlayerState.minimizeToMiniPlayer()
+                    currentRoute = route.previousRoute
+                }
+                is AppRoute.PlaylistDetail -> {
+                    currentRoute = AppRoute.Main
+                }
                 is AppRoute.BibleReader, AppRoute.BibleSearch, AppRoute.BibleSaved, AppRoute.BibleReadingPlan -> {
-                    currentDestination = MainDestination.HOME
                     currentRoute = AppRoute.BibleHome
                 }
                 is AppRoute.BibleHome -> {
-                    currentDestination = MainDestination.HOME
                     currentRoute = AppRoute.Main
                 }
                 is AppRoute.PhotoViewer -> {
-                    currentRoute = (currentRoute as AppRoute.PhotoViewer).previousRoute
+                    currentRoute = route.previousRoute
                 }
                 is AppRoute.EventCalendar -> {
                     currentRoute = AppRoute.UpcomingEvents
+                }
+                is AppRoute.AdminPanel -> {
+                    currentRoute = AppRoute.Main
                 }
                 AppRoute.Main -> {
                     if (currentDestination != MainDestination.HOME) {
@@ -496,21 +693,39 @@ fun AppNavigationHost(
                     }
                 }
                 else -> {
-                    currentDestination = MainDestination.HOME
                     currentRoute = AppRoute.Main
                 }
             }
         }
     }
 
+    val userProfile by viewModel.userProfile.collectAsState()
+    val currentAdmin by viewModel.currentAdmin.collectAsState()
+    val allAdmins by viewModel.allAdmins.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
     var showUpdateModalFromSidebar by remember { mutableStateOf(false) }
 
     var showFeedbackDialog by remember { mutableStateOf(false) }
+    var showAdminInvitationDialog by remember { mutableStateOf(false) }
 
     if (showFeedbackDialog) {
         com.example.ui.components.FeedbackDialog(
             onDismissRequest = { showFeedbackDialog = false }
+        )
+    }
+
+    if (showAdminInvitationDialog) {
+        com.example.ui.components.AdminInvitationAccessDialog(
+            viewModel = viewModel,
+            onDismiss = { showAdminInvitationDialog = false },
+            onOpenNormalProfile = {
+                showAdminInvitationDialog = false
+                currentRoute = AppRoute.UserProfile
+            },
+            onOpenAdminPanel = {
+                showAdminInvitationDialog = false
+                currentRoute = AppRoute.AdminPanel
+            }
         )
     }
 
@@ -554,12 +769,16 @@ fun AppNavigationHost(
                                 is AppRoute.HomeScreenSettings -> "CUSTOMIZE_HOME"
                                 is AppRoute.DailyPrayer -> "DAILY_PRAYER"
                                 is AppRoute.NotificationHistory -> "NOTIFICATIONS"
+                                is AppRoute.UserProfile -> "USER_PROFILE"
                                 is AppRoute.Settings -> "SETTINGS"
                                 is AppRoute.About -> "ABOUT"
                                 else -> ""
                             },
                             settings = settings,
                             drawerPosition = settings.drawerPosition,
+                            userProfile = userProfile,
+                            currentAdmin = currentAdmin,
+                            allAdmins = allAdmins,
                             isUpdateAvailable = updateState.isUpdateAvailable,
                             onToggleSidebarPosition = {
                                 val nextPos = if (settings.drawerPosition == "right") "left" else "right"
@@ -568,6 +787,14 @@ fun AppNavigationHost(
                             onNavigate = { routeKey ->
                                 when (routeKey) {
                                     "HOME" -> { currentRoute = AppRoute.Main; currentDestination = MainDestination.HOME }
+                                    "USER_PROFILE" -> {
+                                        if (currentAdmin != null) {
+                                            currentRoute = AppRoute.AdminPanel
+                                        } else {
+                                            currentRoute = AppRoute.UserProfile
+                                        }
+                                    }
+                                    "ADMIN_PANEL" -> { currentRoute = AppRoute.AdminPanel }
                                     "DAILY_PRAYER" -> { currentRoute = AppRoute.DailyPrayer() }
                                     "BIBLE" -> { currentDestination = MainDestination.HOME; currentRoute = AppRoute.BibleHome }
                                     "READING" -> { currentRoute = AppRoute.Main; currentDestination = MainDestination.READING }
@@ -670,14 +897,36 @@ fun AppNavigationHost(
                 Box(modifier = Modifier.fillMaxSize()) {
                     when (val route = currentRoute) {
                         is AppRoute.Main -> {
-                            val mainTabs = remember {
-                                listOf(
-                                    MainDestination.HOME,
-                                    MainDestination.BLOGS,
-                                    MainDestination.YOUTUBE,
-                                    MainDestination.BIBLE,
-                                    MainDestination.READING
-                                )
+                            val isPersonalVlogAllowed by viewModel.isPersonalVlogAllowed.collectAsState()
+                            var blogsInitialTab by remember { mutableStateOf(com.example.ui.screens.BlogTab.FELLOWSHIP) }
+                            val userProfile by viewModel.userProfile.collectAsState()
+                            val currentAdmin by viewModel.currentAdmin.collectAsState()
+                            val isMasterOrAdmin = currentAdmin != null || com.example.util.ProfileManager.isVinayProfile()
+                            val userId = userProfile?.deviceId.takeIf { !it.isNullOrBlank() } ?: userProfile?.phoneNumber.takeIf { !it.isNullOrBlank() } ?: "local_user"
+                            val isChatAllowed = settings.isChatEnabled && (
+                                isMasterOrAdmin ||
+                                settings.chatWhitelistedUserIds.contains(userId) ||
+                                ((!settings.chatAllowOnlyVerified || userProfile?.isVerifiedVishwasi == true) &&
+                                 (settings.chatAllowedRoles.isEmpty() || settings.chatAllowedRoles.contains(userProfile?.role)))
+                            )
+                            val navigationConfig by viewModel.adminNavigationConfig.collectAsState()
+                            val mainTabs = remember(navigationConfig, settings.isChatEnabled, isChatAllowed) {
+                                val activeConfig = if (navigationConfig.isNotEmpty()) {
+                                    navigationConfig.filter { it.isVisible }.sortedBy { it.order }
+                                } else {
+                                    com.example.data.model.getDefaultNavigationTabs().filter { it.isVisible }
+                                }
+                                activeConfig.mapNotNull { config ->
+                                    when (config.id.uppercase()) {
+                                        "HOME" -> MainDestination.HOME
+                                        "CHAT" -> if (isChatAllowed) MainDestination.CHAT else null
+                                        "BLOGS" -> MainDestination.BLOGS
+                                        "YOUTUBE" -> MainDestination.YOUTUBE
+                                        "BIBLE" -> MainDestination.BIBLE
+                                        "READING" -> MainDestination.READING
+                                        else -> MainDestination.HOME
+                                    }
+                                }.distinct()
                             }
                             val mainPagerState = rememberPagerState(
                                 initialPage = mainTabs.indexOf(currentDestination).coerceAtLeast(0)
@@ -699,65 +948,27 @@ fun AppNavigationHost(
                                 }
                             }
 
-                            // Global Video State handling
-                            val activeVideo by GlobalVideoPlayerState.currentVideo.collectAsState()
-                            val isMiniPlayerActive by GlobalVideoPlayerState.isMiniPlayerActive.collectAsState()
-                            val isVideoPlaying by GlobalVideoPlayerState.isPlaying.collectAsState()
                             val context = LocalContext.current
 
-                            // Manage background playback service notification
-                            LaunchedEffect(activeVideo, isMiniPlayerActive, isVideoPlaying) {
-                                val video = activeVideo
-                                if (video != null && isMiniPlayerActive) {
-                                    VideoPlaybackForegroundService.startService(
-                                        context = context,
-                                        videoId = video.id,
-                                        title = video.title,
-                                        channel = video.channelTitle,
-                                        isPlaying = isVideoPlaying
-                                    )
-                                } else if (video == null || !isMiniPlayerActive) {
-                                    VideoPlaybackForegroundService.stopService(context)
-                                }
-                            }
-
-                            Scaffold(
-                                bottomBar = {
-                                    Column {
-                                        // Floating YouTube Mini Player
-                                        YouTubeMiniPlayer(
-                                            videoPlayerContent = {
-                                                activeVideo?.let { vid ->
-                                                    UniversalVideoPlayer(
-                                                        videoUrlOrId = vid.id,
-                                                        modifier = Modifier.fillMaxSize(),
-                                                        autoplay = true
-                                                    )
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                Scaffold(
+                                    bottomBar = {
+                                        Column {
+                                            BibleMiniAudioPlayer(
+                                                audioManager = bibleViewModel.audioManager,
+                                                onOpenReader = { bId, chap, vNum ->
+                                                    currentRoute = AppRoute.BibleReader(bId, chap, vNum, isReadingPlanMode = false)
                                                 }
-                                            },
-                                            onExpand = { video ->
-                                                GlobalVideoPlayerState.expandToFullScreen()
-                                                currentRoute = AppRoute.YouTubePlayer(video)
-                                            },
-                                            onClose = {
-                                                GlobalVideoPlayerState.closePlayer()
-                                            }
-                                        )
-
-                                        BibleMiniAudioPlayer(
-                                            audioManager = bibleViewModel.audioManager,
-                                            onOpenReader = { bId, chap, vNum ->
-                                                currentRoute = AppRoute.BibleReader(bId, chap, vNum, isReadingPlanMode = false)
-                                            }
-                                        )
-                                        NavigationBar(
-                                            tonalElevation = 6.dp,
-                                            modifier = Modifier.testTag("bottom_nav_bar")
-                                        ) {
+                                            )
+                                            NavigationBar(
+                                                tonalElevation = 6.dp,
+                                                modifier = Modifier.testTag("bottom_nav_bar")
+                                            ) {
                                     mainTabs.forEach { dest ->
                                         val selected = currentDestination == dest
                                         val labelText = when (dest) {
                                             MainDestination.HOME -> strings.navHome
+                                            MainDestination.CHAT -> "चैट"
                                             MainDestination.BLOGS -> strings.navBlogs
                                             MainDestination.YOUTUBE -> strings.navYouTube
                                             MainDestination.BIBLE -> "Bible"
@@ -765,6 +976,7 @@ fun AppNavigationHost(
                                         }
                                         val iconVector = when (dest) {
                                             MainDestination.HOME -> Icons.Default.Home
+                                            MainDestination.CHAT -> Icons.Default.Chat
                                             MainDestination.BLOGS -> Icons.Default.Article
                                             MainDestination.YOUTUBE -> Icons.Default.PlayCircle
                                             MainDestination.BIBLE -> Icons.Default.MenuBook
@@ -806,17 +1018,27 @@ fun AppNavigationHost(
                                     .padding(innerPadding)
                             ) { page ->
                                 when (mainTabs[page]) {
+                                    MainDestination.CHAT -> {
+                                        ChatScreen(viewModel = viewModel)
+                                    }
                                     MainDestination.HOME -> {
                                         HomeScreen(
                                             viewModel = viewModel,
-                                            onPostClick = { currentRoute = AppRoute.PostDetail(it) },
-                                            onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it) },
+                                            onPostClick = { currentRoute = AppRoute.PostDetail(it, previousRoute = AppRoute.Main, originDestination = MainDestination.HOME) },
+                                            onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it, previousRoute = AppRoute.Main) },
                                             onPlaylistClick = { currentRoute = AppRoute.PlaylistDetail(it) },
                                             onUpcomingEventsClick = { currentRoute = AppRoute.UpcomingEvents },
                                             onSavedClick = { currentRoute = AppRoute.SavedItems },
                                             onRecentlyViewedClick = { currentRoute = AppRoute.RecentlyViewed },
                                             onCustomizeHomeClick = { currentRoute = AppRoute.HomeScreenSettings },
-                                            onViewAllPosts = { currentDestination = MainDestination.BLOGS },
+                                            onViewAllPosts = {
+                                                blogsInitialTab = com.example.ui.screens.BlogTab.FELLOWSHIP
+                                                currentDestination = MainDestination.BLOGS
+                                            },
+                                            onViewAllPersonalPosts = {
+                                                blogsInitialTab = com.example.ui.screens.BlogTab.PERSONAL
+                                                currentDestination = MainDestination.BLOGS
+                                            },
                                             onViewAllVideos = { currentDestination = MainDestination.YOUTUBE },
                                             onViewGallery = { currentRoute = AppRoute.Gallery },
                                             onSongBookClick = { currentRoute = AppRoute.Lyrics() },
@@ -878,14 +1100,15 @@ fun AppNavigationHost(
                                     MainDestination.BLOGS -> {
                                         BlogsScreen(
                                             viewModel = viewModel,
-                                            onPostClick = { currentRoute = AppRoute.PostDetail(it) },
-                                            onSearchClick = { currentRoute = AppRoute.Search }
+                                            onPostClick = { currentRoute = AppRoute.PostDetail(it, previousRoute = AppRoute.Main, originDestination = MainDestination.BLOGS) },
+                                            onSearchClick = { currentRoute = AppRoute.Search },
+                                            initialTab = blogsInitialTab
                                         )
                                     }
                                     MainDestination.YOUTUBE -> {
                                         YouTubeScreen(
                                             viewModel = viewModel,
-                                            onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it) },
+                                            onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it, previousRoute = AppRoute.Main) },
                                             onPlaylistClick = { currentRoute = AppRoute.PlaylistDetail(it) }
                                         )
                                     }
@@ -944,7 +1167,7 @@ fun AppNavigationHost(
                                                     targetEndVerse = eVerse
                                                 )
                                             },
-                                            behindColorHex = settings.planBehindColorHex,
+                                             behindColorHex = settings.planBehindColorHex,
                                             onTrackColorHex = settings.planOnTrackColorHex,
                                             completedColorHex = settings.planCompletedColorHex,
                                             onUpdateColors = { b, t, c -> viewModel.updateReadingPlanColors(b, t, c) },
@@ -955,12 +1178,13 @@ fun AppNavigationHost(
                             }
                         }
                     }
+                }
 
         is AppRoute.PostDetail -> {
             PostDetailScreen(
                 post = route.post,
                 viewModel = viewModel,
-                onBack = { currentRoute = AppRoute.Main },
+                onBack = { currentRoute = route.previousRoute },
                 onImageClick = { imgUrl ->
                     val postPhotos = route.post.allImages.map { url ->
                         GalleryPhoto(
@@ -976,7 +1200,7 @@ fun AppNavigationHost(
                     currentRoute = AppRoute.PhotoViewer(
                         photos = targetList,
                         initialIndex = idx,
-                        previousRoute = AppRoute.PostDetail(route.post)
+                        previousRoute = AppRoute.PostDetail(route.post, previousRoute = route.previousRoute)
                     )
                 },
                 onVideoClick = { vidId ->
@@ -990,9 +1214,9 @@ fun AppNavigationHost(
                         publishedTimestamp = route.post.publishedTimestamp,
                         description = route.post.plainTextExcerpt
                     )
-                    currentRoute = AppRoute.YouTubePlayer(video)
+                    currentRoute = AppRoute.YouTubePlayer(video, previousRoute = route)
                 },
-                onPostClick = { currentRoute = AppRoute.PostDetail(it) },
+                onPostClick = { currentRoute = AppRoute.PostDetail(it, previousRoute = route.previousRoute) },
                 onPlaylistClick = { currentRoute = AppRoute.PlaylistDetail(it) }
             )
         }
@@ -1005,9 +1229,22 @@ fun AppNavigationHost(
                 video = route.video,
                 viewModel = viewModel,
                 isInPictureInPictureMode = isInPictureInPictureMode,
-                onEnterPipClick = onEnterPipClick,
-                onBack = { currentRoute = AppRoute.Main },
-                onRelatedVideoClick = { currentRoute = AppRoute.YouTubePlayer(it) }
+                onEnterPipClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                        context.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
+                        onEnterPipClick?.invoke()
+                    } else {
+                        (context as? ComponentActivity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        GlobalVideoPlayerState.minimizeToMiniPlayer()
+                        currentRoute = route.previousRoute
+                    }
+                },
+                onBack = {
+                    (context as? ComponentActivity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    GlobalVideoPlayerState.minimizeToMiniPlayer()
+                    currentRoute = route.previousRoute
+                },
+                onRelatedVideoClick = { currentRoute = AppRoute.YouTubePlayer(it, previousRoute = route.previousRoute) }
             )
         }
 
@@ -1016,7 +1253,7 @@ fun AppNavigationHost(
                 playlist = route.playlist,
                 viewModel = viewModel,
                 onBack = { currentRoute = AppRoute.Main },
-                onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it) }
+                onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it, previousRoute = route) }
             )
         }
 
@@ -1049,28 +1286,19 @@ fun AppNavigationHost(
             )
         }
 
-        is AppRoute.UpcomingEvents -> {
-            UpcomingEventsScreen(
+        is AppRoute.UpcomingEvents, is AppRoute.EventCalendar -> {
+            EventsScreen(
                 viewModel = viewModel,
-                onPostClick = { currentRoute = AppRoute.PostDetail(it) },
-                onOpenCalendarView = { currentRoute = AppRoute.EventCalendar },
+                onPostClick = { currentRoute = AppRoute.PostDetail(it, previousRoute = AppRoute.UpcomingEvents) },
                 onBack = { currentRoute = AppRoute.Main }
-            )
-        }
-
-        is AppRoute.EventCalendar -> {
-            EventCalendarScreen(
-                viewModel = viewModel,
-                onPostClick = { currentRoute = AppRoute.PostDetail(it) },
-                onBack = { currentRoute = AppRoute.UpcomingEvents }
             )
         }
 
         is AppRoute.SavedItems -> {
             SavedScreen(
                 viewModel = viewModel,
-                onPostClick = { currentRoute = AppRoute.PostDetail(it) },
-                onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it) },
+                onPostClick = { currentRoute = AppRoute.PostDetail(it, previousRoute = AppRoute.SavedItems) },
+                onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it, previousRoute = AppRoute.SavedItems) },
                 onPlaylistClick = { currentRoute = AppRoute.PlaylistDetail(it) },
                 onBibleClick = { bId, ch -> currentRoute = AppRoute.BibleReader(bId, ch, isReadingPlanMode = false) },
                 onSongClick = { songId -> currentRoute = AppRoute.Lyrics(initialSongId = songId) },
@@ -1081,8 +1309,8 @@ fun AppNavigationHost(
         is AppRoute.RecentlyViewed -> {
             RecentlyViewedScreen(
                 viewModel = viewModel,
-                onPostClick = { currentRoute = AppRoute.PostDetail(it) },
-                onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it) },
+                onPostClick = { currentRoute = AppRoute.PostDetail(it, previousRoute = AppRoute.RecentlyViewed) },
+                onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it, previousRoute = AppRoute.RecentlyViewed) },
                 onPlaylistClick = { currentRoute = AppRoute.PlaylistDetail(it) },
                 onBibleClick = { bId, ch -> currentRoute = AppRoute.BibleReader(bId, ch, isReadingPlanMode = false) },
                 onBack = { currentRoute = AppRoute.Main }
@@ -1099,8 +1327,8 @@ fun AppNavigationHost(
         is AppRoute.Search -> {
             SearchScreen(
                 viewModel = viewModel,
-                onPostClick = { currentRoute = AppRoute.PostDetail(it) },
-                onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it) },
+                onPostClick = { currentRoute = AppRoute.PostDetail(it, previousRoute = AppRoute.Search) },
+                onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it, previousRoute = AppRoute.Search) },
                 onPlaylistClick = { currentRoute = AppRoute.PlaylistDetail(it) },
                 onBibleClick = { bId, ch -> currentRoute = AppRoute.BibleReader(bId, ch, isReadingPlanMode = false) },
                 onBack = { currentRoute = AppRoute.Main }
@@ -1131,8 +1359,10 @@ fun AppNavigationHost(
         }
 
         is AppRoute.About -> {
+            val isPersonalVlogAllowed by viewModel.isPersonalVlogAllowed.collectAsState()
             AboutScreen(
-                onBack = { currentRoute = AppRoute.Main }
+                onBack = { currentRoute = AppRoute.Main },
+                isPersonalVlogAllowed = isPersonalVlogAllowed
             )
         }
 
@@ -1286,7 +1516,8 @@ fun AppNavigationHost(
                         targetVerse = v,
                         isReadingPlanMode = false
                     )
-                }
+                },
+                viewModel = viewModel
             )
         }
 
@@ -1294,6 +1525,30 @@ fun AppNavigationHost(
             com.example.ui.screens.NotificationHistoryScreen(
                 viewModel = viewModel,
                 onBack = { currentRoute = AppRoute.Main }
+            )
+        }
+
+        is AppRoute.UserProfile -> {
+            com.example.ui.screens.UserProfileScreen(
+                viewModel = viewModel,
+                onBack = { currentRoute = AppRoute.Main },
+                onOpenAdminPanel = { currentRoute = AppRoute.AdminPanel },
+                onOpenBible = { bId, chap, v ->
+                    currentRoute = AppRoute.BibleReader(bId, chap, v, isReadingPlanMode = false)
+                },
+                onOpenPrayer = {
+                    currentRoute = AppRoute.DailyPrayer()
+                },
+                onOpenNotes = {
+                    currentRoute = AppRoute.DedicatedNotes
+                }
+            )
+        }
+
+        is AppRoute.AdminPanel -> {
+            com.example.ui.admin.AdminPanelScreen(
+                viewModel = viewModel,
+                onNavigateBack = { currentRoute = AppRoute.Main }
             )
         }
     }
@@ -1308,6 +1563,37 @@ fun AppNavigationHost(
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .padding(bottom = 8.dp)
+        )
+    }
+
+    // Global Floating In-App PiP Video Player: persists across ALL screens and interfaces
+    if (currentRoute !is AppRoute.YouTubePlayer) {
+        val navBottomPadding = when (currentRoute) {
+            is AppRoute.Main -> 90.dp
+            is AppRoute.BibleReader -> 72.dp
+            else -> 24.dp
+        }
+        YouTubeMiniPlayer(
+            videoPlayerContent = {
+                activeVideo?.let { vid ->
+                    UniversalVideoPlayer(
+                        videoUrlOrId = vid.id,
+                        modifier = Modifier.fillMaxSize(),
+                        autoplay = true
+                    )
+                }
+            },
+            onExpand = { video ->
+                GlobalVideoPlayerState.expandToFullScreen()
+                currentRoute = AppRoute.YouTubePlayer(video, previousRoute = currentRoute)
+            },
+            onClose = {
+                GlobalVideoPlayerState.closePlayer()
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(bottom = navBottomPadding, end = 12.dp)
         )
     }
 }

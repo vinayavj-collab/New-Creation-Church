@@ -205,28 +205,6 @@ fun WelcomeCustomizationDialog(
                     )
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                // Volume Control Only (Pitch & Speed hidden for welcome dialog, available in Main Settings)
-                Text(
-                    text = "🔊 आवाज़ वॉल्यूम (Voice Volume)",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                var speechVolume by remember(settings.greetingSpeechVolume) { mutableStateOf(settings.greetingSpeechVolume) }
-
-                Text("वॉइस वॉल्यूम: ${(speechVolume * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
-                Slider(
-                    value = speechVolume,
-                    onValueChange = {
-                        speechVolume = it
-                        viewModel.updateGreetingSpeechVolume(it)
-                    },
-                    valueRange = 0.1f..1.0f
-                )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Action Buttons Row
@@ -238,7 +216,6 @@ fun WelcomeCustomizationDialog(
                     OutlinedButton(
                         onClick = {
                             viewModel.updateUserName(nameInput)
-                            viewModel.updateGreetingSpeechVolume(speechVolume)
                             viewModel.testWelcomeSpeech()
                         },
                         modifier = Modifier.weight(1f),
@@ -257,7 +234,6 @@ fun WelcomeCustomizationDialog(
                             viewModel.updateEnableVerseSpeechOnLaunch(verseSpeechEnabled)
                             viewModel.updateWelcomeSpeechOncePerDay(welcomeOnceDay)
                             viewModel.updateVerseSpeechOncePerDay(verseOnceDay)
-                            viewModel.updateGreetingSpeechVolume(speechVolume)
                             viewModel.updateWelcomeDialogDismissed(true)
 
                             // Trigger speech

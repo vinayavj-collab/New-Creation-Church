@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
@@ -71,7 +73,9 @@ fun SettingsScreen(
     var showWelcomeCustomizationDialog by remember { mutableStateOf(false) }
     var showVerseAlarmTimePicker by remember { mutableStateOf(false) }
     var showReadingPlanTimePicker by remember { mutableStateOf(false) }
+    var showReadingPlanEveningTimePicker by remember { mutableStateOf(false) }
     var showDailyPrayerTimePicker by remember { mutableStateOf(false) }
+    var editingSlotForTimePicker by remember { mutableStateOf<com.example.data.model.DailyPrayerSlot?>(null) }
 
     val listState = rememberLazyListState()
 
@@ -219,33 +223,17 @@ fun SettingsScreen(
                         if (currentProfile == AppProfile.CHURCH) {
                             Button(
                                 onClick = {
-                                    val currentTime = System.currentTimeMillis()
-                                    if (currentTime - lastProfileTapTime < 500L) {
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastProfileTapTime <= 800L) {
                                         profileTapCount++
                                     } else {
                                         profileTapCount = 1
                                     }
-                                    lastProfileTapTime = currentTime
+                                    lastProfileTapTime = now
 
                                     if (profileTapCount >= 3) {
                                         profileTapCount = 0
-                                        activeWarningToast?.cancel()
-                                        if (!ProfileManager.isPrivateProfileEnabled()) {
-                                            Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            profilePasswordInput = ""
-                                            profilePasswordVisible = false
-                                            profilePasswordError = null
-                                            showPasswordDialogForProfileB = true
-                                        }
-                                    } else {
-                                        activeWarningToast?.cancel()
-                                        activeWarningToast = Toast.makeText(
-                                            context,
-                                            "Unauthorised Access (अनुमति नहीं है)",
-                                            Toast.LENGTH_SHORT
-                                        )
-                                        activeWarningToast?.show()
+                                        showPasswordDialogForProfileB = true
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -254,9 +242,9 @@ fun SettingsScreen(
                                     containerColor = MaterialTheme.colorScheme.primary
                                 )
                             ) {
-                                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Switch to Vinay Kumar Avj (पासवर्ड आवश्यक)")
+                                Text("Switch to Vinay Kumar Avj")
                             }
                         } else {
                             Button(
@@ -682,7 +670,7 @@ fun SettingsScreen(
                         if (settings.readingPlanReminderEnabled) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-                            val formattedReminderTime = String.format(
+                            val formattedMorningTime = String.format(
                                 java.util.Locale.US,
                                 "%02d:%02d %s",
                                 if (settings.readingPlanReminderHour % 12 == 0) 12 else settings.readingPlanReminderHour % 12,
@@ -690,6 +678,15 @@ fun SettingsScreen(
                                 if (settings.readingPlanReminderHour >= 12) "PM" else "AM"
                             )
 
+                            val formattedEveningTime = String.format(
+                                java.util.Locale.US,
+                                "%02d:%02d %s",
+                                if (settings.readingPlanReminderEveningHour % 12 == 0) 12 else settings.readingPlanReminderEveningHour % 12,
+                                settings.readingPlanReminderEveningMinute,
+                                if (settings.readingPlanReminderEveningHour >= 12) "PM" else "AM"
+                            )
+
+                            // Morning Reminder Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -697,16 +694,44 @@ fun SettingsScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "रिमाइंडर समय (Daily Reminder Time)",
+                                        text = "🌅 सुबह का रिमाइंडर (Morning 5 AM)",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                                     )
                                     Text(
-                                        text = "निर्धारित: $formattedReminderTime",
+                                        text = "निर्धारित: $formattedMorningTime",
                                         style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                     )
                                 }
                                 Button(
                                     onClick = { showReadingPlanTimePicker = true },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("समय बदलें")
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Evening Reminder Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "🌙 शाम का रिमाइंडर (Evening 9 PM)",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                    Text(
+                                        text = "निर्धारित: $formattedEveningTime",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                                Button(
+                                    onClick = { showReadingPlanEveningTimePicker = true },
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -759,37 +784,89 @@ fun SettingsScreen(
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                             Text(
-                                text = "प्रार्थना का समय स्लॉट (Prayer Time Slot)",
+                                text = "प्रार्थना का समय स्लॉट (Prayer Time Slots - Tap time to edit)",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
 
                             com.example.data.model.DailyPrayerSlot.values().forEach { slot ->
-                                Row(
+                                val (slotHour, slotMinute) = when (slot) {
+                                    com.example.data.model.DailyPrayerSlot.MORNING -> settings.morningPrayerHour to settings.morningPrayerMinute
+                                    com.example.data.model.DailyPrayerSlot.AFTERNOON -> settings.afternoonPrayerHour to settings.afternoonPrayerMinute
+                                    com.example.data.model.DailyPrayerSlot.EVENING -> settings.eveningPrayerHour to settings.eveningPrayerMinute
+                                    com.example.data.model.DailyPrayerSlot.NIGHT -> settings.nightPrayerHour to settings.nightPrayerMinute
+                                    com.example.data.model.DailyPrayerSlot.CUSTOM -> settings.dailyPrayerReminderHour to settings.dailyPrayerReminderMinute
+                                }
+                                val slotTimeFormatted = String.format(
+                                    java.util.Locale.US,
+                                    "%02d:%02d %s",
+                                    if (slotHour % 12 == 0) 12 else slotHour % 12,
+                                    slotMinute,
+                                    if (slotHour >= 12) "PM" else "AM"
+                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (settings.dailyPrayerReminderSlot == slot) {
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                    },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
-                                            viewModel.updateDailyPrayerReminderSlot(slot)
-                                        }
-                                        .padding(vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(vertical = 4.dp)
                                 ) {
-                                    RadioButton(
-                                        selected = settings.dailyPrayerReminderSlot == slot,
-                                        onClick = { viewModel.updateDailyPrayerReminderSlot(slot) }
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = slot.titleHindi,
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                fontWeight = if (settings.dailyPrayerReminderSlot == slot) FontWeight.Bold else FontWeight.Normal
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.updateDailyPrayerReminderSlot(slot)
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.weight(1f),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = settings.dailyPrayerReminderSlot == slot,
+                                                onClick = { viewModel.updateDailyPrayerReminderSlot(slot) }
                                             )
-                                        )
-                                        Text(
-                                            text = slot.titleEnglish,
-                                            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Column {
+                                                Text(
+                                                    text = slot.titleHindi,
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontWeight = if (settings.dailyPrayerReminderSlot == slot) FontWeight.Bold else FontWeight.Normal
+                                                    )
+                                                )
+                                                Text(
+                                                    text = slot.titleEnglish,
+                                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                )
+                                            }
+                                        }
+
+                                        // Time Button to manually edit this slot's time
+                                        OutlinedButton(
+                                            onClick = {
+                                                editingSlotForTimePicker = slot
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = if (settings.dailyPrayerReminderSlot == slot) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
+                                            )
+                                        ) {
+                                            Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = slotTimeFormatted,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -811,21 +888,23 @@ fun SettingsScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "सक्रिय समय (Current Set Time)",
+                                        text = "सक्रिय समय (Current Active Time)",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                                     )
                                     Text(
-                                        text = "समय: $formattedPrayerTime",
+                                        text = "समय: $formattedPrayerTime (${settings.dailyPrayerReminderSlot.name})",
                                         style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                     )
                                 }
                                 Button(
-                                    onClick = { showDailyPrayerTimePicker = true },
+                                    onClick = {
+                                        editingSlotForTimePicker = settings.dailyPrayerReminderSlot
+                                    },
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("कस्टम समय बदलें")
+                                    Text("समय बदलें")
                                 }
                             }
 
@@ -842,6 +921,102 @@ fun SettingsScreen(
                                 Icon(Icons.Default.VolunteerActivism, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("🙏 टेस्ट दैनिक प्रार्थना नोटिफिकेशन (Test Notification)")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 0.88 YouTube Player Settings Section
+            item {
+                SettingsSectionHeader(title = "YOUTUBE प्लेयर सेटिंग्स (YOUTUBE SETTINGS)", icon = Icons.Default.PlayCircle)
+            }
+
+            item {
+                val ytSettings by com.example.util.YouTubeSettingsManager.settings.collectAsState()
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        SettingsSwitchRow(
+                            title = "शीर्षक एवं शेयर बटन छुपाएं (Hide Title & Share)",
+                            subtitle = "वीडियो प्लेयर के ऊपर शीर्षक एवं शेयर आइकन छुपाएं",
+                            checked = ytSettings.hideTitleAndShare,
+                            onCheckedChange = {
+                                com.example.util.YouTubeSettingsManager.updateSettings(context, ytSettings.copy(hideTitleAndShare = it))
+                            }
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                        SettingsSwitchRow(
+                            title = "बैक/होम बटन पर PiP चालू रखें (Background PiP)",
+                            subtitle = "ऐप से बाहर निकलने पर वीडियो तैरती खिड़की (PiP) में चलती रहेगी",
+                            checked = ytSettings.enableBackgroundPip,
+                            onCheckedChange = {
+                                com.example.util.YouTubeSettingsManager.updateSettings(context, ytSettings.copy(enableBackgroundPip = it))
+                            }
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                        SettingsSwitchRow(
+                            title = "अगला संबंधित वीडियो ऑटो-प्ले (Autoplay Next)",
+                            subtitle = "वीडियो समाप्त होने पर अगला संबंधित वीडियो स्वतः चलाएं",
+                            checked = ytSettings.autoplayNext,
+                            onCheckedChange = {
+                                com.example.util.YouTubeSettingsManager.updateSettings(context, ytSettings.copy(autoplayNext = it))
+                            }
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text("वीडियो क्वालिटी (Default Video Quality)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("वीडियो की डिफ़ॉल्ट गुणवत्ता चुनें (By default: ऑटोमैटिक)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            val qualityList = listOf(
+                                "auto" to "ऑटोमैटिक (Auto)",
+                                "hd1080" to "1080p HD",
+                                "hd720" to "720p HD",
+                                "large" to "480p SD",
+                                "medium" to "360p",
+                                "small" to "240p",
+                                "tiny" to "144p"
+                            )
+
+                            androidx.compose.foundation.lazy.LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 2.dp)
+                            ) {
+                                items(qualityList) { (code, label) ->
+                                    val isSelected = ytSettings.selectedQuality == code
+                                    androidx.compose.material3.FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            com.example.util.YouTubeSettingsManager.updateSettings(
+                                                context,
+                                                ytSettings.copy(selectedQuality = code)
+                                            )
+                                        },
+                                        label = {
+                                            Text(
+                                                text = label,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
@@ -924,6 +1099,79 @@ fun SettingsScreen(
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Widget Auto-Change Frequency Option
+                        Text(
+                            text = "स्वचालित वचन बदलने का अंतराल (Auto Change Interval)",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        val intervalOptions = listOf(
+                            0 to "प्रतिदिन एक बार (केवल आज का वचन) [डिफ़ॉल्ट]",
+                            1 to "प्रत्येक 1 घंटे में (Every 1 Hour)",
+                            2 to "प्रत्येक 2 घंटे में (Every 2 Hours)",
+                            4 to "प्रत्येक 4 घंटे में (Every 4 Hours)",
+                            6 to "प्रत्येक 6 घंटे में (Every 6 Hours)",
+                            12 to "प्रत्येक 12 घंटे में (Every 12 Hours)"
+                        )
+
+                        var intervalMenuExpanded by remember { mutableStateOf(false) }
+                        val currentIntervalLabel = intervalOptions.firstOrNull { it.first == settings.widgetAutoChangeIntervalHours }?.second
+                            ?: "प्रतिदिन एक बार (केवल आज का वचन) [डिफ़ॉल्ट]"
+
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedButton(
+                                onClick = { intervalMenuExpanded = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = currentIntervalLabel,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = null
+                                    )
+                                }
+                            }
+                            DropdownMenu(
+                                expanded = intervalMenuExpanded,
+                                onDismissRequest = { intervalMenuExpanded = false }
+                            ) {
+                                intervalOptions.forEach { (hours, label) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = label,
+                                                fontWeight = if (settings.widgetAutoChangeIntervalHours == hours) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (settings.widgetAutoChangeIntervalHours == hours) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.updateWidgetAutoChangeIntervalHours(hours)
+                                            intervalMenuExpanded = false
+                                            Toast.makeText(context, "विजेट अंतराल अपडेट कर दिया गया!", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "✨ हर नए दिन की शुरुआत में विजेट का पहला वचन हमेशा 'आज का वचन' ही रहेगा। यदि कोई समय अंतराल चुना है तो वह निर्धारित समय पर स्वतः बदलेगा.",
+                            style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        )
 
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -1073,9 +1321,9 @@ fun SettingsScreen(
                 }
             }
 
-            // 2. Personal Vlog Display Mode (Requirement 13)
+            // 2. Personal Life Blog Display Mode
             item {
-                SettingsSectionHeader(title = "PERSONAL VLOG DISPLAY MODE", icon = Icons.Default.Person)
+                SettingsSectionHeader(title = "पर्सनल लाइफ़ ब्लॉग (PERSONAL BLOG)", icon = Icons.Default.Person)
             }
 
             item {
@@ -1087,8 +1335,38 @@ fun SettingsScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        val isVlogEnabled = settings.personalVlogMode != PersonalVlogMode.HIDDEN
+                        SettingsSwitchRow(
+                            title = "पर्सनल लाइफ़ ब्लॉग (Personal Blog)",
+                            subtitle = if (isVlogEnabled) "चालू है (Password Verified)" else "बंद है (पासवर्ड आवश्यक)",
+                            checked = isVlogEnabled,
+                            onCheckedChange = { isChecked ->
+                                if (isChecked) {
+                                    if (com.example.util.ProfileManager.isVinayProfile()) {
+                                        viewModel.updatePersonalVlogMode(PersonalVlogMode.SECONDARY)
+                                        Toast.makeText(context, "पर्सनल लाइफ़ ब्लॉग सक्रिय किया गया", Toast.LENGTH_SHORT).show()
+                                    } else if (!com.example.util.PersonalVlogSecurity.isVlogServerAllowed()) {
+                                        Toast.makeText(context, "सर्वर द्वारा अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        pendingVlogMode = PersonalVlogMode.SECONDARY
+                                        vlogPasswordInput = ""
+                                        vlogPasswordError = null
+                                        vlogPasswordVisible = false
+                                        showVlogPasswordDialog = true
+                                    }
+                                } else {
+                                    viewModel.updatePersonalVlogMode(PersonalVlogMode.HIDDEN)
+                                    Toast.makeText(context, "पर्सनल लाइफ़ ब्लॉग बंद किया गया", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(10.dp))
+
                         Text(
-                            text = "Choose how Personal Vlogs are displayed in the app:",
+                            text = "प्रदर्शन मोड चुनें (Choose Display Mode):",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1099,9 +1377,12 @@ fun SettingsScreen(
                             val onSelectMode = {
                                 if (mode == PersonalVlogMode.HIDDEN) {
                                     viewModel.updatePersonalVlogMode(PersonalVlogMode.HIDDEN)
-                                    Toast.makeText(context, "Personal Vlog बंद किया गया", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "पर्सनल लाइफ़ ब्लॉग बंद किया गया", Toast.LENGTH_SHORT).show()
                                 } else {
-                                    if (!com.example.util.PersonalVlogSecurity.isVlogServerAllowed()) {
+                                    if (com.example.util.ProfileManager.isVinayProfile()) {
+                                        viewModel.updatePersonalVlogMode(mode)
+                                        Toast.makeText(context, "पर्सनल लाइफ़ ब्लॉग सक्रिय किया गया", Toast.LENGTH_SHORT).show()
+                                    } else if (!com.example.util.PersonalVlogSecurity.isVlogServerAllowed()) {
                                         Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
                                     } else if (settings.personalVlogMode == mode) {
                                         // Already active
@@ -1130,10 +1411,10 @@ fun SettingsScreen(
                                 Column {
                                     Text(
                                         text = when (mode) {
-                                            PersonalVlogMode.HIDDEN -> "Hidden (Default - Fellowship Events only)"
-                                            PersonalVlogMode.SECONDARY -> "Secondary Section (Blogs sub-tab)"
-                                            PersonalVlogMode.HOME_AND_SECONDARY -> "Home + Secondary Section"
-                                            PersonalVlogMode.PRIORITY_OVERRIDE -> "Priority / Override"
+                                            PersonalVlogMode.HIDDEN -> "Hidden (केवल फेलोशिप ब्लॉग्स)"
+                                            PersonalVlogMode.SECONDARY -> "ब्लॉग टैब सेक्शन (Blogs sub-tab)"
+                                            PersonalVlogMode.HOME_AND_SECONDARY -> "होम + ब्लॉग टैब सेक्शन"
+                                            PersonalVlogMode.PRIORITY_OVERRIDE -> "प्राथमिकता / Priority Override"
                                         },
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
@@ -1182,22 +1463,10 @@ fun SettingsScreen(
                                 label = { Text("Worship") },
                                 modifier = Modifier.weight(1f)
                             )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
                             FilterChip(
                                 selected = settings.youtubeDefaultTab == YouTubeDefaultTab.VINAY_KUMAR_AVJ,
                                 onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.VINAY_KUMAR_AVJ) },
                                 label = { Text("Vinay Kumar AVJ") },
-                                modifier = Modifier.weight(1f)
-                            )
-                            FilterChip(
-                                selected = settings.youtubeDefaultTab == YouTubeDefaultTab.NEW_CREATION_CHURCH,
-                                onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.NEW_CREATION_CHURCH) },
-                                label = { Text("New Creation Church") },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -1727,7 +1996,7 @@ fun SettingsScreen(
             },
             title = {
                 Text(
-                    text = "Personal Vlog अनलॉक करें",
+                    text = "पर्सनल लाइफ़ ब्लॉग अनलॉक करें",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -1735,7 +2004,7 @@ fun SettingsScreen(
             text = {
                 Column {
                     Text(
-                        text = "Personal Vlog को ON करने के लिए 4-अंकों का पासवर्ड दर्ज करें:",
+                        text = "पर्सनल लाइफ़ ब्लॉग को ON करने के लिए सुरक्षा पासवर्ड (Password) दर्ज करें:",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1771,7 +2040,7 @@ fun SettingsScreen(
                             pendingVlogMode?.let { mode ->
                                 viewModel.updatePersonalVlogMode(mode)
                             }
-                            Toast.makeText(context, "Personal Vlog सक्रिय किया गया", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "पर्सनल लाइफ़ ब्लॉग सक्रिय किया गया", Toast.LENGTH_SHORT).show()
                             showVlogPasswordDialog = false
                             vlogPasswordInput = ""
                             vlogPasswordError = null
@@ -1828,7 +2097,7 @@ fun SettingsScreen(
 
     if (showReadingPlanTimePicker) {
         com.example.ui.components.SimpleTimePickerDialog(
-            title = "रीडिंग प्लान रिमाइंडर समय चुनें",
+            title = "सुबह का रीडिंग प्लान रिमाइंडर समय चुनें (Morning 5 AM)",
             initialHour = settings.readingPlanReminderHour,
             initialMinute = settings.readingPlanReminderMinute,
             onTimeSelected = { hour, minute ->
@@ -1838,15 +2107,40 @@ fun SettingsScreen(
         )
     }
 
-    if (showDailyPrayerTimePicker) {
+    if (showReadingPlanEveningTimePicker) {
         com.example.ui.components.SimpleTimePickerDialog(
-            title = "दैनिक प्रार्थना रिमाइंडर समय चुनें",
-            initialHour = settings.dailyPrayerReminderHour,
-            initialMinute = settings.dailyPrayerReminderMinute,
+            title = "शाम का रीडिंग प्लान रिमाइंडर समय चुनें (Evening 9 PM)",
+            initialHour = settings.readingPlanReminderEveningHour,
+            initialMinute = settings.readingPlanReminderEveningMinute,
             onTimeSelected = { hour, minute ->
-                viewModel.updateDailyPrayerReminderTime(hour, minute)
+                viewModel.updateReadingPlanReminderEveningTime(hour, minute)
             },
-            onDismiss = { showDailyPrayerTimePicker = false }
+            onDismiss = { showReadingPlanEveningTimePicker = false }
+        )
+    }
+
+    if (showDailyPrayerTimePicker || editingSlotForTimePicker != null) {
+        val targetSlot = editingSlotForTimePicker ?: settings.dailyPrayerReminderSlot
+        val (initH, initM) = when (targetSlot) {
+            com.example.data.model.DailyPrayerSlot.MORNING -> settings.morningPrayerHour to settings.morningPrayerMinute
+            com.example.data.model.DailyPrayerSlot.AFTERNOON -> settings.afternoonPrayerHour to settings.afternoonPrayerMinute
+            com.example.data.model.DailyPrayerSlot.EVENING -> settings.eveningPrayerHour to settings.eveningPrayerMinute
+            com.example.data.model.DailyPrayerSlot.NIGHT -> settings.nightPrayerHour to settings.nightPrayerMinute
+            com.example.data.model.DailyPrayerSlot.CUSTOM -> settings.dailyPrayerReminderHour to settings.dailyPrayerReminderMinute
+        }
+        com.example.ui.components.SimpleTimePickerDialog(
+            title = "${targetSlot.titleHindi} - समय चुनें",
+            initialHour = initH,
+            initialMinute = initM,
+            onTimeSelected = { hour, minute ->
+                viewModel.updatePrayerSlotCustomTime(targetSlot, hour, minute)
+                editingSlotForTimePicker = null
+                showDailyPrayerTimePicker = false
+            },
+            onDismiss = {
+                editingSlotForTimePicker = null
+                showDailyPrayerTimePicker = false
+            }
         )
     }
 }

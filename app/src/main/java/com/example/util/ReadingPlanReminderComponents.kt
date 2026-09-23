@@ -15,15 +15,16 @@ import java.util.Calendar
 
 object ReadingPlanReminderScheduler {
     const val REQUEST_CODE = 9031
+    const val REQUEST_CODE_EVENING = 9033
 
-    fun scheduleDailyReminder(context: Context, hour: Int, minute: Int, enabled: Boolean) {
+    fun scheduleDailyReminder(context: Context, hour: Int, minute: Int, enabled: Boolean, requestCode: Int = REQUEST_CODE) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
         val intent = Intent(context, ReadingPlanReminderReceiver::class.java).apply {
             action = "com.example.ACTION_READING_PLAN_REMINDER"
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            REQUEST_CODE,
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         )
@@ -57,6 +58,23 @@ object ReadingPlanReminderScheduler {
         }
     }
 
+    fun scheduleAllReminders(context: Context, settings: com.example.data.model.UserSettings) {
+        scheduleDailyReminder(
+            context,
+            settings.readingPlanReminderHour,
+            settings.readingPlanReminderMinute,
+            settings.readingPlanReminderEnabled,
+            REQUEST_CODE
+        )
+        scheduleDailyReminder(
+            context,
+            settings.readingPlanReminderEveningHour,
+            settings.readingPlanReminderEveningMinute,
+            settings.readingPlanReminderEnabled && settings.readingPlanReminderEveningEnabled,
+            REQUEST_CODE_EVENING
+        )
+    }
+
     fun triggerTestNotification(context: Context) {
         val intent = Intent(context, ReadingPlanReminderReceiver::class.java).apply {
             action = "com.example.ACTION_READING_PLAN_REMINDER"
@@ -79,12 +97,7 @@ class ReadingPlanReminderReceiver : BroadcastReceiver() {
         if (!settings.readingPlanReminderEnabled && !isTest) return
 
         if (!isTest) {
-            ReadingPlanReminderScheduler.scheduleDailyReminder(
-                context,
-                settings.readingPlanReminderHour,
-                settings.readingPlanReminderMinute,
-                settings.readingPlanReminderEnabled
-            )
+            ReadingPlanReminderScheduler.scheduleAllReminders(context, settings)
         }
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

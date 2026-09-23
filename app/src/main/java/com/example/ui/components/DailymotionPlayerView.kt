@@ -1,22 +1,15 @@
 package com.example.ui.components
 
-import android.annotation.SuppressLint
-import android.content.Context
 import android.content.pm.ActivityInfo
-import android.content.res.Configuration
-import android.graphics.Bitmap
-import android.os.Build
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.ConsoleMessage
-import android.webkit.RenderProcessGoneDetail
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -25,21 +18,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,49 +35,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.util.SharedVideoPlayerManager
+import com.example.util.VideoPlaybackTracker
 
 /**
- * Dedicated Dailymotion Player View configured with WebChromeClient,
- * hardware acceleration, full-screen custom view callback handling, and responsive embed HTML.
+ * Dedicated Dailymotion WebView Player component.
+ * Integrates with SharedVideoPlayerManager for persistent playback across
+ * full screen, mini player, and picture-in-picture modes.
  */
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun DailymotionPlayerView(
     videoId: String,
     modifier: Modifier = Modifier,
     autoplay: Boolean = true
 ) {
-    val context = LocalContext.current
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // Clean ID if prefixed with dm_
+    val cleanId = when {
+        videoId.startsWith("dm_") -> videoId.substringAfterLast("_")
+        else -> videoId
+    }
 
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(false) }
     var hasError by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-    var webViewRef by remember { mutableStateOf<WebView?>(null) }
-
-    val activity = context as? ComponentActivity
-
-    val toggleOrientation: () -> Unit = {
-        val act = context as? ComponentActivity
-        if (act != null) {
-            act.requestedOrientation = if (isLandscape) {
-                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            } else {
-                ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
-    }
+    var reloadTrigger by remember { mutableStateOf(0) }
 
     Box(
         modifier = modifier
@@ -99,234 +70,258 @@ fun DailymotionPlayerView(
     ) {
         if (hasError) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+                modifier = Modifier.padding(16.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Warning,
+                    imageVector = Icons.Default.ErrorOutline,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.size(48.dp)
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Unable to load Dailymotion video",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White
+                    text = "वीडियो लोड करने में समस्या आई",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
-                if (errorMessage.isNotBlank()) {
-                    Text(
-                        text = errorMessage,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.LightGray,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
                 Spacer(modifier = Modifier.height(12.dp))
-                OutlinedButton(
+                Button(
                     onClick = {
                         hasError = false
-                        isLoading = true
-                        webViewRef?.reload()
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        reloadTrigger++
+                    }
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
-                    Spacer(modifier = Modifier.padding(4.dp))
-                    Text("Retry")
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text("पुनः प्रयास करें (Retry)")
                 }
             }
         } else {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
-                    WebView(ctx).apply {
-                        webViewRef = this
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
+                    SharedVideoPlayerManager.getOrCreatePlayer(ctx, cleanId) { createCtx ->
+                        WebView(createCtx).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            setBackgroundColor(android.graphics.Color.BLACK)
+                            isNestedScrollingEnabled = false
+                            overScrollMode = View.OVER_SCROLL_NEVER
+                            isVerticalScrollBarEnabled = false
+                            isHorizontalScrollBarEnabled = false
 
-                        setBackgroundColor(android.graphics.Color.BLACK)
-
-                        // 2. Comprehensive WebSettings configuration
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            mediaPlaybackRequiresUserGesture = false
-                            loadsImagesAutomatically = true
-                            loadWithOverviewMode = true
-                            useWideViewPort = true
-                            cacheMode = WebSettings.LOAD_DEFAULT
-                            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            allowFileAccess = true
-                            allowContentAccess = true
-                            databaseEnabled = true
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                safeBrowsingEnabled = false
+                            settings.apply {
+                                javaScriptEnabled = true
+                                domStorageEnabled = true
+                                databaseEnabled = true
+                                mediaPlaybackRequiresUserGesture = false
+                                loadWithOverviewMode = true
+                                useWideViewPort = true
+                                cacheMode = WebSettings.LOAD_DEFAULT
+                                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                allowFileAccess = true
+                                allowContentAccess = true
+                                userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36"
                             }
-                            val defaultUA = userAgentString
-                            userAgentString = "$defaultUA (Android Mobile; DailymotionPlayer) Chrome/122.0.0.0"
-                        }
 
-                        // 3. WebChromeClient with full-screen custom view support
-                        webChromeClient = object : WebChromeClient() {
-                            private var customView: View? = null
-                            private var customViewCallback: CustomViewCallback? = null
-
-                            override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
-                                if (customView != null) {
-                                    callback?.onCustomViewHidden()
-                                    return
+                            addJavascriptInterface(object {
+                                @JavascriptInterface
+                                fun onPlaybackProgress(seconds: Float, isPlaying: Boolean) {
+                                    if (seconds >= 0f) {
+                                        VideoPlaybackTracker.setPosition(cleanId, seconds)
+                                        VideoPlaybackTracker.setPlaying(cleanId, isPlaying)
+                                    }
                                 }
-                                val decorView = activity?.window?.decorView as? ViewGroup
-                                if (decorView != null && view != null) {
-                                    customView = view
-                                    customViewCallback = callback
-                                    decorView.addView(
-                                        view,
-                                        ViewGroup.LayoutParams(
-                                            ViewGroup.LayoutParams.MATCH_PARENT,
-                                            ViewGroup.LayoutParams.MATCH_PARENT
+
+                                @JavascriptInterface
+                                fun onPlaybackProgress(seconds: Float, duration: Float, isPlaying: Boolean) {
+                                    if (seconds >= 0f) {
+                                        VideoPlaybackTracker.setPosition(cleanId, seconds)
+                                        if (duration > 0f) {
+                                            VideoPlaybackTracker.setDuration(cleanId, duration)
+                                        }
+                                        VideoPlaybackTracker.setPlaying(cleanId, isPlaying)
+                                    }
+                                }
+
+                                @JavascriptInterface
+                                fun onPlaybackError(msg: String) {
+                                    post {
+                                        hasError = true
+                                    }
+                                }
+
+                                @JavascriptInterface
+                                fun onFullScreenChanged(isFull: Boolean) {
+                                    post {
+                                        val activity = ctx as? ComponentActivity
+                                        if (activity != null) {
+                                            activity.requestedOrientation = if (isFull) {
+                                                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                            } else {
+                                                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                            }
+                                        }
+                                    }
+                                }
+                            }, "AndroidApp")
+
+                            webChromeClient = object : WebChromeClient() {
+                                private var customView: View? = null
+                                private var customViewCallback: CustomViewCallback? = null
+
+                                override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+                                    if (customView != null) {
+                                        callback?.onCustomViewHidden()
+                                        return
+                                    }
+                                    val activity = ctx as? ComponentActivity
+                                    val decorView = activity?.window?.decorView as? ViewGroup
+                                    if (decorView != null && view != null) {
+                                        customView = view
+                                        customViewCallback = callback
+                                        decorView.addView(
+                                            view,
+                                            ViewGroup.LayoutParams(
+                                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                                ViewGroup.LayoutParams.MATCH_PARENT
+                                            )
                                         )
-                                    )
-                                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                                }
-                            }
-
-                            override fun onHideCustomView() {
-                                val decorView = activity?.window?.decorView as? ViewGroup
-                                if (customView != null) {
-                                    decorView?.removeView(customView)
-                                    customView = null
-                                    customViewCallback?.onCustomViewHidden()
-                                    customViewCallback = null
-                                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                                }
-                            }
-
-                            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                                return true
-                            }
-                        }
-
-                        // 4. WebViewClient handling
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                                super.onPageStarted(view, url, favicon)
-                                isLoading = true
-                            }
-
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                super.onPageFinished(view, url)
-                                isLoading = false
-                            }
-
-                            override fun onReceivedError(
-                                view: WebView?,
-                                request: WebResourceRequest?,
-                                error: WebResourceError?
-                            ) {
-                                super.onReceivedError(view, request, error)
-                                if (request?.isForMainFrame == true) {
-                                    hasError = true
-                                    errorMessage = error?.description?.toString().orEmpty()
-                                }
-                            }
-
-                            override fun onRenderProcessGone(
-                                view: WebView?,
-                                detail: RenderProcessGoneDetail?
-                            ): Boolean {
-                                view?.let {
-                                    try {
-                                        val parent = it.parent as? ViewGroup
-                                        parent?.removeView(it)
-                                        it.destroy()
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
+                                        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                                     }
                                 }
-                                hasError = true
-                                errorMessage = "Video renderer process encountered an error"
-                                return true
-                            }
-                        }
 
-                        val autoplayVal = if (autoplay) "1" else "0"
-                        // Responsive HTML wrapper embedding Dailymotion's official player iframe
-                        val embedHtml = """
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                                <style>
-                                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                                    html, body {
-                                        width: 100%;
-                                        height: 100%;
-                                        background-color: #000000;
-                                        overflow: hidden;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
+                                override fun onHideCustomView() {
+                                    val activity = ctx as? ComponentActivity
+                                    val decorView = activity?.window?.decorView as? ViewGroup
+                                    if (customView != null) {
+                                        decorView?.removeView(customView)
+                                        customView = null
+                                        customViewCallback?.onCustomViewHidden()
+                                        customViewCallback = null
+                                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                                     }
-                                    .video-container {
-                                        position: relative;
-                                        width: 100%;
-                                        height: 100%;
+                                }
+                            }
+
+                            webViewClient = object : WebViewClient() {
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    request: WebResourceRequest?,
+                                    error: WebResourceError?
+                                ) {
+                                    super.onReceivedError(view, request, error)
+                                    if (request?.isForMainFrame == true) {
+                                        hasError = true
                                     }
-                                    iframe {
-                                        position: absolute;
-                                        top: 0;
-                                        left: 0;
-                                        width: 100%;
-                                        height: 100%;
-                                        border: 0;
-                                    }
-                                </style>
-                            </head>
-                            <body>
-                                <div class="video-container">
-                                    <iframe
-                                        src="https://www.dailymotion.com/embed/video/$videoId?autoplay=$autoplayVal&mute=0&queue-enable=0&sharing-enable=1&ui-start-screen-info=0"
+                                }
+                            }
+
+                            val savedTime = VideoPlaybackTracker.getPosition(cleanId).toInt()
+                            val startParam = if (savedTime > 2) "&start=$savedTime" else ""
+
+                            val embedHtml = """
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                                    <style>
+                                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                                        html, body {
+                                            width: 100%;
+                                            height: 100%;
+                                            background-color: #000000;
+                                            overflow: hidden;
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                        }
+                                        iframe {
+                                            width: 100%;
+                                            height: 100%;
+                                            border: 0;
+                                            position: absolute;
+                                            top: 0;
+                                            left: 0;
+                                        }
+                                        .dmp_queue, .dmp_QueueToggle, [class*="queue"], [class*="Queue"], 
+                                        [aria-label*="Queue"], [aria-label*="Playlist"], [title*="Queue"], [title*="Playlist"],
+                                        .dmp_ControlBar-queueButton {
+                                            display: none !important;
+                                            visibility: hidden !important;
+                                            opacity: 0 !important;
+                                            pointer-events: none !important;
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <iframe 
+                                        id="dm_player"
+                                        src="https://www.dailymotion.com/embed/video/$cleanId?autoplay=${if (autoplay) "1" else "0"}&mute=0&queue-enable=0&queue-autoplay-next=0&ui-show-queue=0&ui-logo=0&ui-start-screen-info=0&sharing-enable=0&api=postMessage$startParam"
+                                        frameborder="0"
                                         allow="autoplay; fullscreen; picture-in-picture"
                                         allowfullscreen>
                                     </iframe>
-                                </div>
-                            </body>
-                            </html>
-                        """.trimIndent()
+                                    <script>
+                                        // Listen for postMessage from Dailymotion Player API
+                                        window.addEventListener('message', function(e) {
+                                            try {
+                                                if (typeof e.data === 'string') {
+                                                    var data = e.data;
+                                                    if (data.indexOf('timeupdate') !== -1 && window.AndroidApp) {
+                                                        var match = data.match(/time=([0-9.]+)/);
+                                                        if (match && match[1]) {
+                                                            window.AndroidApp.onPlaybackProgress(parseFloat(match[1]), true);
+                                                        }
+                                                    }
+                                                }
+                                            } catch(err){}
+                                        });
 
-                        loadDataWithBaseURL("https://www.dailymotion.com", embedHtml, "text/html", "UTF-8", "https://www.dailymotion.com")
+                                        document.addEventListener("fullscreenchange", function() {
+                                            var isFull = !!(document.fullscreenElement);
+                                            if (window.AndroidApp && window.AndroidApp.onFullScreenChanged) {
+                                                window.AndroidApp.onFullScreenChanged(isFull);
+                                            }
+                                        });
+                                    </script>
+                                </body>
+                                </html>
+                            """.trimIndent()
+
+                            loadDataWithBaseURL("https://www.dailymotion.com", embedHtml, "text/html", "UTF-8", "https://www.dailymotion.com")
+                        }
                     }
                 },
-                update = {
-                    // Update if needed
+                update = { webView ->
+                    webView.onResume()
+                    webView.resumeTimers()
                 },
                 onRelease = { webView ->
-                    try {
-                        webView.stopLoading()
-                        webView.loadUrl("about:blank")
-                        webView.onPause()
-                        webView.webChromeClient = WebChromeClient()
-                        webView.webViewClient = WebViewClient()
-                        webView.removeAllViews()
-                        webView.destroy()
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                    if (!SharedVideoPlayerManager.isCurrentVideo(cleanId)) {
+                        (webView.parent as? ViewGroup)?.removeView(webView)
+                        try {
+                            webView.stopLoading()
+                            webView.loadUrl("about:blank")
+                            webView.onPause()
+                            webView.webChromeClient = WebChromeClient()
+                            webView.webViewClient = WebViewClient()
+                            webView.removeJavascriptInterface("AndroidApp")
+                            webView.removeAllViews()
+                            webView.destroy()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             )
+        }
 
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
+        if (isLoading) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     }
 }

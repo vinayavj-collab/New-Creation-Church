@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Vinay Kumar Avj"
+rootProject.name = "New Creation Church"
 
 include(":app")
