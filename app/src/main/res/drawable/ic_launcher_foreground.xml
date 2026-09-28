@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:width="68dp"
-        android:height="68dp"
-        android:drawable="@drawable/church_app_icon"
-        android:gravity="center" />
-</layer-list>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Church Cross and Glow -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M51,26h6v56h-6z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M34,42h40v6h-40z" />
+    <!-- Radiance circles -->
+    <path
+        android:fillColor="#80FFFFFF"
+        android:pathData="M54,45m-20,0a20,20 0 1,0 40,0a20,20 0 1,0 -40,0"
+        android:strokeWidth="2"
+        android:strokeColor="#FFD700" />
+</vector>

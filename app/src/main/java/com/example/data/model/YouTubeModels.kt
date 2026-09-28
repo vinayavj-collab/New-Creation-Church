@@ -37,7 +37,8 @@ fun defaultVideoQuickAccessItems(): List<VideoQuickAccessItem> = listOf(
     VideoQuickAccessItem(id = "all", label = "ALL", filterType = "ALL", filterValue = "", isVisible = true, isPinned = true, order = 0),
     VideoQuickAccessItem(id = "worship", label = "Worship", filterType = "CHANNEL", filterValue = "UC92tSCn2I6lwcUyAdyS_MMw", isVisible = true, isPinned = false, order = 1),
     VideoQuickAccessItem(id = "vinay_kumar", label = "Vinay Kumar AVJ", filterType = "CHANNEL", filterValue = "UClFK75L0wsDMf10Tj77hlsg", isVisible = true, isPinned = false, order = 2),
-    VideoQuickAccessItem(id = "dailymotion", label = "Dailymotion", filterType = "CHANNEL", filterValue = "dailymotion", isVisible = true, isPinned = false, order = 3)
+    VideoQuickAccessItem(id = "new_creation_church", label = "New Creation Church", filterType = "CHANNEL", filterValue = "UC4lEaYq9Wp_l5jXgU_1_1gg", isVisible = true, isPinned = false, order = 3),
+    VideoQuickAccessItem(id = "dailymotion", label = "Dailymotion", filterType = "CHANNEL", filterValue = "dailymotion", isVisible = true, isPinned = false, order = 4)
 )
 
 data class YouTubePlaylist(

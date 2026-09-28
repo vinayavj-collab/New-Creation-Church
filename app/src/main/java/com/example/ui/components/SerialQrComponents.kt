@@ -60,6 +60,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +77,50 @@ import com.example.util.QrCodeHelper
 
 private val GoldWarm = Color(0xFFD4AF37)
 private val DeepEmerald = Color(0xFF0F5132)
+private val WhatsAppGreen = Color(0xFF25D366)
+
+fun shareQrToWhatsApp(
+    context: android.content.Context,
+    qrBitmap: Bitmap?,
+    serialNumber: String,
+    p2Otp: String?,
+    roleTitle: String?
+) {
+    val uri = if (qrBitmap != null) QrCodeHelper.saveQrBitmapToFile(context, qrBitmap, serialNumber) else null
+    val extraText = buildString {
+        append("✝️ न्यू क्रिएशन चर्च - एक्टिवेशन QR पास\n\n")
+        append("🆔 सीरियल आईडी: $serialNumber\n")
+        if (!p2Otp.isNullOrBlank()) append("🔑 P2 OTP: $p2Otp\n")
+        if (!roleTitle.isNullOrBlank()) append("👤 पदनाम: $roleTitle\n")
+        append("\nऐप में 'First-Time Activation' पर जाकर QR कोड स्कैन करें या सीरियल आईडी दर्ज करके प्रोफाइल एक्टिवेट करें।")
+    }
+    try {
+        val waIntent = Intent(Intent.ACTION_SEND).apply {
+            setPackage("com.whatsapp")
+            if (uri != null) {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } else {
+                type = "text/plain"
+            }
+            putExtra(Intent.EXTRA_TEXT, extraText)
+        }
+        context.startActivity(waIntent)
+    } catch (_: Exception) {
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            if (uri != null) {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } else {
+                type = "text/plain"
+            }
+            putExtra(Intent.EXTRA_TEXT, extraText)
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "QR कोड साझा करें"))
+    }
+}
 
 /**
  * Embedded QR Code Card showing QR preview and quick actions.
@@ -211,7 +260,7 @@ fun SerialQrCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 OutlinedButton(
                     onClick = {
@@ -224,11 +273,26 @@ fun SerialQrCard(
                         Toast.makeText(context, "सीरियल विवरण कॉपी किया गया!", Toast.LENGTH_SHORT).show()
                     },
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f)
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                    modifier = Modifier.weight(0.9f)
                 ) {
                     Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(3.dp))
                     Text("कॉपी", fontSize = 11.sp)
+                }
+
+                Button(
+                    onClick = {
+                        shareQrToWhatsApp(context, qrBitmap, serialNumber, p2Otp, roleTitle)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen, contentColor = Color.White),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                    modifier = Modifier.weight(1.1f)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(13.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text("WhatsApp", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
@@ -257,11 +321,12 @@ fun SerialQrCard(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = GoldWarm, contentColor = Color.Black),
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f)
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                    modifier = Modifier.weight(0.9f)
                 ) {
                     Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("शेयर करें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(3.dp))
+                    Text("शेयर", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -469,7 +534,7 @@ fun SerialQrDisplayDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
                         onClick = {
@@ -482,11 +547,24 @@ fun SerialQrDisplayDialog(
                             Toast.makeText(context, "विवरण कॉपी किया गया!", Toast.LENGTH_SHORT).show()
                         },
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(0.9f)
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text("कॉपी", fontSize = 12.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            shareQrToWhatsApp(context, qrBitmap, serialNumber, p2Otp, roleTitle)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen, contentColor = Color.White),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1.2f)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("WhatsApp", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Button(
@@ -515,11 +593,11 @@ fun SerialQrDisplayDialog(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = GoldWarm, contentColor = Color.Black),
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(0.9f)
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("शेयर पास", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(4.dp))
+                        Text("शेयर", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -537,8 +615,30 @@ fun QrScannerDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     var isDecoding by remember { mutableStateOf(false) }
     var scanError by remember { mutableStateOf<String?>(null) }
+
+    fun triggerSuccessHaptic() {
+        try {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        } catch (_: Exception) {}
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val vibrator = context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator
+                vibrator?.vibrate(
+                    VibrationEffect.createWaveform(
+                        longArrayOf(0, 50, 60, 80),
+                        -1
+                    )
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator
+                vibrator?.vibrate(90L)
+            }
+        } catch (_: Exception) {}
+    }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -553,7 +653,8 @@ fun QrScannerDialog(
                         val decodedText = QrCodeHelper.decodeQrFromBitmap(bitmap)
                         if (!decodedText.isNullOrBlank()) {
                             val (serial, p2) = QrCodeHelper.parseSerialFromQr(decodedText)
-                            if (serial.isNotBlank()) {
+                            if (serial.isNotBlank() || !p2.isNullOrBlank()) {
+                                triggerSuccessHaptic()
                                 Toast.makeText(context, "✅ QR कोड सफलतापूर्वक स्कैन हुआ!", Toast.LENGTH_SHORT).show()
                                 onSerialScanned(serial, p2)
                                 onDismiss()

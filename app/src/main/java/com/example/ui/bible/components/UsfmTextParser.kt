@@ -189,16 +189,47 @@ object UsfmTextParserEngine {
     }
 
     /**
-     * Helper to clean any leftover USFM backslash tags (e.g. \+q, \qs, \*, etc.)
-     * and sanitize dangling quotes.
+     * Sanitizes and cleans Bible verse text by filtering out misplaced inline variant tags
+     * like [Greek: ...], [Hebrew: ...], Strong's numbers, XML/HTML footnote blocks,
+     * and accidental glued metadata ("JesusGreek", "JesusGreek he", etc.).
+     */
+    fun cleanVerseText(rawText: String): String {
+        return cleanRawUsfmTags(rawText)
+    }
+
+    /**
+     * Helper to clean any leftover USFM backslash tags (e.g. \+q, \qs, \*, etc.),
+     * footnote blocks, manuscript variant notes, and sanitize dangling quotes.
      */
     fun cleanRawUsfmTags(raw: String): String {
-        val noTags = raw
+        if (raw.isEmpty()) return ""
+        
+        var text = raw
+            // 1. Strip USFM footnote and cross reference blocks
+            .replace(Regex("\\\\f\\s+.*?\\\\f\\*", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+            .replace(Regex("\\\\fe\\s+.*?\\\\fe\\*", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+            .replace(Regex("\\\\x\\s+.*?\\\\x\\*", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+            // 2. Strip XML/HTML footnotes & annotations
+            .replace(Regex("<(?:f|fe|fn|footnote|note|x|xref|crossref|annotation|commentary|rf|fr|fb|fe)[^>]*>.*?</(?:f|fe|fn|footnote|note|x|xref|crossref|annotation|commentary|rf|fr|fb|fe)>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+            .replace(Regex("<sup.*?>.*?</sup>", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<s.*?>.*?</s>", RegexOption.IGNORE_CASE), "")
+            // 3. Strip manuscript / language variant markers in brackets or parens
+            .replace(Regex("\\[\\s*(?:Greek|Hebrew|Aramaic|Latin|Septuagint|LXX|Vulgate|Masoretic|MT|TR|NU|WH|Codex|MSS|MS|Variant|Alt|Or|Lit|Literal|Literally|Meaning|Some manuscripts|Early manuscripts|Other authorities|Many authorities|Reading|v\\.r\\.|cf\\.|see)[^\\]]*\\]", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("\\(\\s*(?:Greek|Hebrew|Aramaic|Latin|Septuagint|LXX|Vulgate|Masoretic|MT|TR|NU|WH|Codex|MSS|MS|Variant|Alt|Or|Lit|Literal|Literally|Meaning|Some manuscripts|Early manuscripts|Other authorities|Many authorities|Reading|v\\.r\\.|cf\\.|see)[^\\)]*\\)", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("\\[(?:xref|footnote|fn|note|\\d+|[a-zA-Z])[^\\]]*\\]", RegexOption.IGNORE_CASE), "")
+            // 4. Strip accidental glued language metadata (e.g. "JesusGreek", "JesusGreek he", "JesusGreek: he", "LordHebrew")
+            .replace(Regex("(?<=[A-Za-z\\u0900-\\u097F])(?:Greek|Hebrew|Aramaic|Latin|LXX|Septuagint|NU-Text|TR)(?:\\s*:\\s*[A-Za-z0-9\\s\"’'“\\-]+|\\s+(?:he|she|it|they|the|a|an|[a-z]+))?", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("\\b(?:Greek|Hebrew|Aramaic|Latin|Lit\\.|Or)\\s*:\\s*(?:he|she|it|they|the|a|an|[a-zA-Z0-9\\s\"’'“\\-]+?)(?=[,\\.;!\\?]|$)", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("\\{[GH]\\d+\\}|<[GH]\\d+>|\\b[GH]\\d{3,5}\\b"), "")
+            // 5. Strip USFM markers & HTML tags
             .replace(Regex("\\\\\\+?[a-zA-Z0-9]+\\*?"), "")
             .replace(Regex("\\*"), "")
             .replace(Regex("(?i)(?:<br\\s*/?>|&nbsp;)"), " ")
+            .replace(Regex("<[^>]+>"), "")
+            // 6. Remove residual brackets
+            .replace(Regex("\\[[0-9a-zA-Z\\s,;:\\.\\-\\+*#†‡]+\\]"), "")
         
-        val sanitized = sanitizeDanglingQuotes(noTags)
+        val sanitized = sanitizeDanglingQuotes(text)
         return sanitized
             .replace(Regex("\\s+"), " ")
             .replace(Regex("""\s+([”"’'»,;\.।!\?])"""), "$1")

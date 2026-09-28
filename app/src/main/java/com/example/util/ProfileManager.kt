@@ -67,8 +67,21 @@ object ProfileManager {
         return serverDbEnabled && remoteConfigEnabled
     }
 
-    fun verifyPasswordForPrivateProfile(input: String): Boolean {
+    fun verifyPasswordForPrivateProfile(input: String, masterAdminPin: String = ""): Boolean {
         if (isVinayProfile()) return true
+        val cleanInput = input.trim()
+        if (cleanInput.isBlank()) return false
+        
+        // Direct match for Profile B default password (Vin@22914125)
+        if (cleanInput == AppProfile.PROFILE_B_PASSWORD) {
+            return true
+        }
+
+        // Match master admin PIN if provided
+        if (masterAdminPin.isNotBlank() && cleanInput == masterAdminPin.trim()) {
+            return true
+        }
+
         val fbPass = com.example.data.repository.FirebaseDataRepository.getInstance().privateProfilePassword.value.trim()
         val rcPass = RemoteConfigHelper.getPrivateProfilePassword().trim()
         val expectedPassword = when {
@@ -76,7 +89,7 @@ object ProfileManager {
             rcPass.isNotBlank() -> rcPass
             else -> AppProfile.PROFILE_B_PASSWORD
         }
-        return input.trim() == expectedPassword
+        return cleanInput == expectedPassword || (masterAdminPin.isNotBlank() && cleanInput == masterAdminPin.trim())
     }
 
     fun restartApp(activity: Activity) {

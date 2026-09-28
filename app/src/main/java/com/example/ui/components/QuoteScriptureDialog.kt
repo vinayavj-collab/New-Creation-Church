@@ -199,7 +199,7 @@ fun QuoteScriptureDialog(
                 ) {
                     listOf(
                         "HIOV" to "हिन्दी (HIOV)",
-                        "ENG_ESV" to "English (ESV)"
+                        "NKJV" to "English (NKJV)"
                     ).forEach { (id, label) ->
                         FilterChip(
                             selected = selectedTranslationId == id,

@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class PreferencesManager(context: Context) {
+    init {
+        INSTANCE = this
+    }
     private val prefs: SharedPreferences =
         context.getSharedPreferences("vinay_app_prefs", Context.MODE_PRIVATE)
 
@@ -42,6 +45,28 @@ class PreferencesManager(context: Context) {
 
     private val _readingPlanHighlightStyle = MutableStateFlow(loadReadingPlanHighlightStyle())
     val readingPlanHighlightStyle: StateFlow<ReadingPlanHighlightStyle> = _readingPlanHighlightStyle.asStateFlow()
+
+    private val _remindedEventIds = MutableStateFlow<Set<String>>(loadRemindedEventIds())
+    val remindedEventIds: StateFlow<Set<String>> = _remindedEventIds.asStateFlow()
+
+    private fun loadRemindedEventIds(): Set<String> {
+        return prefs.getStringSet("reminded_event_ids", emptySet()) ?: emptySet()
+    }
+
+    fun setEventReminderActive(eventId: String, active: Boolean) {
+        val current = _remindedEventIds.value.toMutableSet()
+        if (active) {
+            current.add(eventId)
+        } else {
+            current.remove(eventId)
+        }
+        prefs.edit().putStringSet("reminded_event_ids", current).apply()
+        _remindedEventIds.value = current
+    }
+
+    fun isEventReminderActive(eventId: String): Boolean {
+        return _remindedEventIds.value.contains(eventId)
+    }
 
     fun getReadingPlanHighlightStyle(): ReadingPlanHighlightStyle = _readingPlanHighlightStyle.value
 
@@ -277,11 +302,20 @@ class PreferencesManager(context: Context) {
             isGlobalAdminEmergencyLock = prefs.getBoolean("is_global_admin_emergency_lock", false),
             hasSeenProfileAdminPrompt = prefs.getBoolean("has_seen_profile_admin_prompt", false),
             masterAdminPasswordEnabled = prefs.getBoolean("master_admin_password_enabled", true),
-            masterAdminPin = prefs.getString("master_admin_pin", "9876") ?: "9876",
-            masterAdminDualAuthEnabled = prefs.getBoolean("master_admin_dual_auth_enabled", false),
-            masterAdminSecondaryPin = prefs.getString("master_admin_secondary_pin", "123456") ?: "123456",
+            masterAdminPin = prefs.getString("master_admin_pin", "2291") ?: "2291",
+            masterAdminDualAuthEnabled = prefs.getBoolean("master_admin_dual_auth_enabled", true),
+            masterAdminSecondaryPin = prefs.getString("master_admin_secondary_pin", "") ?: "",
+            masterAdminEmergencyRecoveryKey = prefs.getString("master_admin_recovery_key", "VK99-EMERGENCY-2026-AVJ1") ?: "VK99-EMERGENCY-2026-AVJ1",
+            masterEmergencyBackupCodes = prefs.getString("master_emergency_backup_codes", "VK-7821-4902,VK-3194-8820,VK-6502-1147,VK-9923-5561,VK-4481-9032,VK-1279-3345,VK-8830-7712,VK-5591-2284,VK-7742-6690,VK-2239-4418")
+                ?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: listOf(
+                    "VK-7821-4902", "VK-3194-8820", "VK-6502-1147", "VK-9923-5561", "VK-4481-9032",
+                    "VK-1279-3345", "VK-8830-7712", "VK-5591-2284", "VK-7742-6690", "VK-2239-4418"
+                ),
+            maxFailedLoginAttempts = prefs.getInt("max_failed_login_attempts", 3),
+            temporaryLockoutMinutes = prefs.getInt("temporary_lockout_minutes", 5),
             biometricTimeoutDays = prefs.getInt("biometric_timeout_days", 30),
             isBiometricEnabled = prefs.getBoolean("is_biometric_enabled", true),
+            adminAuthSessionMode = prefs.getString("admin_auth_session_mode", "ONCE_PER_SESSION") ?: "ONCE_PER_SESSION",
             globalAuthBypass = prefs.getBoolean("global_auth_bypass", false),
             requireP2EveryLogin = prefs.getBoolean("require_p2_every_login", true),
             trustedDevices = prefs.getString("trusted_devices_list", "Android-Primary-Device,Mobile-Auth-Terminal-01")?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: listOf("Android-Primary-Device"),
@@ -334,7 +368,8 @@ class PreferencesManager(context: Context) {
         p2EveryLogin: Boolean = _settings.value.requireP2EveryLogin,
         trustedDevicesList: List<String> = _settings.value.trustedDevices,
         reminderInterval: Int = _settings.value.profileReminderIntervalDays,
-        notifMethod: String = _settings.value.notificationMethod
+        notifMethod: String = _settings.value.notificationMethod,
+        authSessionMode: String = _settings.value.adminAuthSessionMode
     ) {
         val devicesString = trustedDevicesList.joinToString(",")
         prefs.edit()
@@ -349,6 +384,7 @@ class PreferencesManager(context: Context) {
             .putString("trusted_devices_list", devicesString)
             .putInt("profile_reminder_interval_days", reminderInterval)
             .putString("notification_method", notifMethod)
+            .putString("admin_auth_session_mode", authSessionMode)
             .apply()
         _settings.value = _settings.value.copy(
             masterAdminPasswordEnabled = passwordEnabled,
@@ -361,8 +397,30 @@ class PreferencesManager(context: Context) {
             requireP2EveryLogin = p2EveryLogin,
             trustedDevices = trustedDevicesList,
             profileReminderIntervalDays = reminderInterval,
-            notificationMethod = notifMethod
+            notificationMethod = notifMethod,
+            adminAuthSessionMode = authSessionMode
         )
+    }
+
+    fun isBiometricEnrolledForAdmin(): Boolean {
+        return prefs.getBoolean("is_biometric_enrolled_admin", false)
+    }
+
+    fun getBiometricEnrolledAdminId(): String? {
+        return prefs.getString("biometric_enrolled_admin_id", null)
+    }
+
+    fun setBiometricEnrolledAdmin(adminId: String, enrolled: Boolean) {
+        prefs.edit()
+            .putBoolean("is_biometric_enrolled_admin", enrolled)
+            .putString("biometric_enrolled_admin_id", if (enrolled) adminId else null)
+            .apply()
+    }
+
+    fun updateAdminAuthSessionMode(mode: String) {
+        val safeMode = if (mode == "EVERY_TIME") "EVERY_TIME" else "ONCE_PER_SESSION"
+        prefs.edit().putString("admin_auth_session_mode", safeMode).apply()
+        _settings.value = _settings.value.copy(adminAuthSessionMode = safeMode)
     }
 
     fun updatePersonalBlogPassword(password: String) {
@@ -797,12 +855,79 @@ class PreferencesManager(context: Context) {
         _settings.value = _settings.value.copy(widgetAutoChangeIntervalHours = safeHours)
     }
 
+    fun updateBiometricEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("is_biometric_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(isBiometricEnabled = enabled)
+    }
+
+    fun updateMasterAdminDualAuth(enabled: Boolean) {
+        prefs.edit().putBoolean("master_admin_dual_auth_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(masterAdminDualAuthEnabled = enabled)
+    }
+
+    fun updateMasterAdminEmergencyRecoveryKey(key: String) {
+        val safeKey = key.trim().uppercase()
+        prefs.edit().putString("master_admin_recovery_key", safeKey).apply()
+        _settings.value = _settings.value.copy(masterAdminEmergencyRecoveryKey = safeKey)
+    }
+
+    fun resetTrustedDevices() {
+        val defaultList = listOf("Android-Primary-Device", "Mobile-Auth-Terminal-01")
+        val str = defaultList.joinToString(",")
+        prefs.edit().putString("trusted_devices_list", str).apply()
+        _settings.value = _settings.value.copy(trustedDevices = defaultList)
+    }
+
+    fun generateNewEmergencyBackupCodes(): List<String> {
+        val newCodes = List(10) {
+            val part1 = (1000..9999).random()
+            val part2 = (1000..9999).random()
+            "VK-$part1-$part2"
+        }
+        val str = newCodes.joinToString(",")
+        prefs.edit().putString("master_emergency_backup_codes", str).apply()
+        _settings.value = _settings.value.copy(masterEmergencyBackupCodes = newCodes)
+        return newCodes
+    }
+
+    fun consumeEmergencyBackupCode(code: String): Boolean {
+        val cleanCode = code.trim().uppercase()
+        val currentCodes = _settings.value.masterEmergencyBackupCodes
+        if (currentCodes.contains(cleanCode)) {
+            val updated = currentCodes.filter { it != cleanCode }
+            val str = updated.joinToString(",")
+            prefs.edit().putString("master_emergency_backup_codes", str).apply()
+            _settings.value = _settings.value.copy(masterEmergencyBackupCodes = updated)
+            return true
+        }
+        return false
+    }
+
+    fun isAppOnboardingCompleted(): Boolean {
+        return prefs.getBoolean("app_onboarding_completed", false)
+    }
+
+    fun setAppOnboardingCompleted(completed: Boolean = true) {
+        prefs.edit().putBoolean("app_onboarding_completed", completed).apply()
+    }
+
     fun isNotificationOnboardingCompleted(): Boolean {
         return prefs.getBoolean("notification_onboarding_completed", false)
     }
 
     fun setNotificationOnboardingCompleted(completed: Boolean = true) {
         prefs.edit().putBoolean("notification_onboarding_completed", completed).apply()
+    }
+
+    fun setMasterAdminP2Otp(otp: String) {
+        prefs.edit()
+            .putString("master_admin_secondary_pin", otp)
+            .putBoolean("master_admin_dual_auth_enabled", true)
+            .apply()
+        _settings.value = _settings.value.copy(
+            masterAdminSecondaryPin = otp,
+            masterAdminDualAuthEnabled = true
+        )
     }
 
     fun isNotificationPromptShownForVersion(versionCode: Int): Boolean {
@@ -822,6 +947,8 @@ class PreferencesManager(context: Context) {
                 INSTANCE ?: PreferencesManager(context.applicationContext).also { INSTANCE = it }
             }
         }
+
+        fun getInstanceOrNull(): PreferencesManager? = INSTANCE
     }
 }
 

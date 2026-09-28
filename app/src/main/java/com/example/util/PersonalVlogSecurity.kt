@@ -27,6 +27,28 @@ object PersonalVlogSecurity {
     }
 
     /**
+     * Checks if user has locally enabled/unlocked the Personal Vlog via password.
+     */
+    fun isPersonalVlogLocallyEnabled(): Boolean {
+        if (ProfileManager.isVinayProfile()) {
+            return true
+        }
+        val settings = com.example.data.local.PreferencesManager.getInstanceOrNull()?.settings?.value ?: return false
+        return settings.showPersonalVlog || settings.personalVlogMode != com.example.data.model.PersonalVlogMode.HIDDEN
+    }
+
+    /**
+     * Complete dual-layer check: True ONLY IF user entered password and turned ON Personal Vlog
+     * AND server allows it (or if in Vinay profile).
+     */
+    fun isPersonalVlogAllowed(): Boolean {
+        if (ProfileManager.isVinayProfile()) {
+            return true
+        }
+        return isPersonalVlogLocallyEnabled() && isVlogServerAllowed()
+    }
+
+    /**
      * Verifies the entered password against Firebase Realtime DB, Remote Config, or default 9479.
      */
     fun verifyPassword(input: String): Boolean {

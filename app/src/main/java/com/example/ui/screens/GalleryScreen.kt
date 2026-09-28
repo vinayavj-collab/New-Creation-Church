@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,6 +48,7 @@ fun GalleryScreen(
     viewModel: MainViewModel,
     onPhotoClick: (Int) -> Unit,
     onAlbumClick: (List<GalleryPhoto>, Int) -> Unit,
+    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val photos by viewModel.galleryPhotos.collectAsState()
@@ -54,6 +57,11 @@ fun GalleryScreen(
 
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Event Albums, 1: All Photos
     var selectedAlbum by remember { mutableStateOf<PhotoAlbum?>(null) }
+
+    // Intercept back button when viewing an album
+    BackHandler(enabled = selectedAlbum != null) {
+        selectedAlbum = null
+    }
 
     // Group photos into event albums
     val albums = remember(photos) {
@@ -80,27 +88,50 @@ fun GalleryScreen(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp
             ) {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Photo Gallery & Albums",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
+                    if (onBack != null) {
+                        IconButton(
+                            onClick = {
+                                if (selectedAlbum != null) {
+                                    selectedAlbum = null
+                                } else {
+                                    onBack()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = if (onBack != null) 4.dp else 4.dp)
+                    ) {
+                        Text(
+                            text = "Photo Gallery & Albums",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
-                    Text(
-                        text = if (settings.showPersonalVlog) {
-                            "Fellowship Events & Personal Vlog (${photos.size} Photos • ${albums.size} Albums)"
-                        } else {
-                            "Fellowship Events (${photos.size} Photos • ${albums.size} Albums)"
-                        },
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Text(
+                            text = if (settings.showPersonalVlog) {
+                                "Fellowship Events & Personal Vlog (${photos.size} Photos • ${albums.size} Albums)"
+                            } else {
+                                "Fellowship Events (${photos.size} Photos • ${albums.size} Albums)"
+                            },
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
-                    )
+                    }
                 }
             }
 

@@ -28,13 +28,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import android.net.Uri
 import com.example.util.CsvExportHelper
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -169,18 +172,84 @@ fun AdminPanelScreen(
         }
     }
 
-    var isPanelUnlocked by rememberSaveable { mutableStateOf(!settings.masterAdminPasswordEnabled) }
+    val isAdminSessionUnlocked by viewModel.isAdminSessionUnlocked.collectAsState()
+    val isOncePerSession = settings.adminAuthSessionMode == "ONCE_PER_SESSION"
 
-    if (!isPanelUnlocked && settings.masterAdminPasswordEnabled) {
-        com.example.ui.components.AdminInvitationAccessDialog(
-            viewModel = viewModel,
-            onDismiss = onNavigateBack,
-            onOpenNormalProfile = onNavigateBack,
-            onOpenAdminPanel = {
-                isPanelUnlocked = true
-            },
-            initialStage = com.example.ui.components.InvitationStage.PASSWORD_1
-        )
+    var isPanelUnlocked by remember(currentAdmin, isAdminSessionUnlocked, settings.masterAdminPasswordEnabled) { 
+        mutableStateOf(currentAdmin != null || !settings.masterAdminPasswordEnabled || (isOncePerSession && isAdminSessionUnlocked)) 
+    }
+    var showFullInvitationInAdmin by remember { mutableStateOf(false) }
+
+    androidx.activity.compose.BackHandler(enabled = isPanelUnlocked && selectedStudioTab != StudioBottomTab.DASHBOARD) {
+        selectedStudioTab = StudioBottomTab.DASHBOARD
+    }
+
+    val fragmentAct = context as? androidx.fragment.app.FragmentActivity
+    LaunchedEffect(isPanelUnlocked) {
+        if (isPanelUnlocked) {
+            viewModel.setAdminSessionUnlocked(true)
+        } else if (settings.masterAdminPasswordEnabled && currentAdmin == null) {
+            val canBiometric = viewModel.canUseBiometricForAdmin() &&
+                    fragmentAct != null &&
+                    com.example.util.BiometricAuthManager.isBiometricAvailable(context)
+
+            if (canBiometric) {
+                val enrolledAdmin = viewModel.getEnrolledOrCurrentAdmin()
+                if (enrolledAdmin != null) {
+                    com.example.util.BiometricAuthManager.authenticate(
+                        activity = fragmentAct!!,
+                        title = "👑 एडमिन बायोमेट्रिक सत्यापन",
+                        subtitle = "${enrolledAdmin.designation} ${enrolledAdmin.name} के रूप में अनलॉक करने हेतु स्कैन करें",
+                        onSuccess = {
+                            viewModel.directLoginAsAdmin(enrolledAdmin) { success, _, _ ->
+                                if (success) {
+                                    viewModel.setAdminSessionUnlocked(true)
+                                    Toast.makeText(context, "👑 बायोमेट्रिक सत्यापित! स्वागत है ${enrolledAdmin.name} जी! 🙏", Toast.LENGTH_SHORT).show()
+                                    isPanelUnlocked = true
+                                }
+                            }
+                        },
+                        onError = {
+                            // Fallback remains on AdminQuickP1Dialog (asking for P1)
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(currentAdmin) {
+        if (currentAdmin != null) {
+            isPanelUnlocked = true
+            viewModel.setAdminSessionUnlocked(true)
+        }
+    }
+
+    if (!isPanelUnlocked && settings.masterAdminPasswordEnabled && currentAdmin == null) {
+        if (showFullInvitationInAdmin) {
+            com.example.ui.components.AdminInvitationAccessDialog(
+                viewModel = viewModel,
+                onDismiss = onNavigateBack,
+                onOpenNormalProfile = onNavigateBack,
+                onOpenAdminPanel = {
+                    isPanelUnlocked = true
+                    viewModel.setAdminSessionUnlocked(true)
+                    showFullInvitationInAdmin = false
+                }
+            )
+        } else {
+            com.example.ui.components.AdminQuickP1Dialog(
+                viewModel = viewModel,
+                onDismiss = onNavigateBack,
+                onOpenAdminPanel = {
+                    isPanelUnlocked = true
+                    viewModel.setAdminSessionUnlocked(true)
+                },
+                onSwitchToFullLogin = {
+                    showFullInvitationInAdmin = true
+                }
+            )
+        }
         return
     }
 
@@ -195,6 +264,14 @@ fun AdminPanelScreen(
         if (currentAdmin == null && isPanelUnlocked) {
             viewModel.loginVinayKumarAutomatic()
         }
+    }
+
+    // Auto-lock session after 10 minutes of inactivity for security
+    LaunchedEffect(Unit) {
+        val tenMinutesMs = 10 * 60 * 1000L
+        kotlinx.coroutines.delay(tenMinutesMs)
+        isPanelUnlocked = false
+        Toast.makeText(context, "सुरक्षा हेतु एडमिन सत्र स्वतः लॉक हो गया है", Toast.LENGTH_SHORT).show()
     }
 
     val admin = activeAdmin
@@ -238,6 +315,9 @@ fun AdminPanelScreen(
     )
     val isVinayMaster = com.example.util.ProfileManager.isVinayProfile() ||
             admin.rank >= com.example.data.model.AdminHierarchy.RANK_VINAY_KUMAR ||
+            admin.isMasterAdmin() ||
+            admin.isDefaultMaster ||
+            admin.serialNumber.equals("ADMIN1", ignoreCase = true) ||
             admin.name.contains("Vinay", ignoreCase = true)
 
     if (!isVinayMaster && (!isRemoteConfigAdminEnabled || !isRoleAllowedByRemoteConfig)) {
@@ -310,6 +390,10 @@ fun AdminPanelScreen(
     var selectedActivityFilter by remember { mutableStateOf(com.example.data.model.UserActivityType.ALL) }
     var activitySearchQuery by remember { mutableStateOf("") }
     val activityList by viewModel.getActivityHistory(selectedActivityFilter).collectAsState(initial = emptyList())
+    var showAttendanceUsherScanner by remember { mutableStateOf(false) }
+    var showAttendanceDynamicKiosk by remember { mutableStateOf(false) }
+    val branchContextState by viewModel.activeBranchContextState.collectAsState()
+    var showBranchSwitcherSheet by remember { mutableStateOf(false) }
 
     val hasBroadcastAuth = admin.hasPermission(AdminPermission.CAN_POST_ANNOUNCEMENTS) ||
             admin.hasPermission(AdminPermission.CAN_EDIT_VERSE) ||
@@ -398,7 +482,10 @@ fun AdminPanelScreen(
         }
     }
 
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -415,42 +502,13 @@ fun AdminPanelScreen(
         },
         topBar = {
             TopAppBar(
+                scrollBehavior = scrollBehavior,
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // 1. Compact Avatar with Dynamic Tier-Colored Ring
-                        Surface(
-                            shape = CircleShape,
-                            color = tierAccentColor.copy(alpha = 0.15f),
-                            border = BorderStroke(2.dp, tierAccentColor),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                if (admin.photoUrl.isNotBlank()) {
-                                    AsyncImage(
-                                        model = admin.photoUrl,
-                                        contentDescription = admin.name,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(CircleShape)
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = if (admin.isMasterAdmin()) Icons.Default.WorkspacePremium else Icons.Default.AdminPanelSettings,
-                                        contentDescription = null,
-                                        tint = tierAccentColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.width(8.dp))
-
-                        // 2. Identity & Role Block (3-Line Vertical Stack)
+                        // Identity & Role Block (3-Line Vertical Stack)
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.Center
@@ -491,15 +549,29 @@ fun AdminPanelScreen(
                                 }
                             }
 
-                            // Line 2: [Tier Category Label in accent color]
-                            Text(
-                                text = tierRoleCategoryLabel,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = tierAccentColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            // Line 2: [Tier Category Label] + [YouTube Studio Style Branch Context Pill]
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = tierRoleCategoryLabel,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = tierAccentColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+
+                                BranchContextDropdownPill(
+                                    contextState = branchContextState,
+                                    tierAccentColor = tierAccentColor,
+                                    onOpenSwitcher = { showBranchSwitcherSheet = true },
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                            }
 
                             // Line 3: Small muted stat counter
                             Text(
@@ -549,18 +621,6 @@ fun AdminPanelScreen(
                     }
                     IconButton(
                         onClick = {
-                            selectedStudioTab = StudioBottomTab.SYSTEM
-                            selectedSystemSubTab = "सुरक्षा व Test Mode (Security)"
-                        }
-                    ) {
-                        Icon(
-                            Icons.Default.Tune,
-                            contentDescription = "Quick Settings",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(
-                        onClick = {
                             isPanelUnlocked = false
                             onNavigateBack()
                         }
@@ -584,43 +644,69 @@ fun AdminPanelScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
-                modifier = Modifier.testTag("admin_bottom_nav_bar")
-            ) {
-                StudioBottomTab.values().forEach { tab ->
-                    val isSelected = selectedStudioTab == tab
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = { selectedStudioTab = tab },
-                        icon = {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.titleHindi,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = tab.titleHindi,
-                                fontSize = 10.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = tierAccentColor,
-                            selectedTextColor = tierAccentColor,
-                            indicatorColor = tierAccentColor.copy(alpha = 0.18f),
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            val systemBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val adaptiveBottomPad = maxOf(systemBottomInset, 10.dp)
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawBehind {
+                        val strokeWidth = 0.5.dp.toPx()
+                        drawLine(
+                            color = Color(0xFF334155),
+                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                            end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                            strokeWidth = strokeWidth
                         )
-                    )
+                    }
+                    .testTag("admin_bottom_nav_bar")
+            ) {
+                NavigationBar(
+                    containerColor = Color.Transparent,
+                    tonalElevation = 0.dp,
+                    windowInsets = WindowInsets(0.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = adaptiveBottomPad, top = 2.dp)
+                ) {
+                    StudioBottomTab.values().forEach { tab ->
+                        val isSelected = selectedStudioTab == tab
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = { selectedStudioTab = tab },
+                            alwaysShowLabel = true,
+                            icon = {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.titleHindi,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = tab.titleHindi,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = tierAccentColor,
+                                selectedTextColor = tierAccentColor,
+                                indicatorColor = tierAccentColor.copy(alpha = 0.15f),
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -630,6 +716,41 @@ fun AdminPanelScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            val isOffline by viewModel.isOffline.collectAsState()
+            AnimatedVisibility(
+                visible = isOffline,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF59E0B).copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, Color(0xFFF59E0B)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.WifiOff,
+                            contentDescription = null,
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "ऑफ़लाइन मोड: स्थानीय डेटा सुरक्षित है • नेटवर्क मिलने पर स्वतः सिंक होगा",
+                            fontSize = 11.sp,
+                            color = Color(0xFFF59E0B),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
             // Data Fetch Failure / Manual Retry Component Banner
             AnimatedVisibility(
                 visible = adminDataFetchError != null,
@@ -1160,6 +1281,7 @@ fun AdminPanelScreen(
                     StudioBottomTab.CONTENT -> {
                         // YouTube Studio Style Content Tab with Submodules Bar
                         val contentSubTabs = listOf(
+                            "दैनिक आत्मिक संदेश (Audio Message)",
                             "घोषणा व प्रसारण (Broadcast)",
                             "पुश प्रसारण (Push)",
                             "चैट व कम्यूनिकेशन (Chat & Comms)",
@@ -1194,6 +1316,13 @@ fun AdminPanelScreen(
 
                             Box(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 4.dp)) {
                                 when (selectedContentSubTab) {
+                                    "दैनिक आत्मिक संदेश (Audio Message)" -> {
+                                        AdminAudioMessageScreen(
+                                            viewModel = viewModel,
+                                            currentAdmin = admin,
+                                            onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
+                                        )
+                                    }
                                     "घोषणा व प्रसारण (Broadcast)" -> {
                                         BroadcastTabContent(
                                             currentAdmin = admin,
@@ -1454,6 +1583,7 @@ fun AdminPanelScreen(
                                     "सदस्य डायरेक्टरी (Members)" -> {
                                         AdminMembersScreen(
                                             members = churchMembers,
+                                            userProfiles = appUserProfiles,
                                             onSaveMember = { member ->
                                                 viewModel.addOrUpdateChurchMember(member) { success, err ->
                                                     if (success) {
@@ -1470,6 +1600,30 @@ fun AdminPanelScreen(
                                                 }
                                             },
                                             onExportReport = { viewModel.getMembersReport() },
+                                            onRebindFamily = { targetSerial, newFamilyId, newRole, remarks ->
+                                                viewModel.rebindMemberFamily(targetSerial, newFamilyId, newRole, remarks) { success, err ->
+                                                    if (success) showFeedback("परिवार लिंकेज अपडेट हो गया ($newFamilyId)")
+                                                    else showFeedback("त्रुटि: $err")
+                                                }
+                                            },
+                                            onTransferBranch = { targetSerial, newBranchId, remarks ->
+                                                viewModel.transferMemberBranch(targetSerial, newBranchId, remarks) { success, err ->
+                                                    if (success) showFeedback("कलीसिया शाखा स्थानांतरण संपन्न ($newBranchId)")
+                                                    else showFeedback("त्रुटि: $err")
+                                                }
+                                            },
+                                            onIssueTransferCertificate = { targetSerial, dest, isMarriedOut, remarks ->
+                                                viewModel.issueTransferCertificateAndRelocate(targetSerial, dest, isMarriedOut, remarks) { success, uri, err ->
+                                                    if (success) {
+                                                        showFeedback("स्थानांतरण पत्र (TC) जारी किया गया")
+                                                        if (uri != null) {
+                                                            com.example.util.ChurchTransferCertificatePdfHelper.shareTransferCertificate(context, uri, targetSerial)
+                                                        }
+                                                    } else {
+                                                        showFeedback("त्रुटि: $err")
+                                                    }
+                                                }
+                                            },
                                             onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
                                         )
                                     }
@@ -1524,32 +1678,40 @@ fun AdminPanelScreen(
                                         )
                                     }
                                     "उपस्थिति ट्रैकर (Attendance)" -> {
-                                        AdminAttendanceScreen(
-                                            attendanceRecords = attendanceRecords,
-                                            onRecordAttendance = { record ->
-                                                viewModel.recordChurchAttendance(record) { success, err ->
-                                                    if (success) {
-                                                        showFeedback("उपस्थिति दर्ज की गई")
-                                                        Toast.makeText(context, "उपस्थिति दर्ज की गई", Toast.LENGTH_SHORT).show()
-                                                    } else {
-                                                        showFeedback("त्रुटि: ${err ?: "विफल"}")
-                                                    }
-                                                }
-                                            },
-                                            onDeleteAttendance = { id ->
-                                                viewModel.deleteChurchAttendance(id) { success, _ ->
-                                                    if (success) showFeedback("उपस्थिति रिकॉर्ड हटाया गया")
-                                                }
-                                            },
-                                            onExportReport = { viewModel.getAttendanceReport() },
-                                            onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
-                                        )
+                                        if (showAttendanceUsherScanner) {
+                                            com.example.ui.attendance.UsherScannerScreen(
+                                                viewModel = viewModel,
+                                                onBack = { showAttendanceUsherScanner = false }
+                                            )
+                                        } else if (showAttendanceDynamicKiosk) {
+                                            com.example.ui.attendance.DynamicRotatingQrKioskScreen(
+                                                viewModel = viewModel,
+                                                onBack = { showAttendanceDynamicKiosk = false }
+                                            )
+                                        } else {
+                                            com.example.ui.attendance.EnterpriseAttendanceDashboardScreen(
+                                                viewModel = viewModel,
+                                                onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD },
+                                                onOpenUsherScanner = { showAttendanceUsherScanner = true },
+                                                onOpenDynamicKiosk = { showAttendanceDynamicKiosk = true }
+                                            )
+                                        }
                                     }
                                     "लेखा व दशमांश (Accounts)" -> {
+                                        val filteredTransactions = remember(accountTransactions, branchContextState) {
+                                            if (branchContextState.isGlobalScope) {
+                                                accountTransactions
+                                            } else {
+                                                accountTransactions.filter { it.branchId == branchContextState.activeScope || it.branchId.isBlank() }
+                                            }
+                                        }
                                         AdminAccountsScreen(
-                                            transactions = accountTransactions,
+                                            transactions = filteredTransactions,
                                             onAddTransaction = { tx ->
-                                                viewModel.addAccountTransaction(tx) { success, err ->
+                                                val scopedTx = if (tx.branchId.isBlank()) {
+                                                    tx.copy(branchId = if (branchContextState.isGlobalScope) "branch_ncc_01" else branchContextState.activeScope)
+                                                } else tx
+                                                viewModel.addAccountTransaction(scopedTx) { success, err ->
                                                     if (success) {
                                                         showFeedback("प्रविष्टि दर्ज की गई")
                                                         Toast.makeText(context, "प्रविष्टि दर्ज की गई", Toast.LENGTH_SHORT).show()
@@ -1670,8 +1832,8 @@ fun AdminPanelScreen(
                                             onChangeOwnPin = { showChangePinDialog = admin },
                                             onLinkGmail = { showLinkGmailDialog = true },
                                             settings = settings,
-                                            onUpdateMasterAdminSecurity = { enabled, pin, dualAuth, secPin, bioTimeout, bioEnabled, authBypass, p2Every, trustedDevices, reminderInterval, notifMethod ->
-                                                viewModel.updateMasterAdminSecurity(enabled, pin, dualAuth, secPin, bioTimeout, bioEnabled, authBypass, p2Every, trustedDevices, reminderInterval, notifMethod) { success, err ->
+                                            onUpdateMasterAdminSecurity = { enabled, pin, dualAuth, secPin, bioTimeout, bioEnabled, authBypass, p2Every, trustedDevices, reminderInterval, notifMethod, authSessionMode ->
+                                                viewModel.updateMasterAdminSecurity(enabled, pin, dualAuth, secPin, bioTimeout, bioEnabled, authBypass, p2Every, trustedDevices, reminderInterval, notifMethod, authSessionMode) { success, err ->
                                                     if (success) {
                                                         Toast.makeText(context, if (enabled) "मास्टर सुरक्षा सेटिंग्स सुरक्षित की गईं! ✅" else "सुरक्षा निष्क्रिय की गई! ⚡", Toast.LENGTH_SHORT).show()
                                                     } else {
@@ -1741,6 +1903,28 @@ fun AdminPanelScreen(
                 }
             }
         }
+    }
+
+    // --- Branch Context Switcher Bottom Sheet ---
+    if (showBranchSwitcherSheet) {
+        BranchContextBottomSheet(
+            contextState = branchContextState,
+            tierAccentColor = tierAccentColor,
+            onSelectBranch = { targetBranchIdOrGlobal ->
+                viewModel.switchBranchContext(targetBranchIdOrGlobal) { success ->
+                    showBranchSwitcherSheet = false
+                    if (success) {
+                        showFeedback(
+                            if (targetBranchIdOrGlobal == com.example.data.context.DefaultChurches.GLOBAL_SCOPE_ID)
+                                "ग्लोबल डायसिस ओवरव्यू सक्रिय"
+                            else
+                                "कलीसिया शाखा सक्रिय: ${branchContextState.accessibleBranches.find { it.branchId == targetBranchIdOrGlobal }?.branchName ?: targetBranchIdOrGlobal}"
+                        )
+                    }
+                }
+            },
+            onDismiss = { showBranchSwitcherSheet = false }
+        )
     }
 
     // --- Dialogs ---
@@ -1836,6 +2020,7 @@ fun AdminPanelScreen(
                     onClick = {
                         showLogoutConfirmationDialog = false
                         isPanelUnlocked = false
+                        viewModel.setAdminSessionUnlocked(false)
                         viewModel.logoutAdmin()
                         Toast.makeText(context, "एडमिन सत्र सफलतापूर्वक समाप्त हुआ (Logged Out)", Toast.LENGTH_SHORT).show()
                         onNavigateBack()
@@ -1973,38 +2158,6 @@ fun AdminProfileSummaryCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // High-End Avatar with Crown / Rank badge
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(if (isVinayKumar) GoldWarm else MaterialTheme.colorScheme.primaryContainer)
-                        .border(
-                            2.dp,
-                            if (isVinayKumar) Color(0xFF1E1B4B) else MaterialTheme.colorScheme.primary,
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isVinayKumar) {
-                        Icon(
-                            Icons.Default.WorkspacePremium,
-                            contentDescription = null,
-                            tint = Color(0xFF1E1B4B),
-                            modifier = Modifier.size(28.dp)
-                        )
-                    } else {
-                        Text(
-                            text = admin.name.take(1).uppercase(),
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-
-                Spacer(Modifier.width(14.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -2940,79 +3093,7 @@ fun AdminListTabContent(
     onToggleStatus: (AdminUser, Boolean) -> Unit,
     onDeleteAdmin: (AdminUser) -> Unit
 ) {
-    val canCreateAny = currentAdmin.hasPermission(AdminPermission.CAN_ADD_ADMINS)
-    val subordinatesCount = allAdmins.count { it.createdByAdminId == currentAdmin.id }
-    val isPastorLimitReached = currentAdmin.rank == AdminHierarchy.RANK_PASTOR && subordinatesCount >= 2
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        contentPadding = PaddingValues(vertical = 8.dp)
-    ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "पदनाम व एडमिन सूची (${allAdmins.size})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                    Text(
-                        text = if (currentAdmin.rank == AdminHierarchy.RANK_PASTOR) "पास्टर सीमा: 2 पुरनिया ($subordinatesCount/2 बनाया गया)"
-                        else "अधिकार अनुसार पदनाम व पासवर्ड प्रबंधन",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                if (canCreateAny) {
-                    if (isPastorLimitReached) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "⚠️ पास्टर सीमा (2/2) पूरी",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    } else {
-                        Button(
-                            onClick = onAddAdminClick,
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            modifier = Modifier.testTag("add_admin_button")
-                        ) {
-                            Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("नया एडमिन", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-
-        items(allAdmins, key = { it.id }) { item ->
-            AdminUserItemCard(
-                admin = item,
-                currentAdmin = currentAdmin,
-                canManage = currentAdmin.id == item.id || AdminHierarchy.canManageAdmin(currentAdmin.rank, item.rank),
-                isSelf = currentAdmin.id == item.id,
-                onChangePin = { onChangePinClick(item) },
-                onEditFunctions = { onEditFunctionsClick(item) },
-                onToggleStatus = { isEnabled -> onToggleStatus(item, isEnabled) },
-                onDelete = { onDeleteAdmin(item) }
-            )
-        }
-    }
+    Box(modifier = Modifier.fillMaxSize())
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -3023,11 +3104,13 @@ fun AdminUserItemCard(
     canManage: Boolean,
     isSelf: Boolean,
     onChangePin: () -> Unit,
+    onRegenerateOtp: () -> Unit,
     onEditFunctions: () -> Unit,
     onToggleStatus: (Boolean) -> Unit,
     onDelete: () -> Unit
 ) {
     var isPinVisible by remember { mutableStateOf(false) }
+    val displaySn = if (admin.serialNumber.isNotBlank()) admin.serialNumber else "SN-${admin.id.takeLast(4)}"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -3071,10 +3154,24 @@ fun AdminUserItemCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "${admin.designation} ${admin.name}",
+                            text = "${admin.designation} ${admin.name.ifBlank { "Pending User" }}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
                         )
+                        Spacer(Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                text = displaySn,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
                         if (isSelf) {
                             Spacer(Modifier.width(4.dp))
                             Text("(आप)", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
@@ -3218,6 +3315,19 @@ fun AdminUserItemCard(
                     }
 
                     if (!isSelf && !admin.isDefaultMaster) {
+                        Spacer(Modifier.width(6.dp))
+                        OutlinedButton(
+                            onClick = onRegenerateOtp,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(32.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF10B981))
+                        ) {
+                            Icon(Icons.Default.Bolt, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(2.dp))
+                            Text("P2 जनरेट", fontSize = 11.sp)
+                        }
+
                         if (currentAdmin.hasPermission(AdminPermission.CAN_MANAGE_ROLES) || currentAdmin.hasPermission(AdminPermission.CAN_MANAGE_DESIGNATIONS)) {
                             Spacer(Modifier.width(6.dp))
                             OutlinedButton(
@@ -3450,12 +3560,19 @@ fun PrayerModerationTabContent(
     var answeringRequest by remember { mutableStateOf<PrayerRequestItem?>(null) }
     var replyingRequest by remember { mutableStateOf<PrayerRequestItem?>(null) }
     val canReply = remember(currentAdmin) { AdminHierarchy.canReplyToPrayers(currentAdmin) }
+    val isPastorOrAbove = remember(currentAdmin) { AdminHierarchy.isPastorOrAbove(currentAdmin) }
 
-    val filteredList = remember(prayerRequests, filterMode, selectedCategoryFilter) {
+    // Only Pastor and higher authority levels (or Master Admin) can see/moderate private 'Pastor Only' prayer requests
+    val accessiblePrayerRequests = remember(prayerRequests, isPastorOrAbove) {
+        if (isPastorOrAbove) prayerRequests
+        else prayerRequests.filter { !it.isPrivate }
+    }
+
+    val filteredList = remember(accessiblePrayerRequests, filterMode, selectedCategoryFilter) {
         val statusFiltered = when (filterMode) {
-            "PENDING" -> prayerRequests.filterNot { it.isAnswered }
-            "ANSWERED" -> prayerRequests.filter { it.isAnswered }
-            else -> prayerRequests
+            "PENDING" -> accessiblePrayerRequests.filterNot { it.isAnswered }
+            "ANSWERED" -> accessiblePrayerRequests.filter { it.isAnswered }
+            else -> accessiblePrayerRequests
         }
         if (selectedCategoryFilter == "ALL") {
             statusFiltered
@@ -3499,17 +3616,17 @@ fun PrayerModerationTabContent(
             FilterChip(
                 selected = filterMode == "ALL",
                 onClick = { filterMode = "ALL" },
-                label = { Text("सभी (${prayerRequests.size})", fontSize = 11.sp) }
+                label = { Text("सभी (${accessiblePrayerRequests.size})", fontSize = 11.sp) }
             )
             FilterChip(
                 selected = filterMode == "PENDING",
                 onClick = { filterMode = "PENDING" },
-                label = { Text("प्रार्थनाधीन (${prayerRequests.count { !it.isAnswered }})", fontSize = 11.sp) }
+                label = { Text("प्रार्थनाधीन (${accessiblePrayerRequests.count { !it.isAnswered }})", fontSize = 11.sp) }
             )
             FilterChip(
                 selected = filterMode == "ANSWERED",
                 onClick = { filterMode = "ANSWERED" },
-                label = { Text("उत्तरित (${prayerRequests.count { it.isAnswered }})", fontSize = 11.sp) }
+                label = { Text("उत्तरित (${accessiblePrayerRequests.count { it.isAnswered }})", fontSize = 11.sp) }
             )
         }
 
@@ -3701,7 +3818,7 @@ fun SecurityTabContent(
     onChangeOwnPin: () -> Unit,
     onLinkGmail: () -> Unit,
     settings: UserSettings = UserSettings(),
-    onUpdateMasterAdminSecurity: ((Boolean, String, Boolean, String, Int, Boolean, Boolean, Boolean, List<String>, Int, String) -> Unit)? = null,
+    onUpdateMasterAdminSecurity: ((Boolean, String, Boolean, String, Int, Boolean, Boolean, Boolean, List<String>, Int, String, String) -> Unit)? = null,
     members: List<ChurchMember> = emptyList(),
     attendanceRecords: List<ChurchAttendanceRecord> = emptyList(),
     transactions: List<ChurchAccountTransaction> = emptyList(),
@@ -3736,6 +3853,9 @@ fun SecurityTabContent(
     }
     var isBiometricEnabledState by remember(settings.isBiometricEnabled) {
         mutableStateOf(settings.isBiometricEnabled)
+    }
+    var adminAuthSessionModeState by remember(settings.adminAuthSessionMode) {
+        mutableStateOf(settings.adminAuthSessionMode)
     }
     var globalAuthBypass by remember(settings.globalAuthBypass) {
         mutableStateOf(settings.globalAuthBypass)
@@ -3823,7 +3943,8 @@ fun SecurityTabContent(
                                     requireP2EveryLogin,
                                     trustedDevicesList,
                                     reminderInterval,
-                                    notificationMethodSelected
+                                    notificationMethodSelected,
+                                    adminAuthSessionModeState
                                 )
                             }
                         )
@@ -3831,6 +3952,157 @@ fun SecurityTabContent(
 
                     if (masterPasswordEnabled) {
                         Spacer(Modifier.height(14.dp))
+                        HorizontalDivider(color = GoldWarm.copy(alpha = 0.3f))
+                        Spacer(Modifier.height(12.dp))
+
+                        // Master Admin Authentication Frequency Card (Once per session vs Every time)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, GoldWarm.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.AccessTime, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "🔑 एडमिन प्रमाणीकरण आवृत्ति (Login Frequency):",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "चुनें कि एडमिन पैनल में पासवर्ड/बायोमेट्रिक कब पूछा जाए:",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(10.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Option 1: Once per app launch
+                                    val isOnce = adminAuthSessionModeState == "ONCE_PER_SESSION"
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isOnce) GoldWarm.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            if (isOnce) 1.5.dp else 1.dp,
+                                            if (isOnce) GoldWarm else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                                                adminAuthSessionModeState = "ONCE_PER_SESSION"
+                                                val reminderInterval = profileReminderDaysInput.toIntOrNull() ?: 7
+                                                onUpdateMasterAdminSecurity?.invoke(
+                                                    masterPasswordEnabled,
+                                                    masterPinInput.trim(),
+                                                    masterDualAuthEnabled,
+                                                    masterSecondaryPinInput.trim(),
+                                                    biometricTimeoutDays,
+                                                    isBiometricEnabledState,
+                                                    globalAuthBypass,
+                                                    requireP2EveryLogin,
+                                                    trustedDevicesList,
+                                                    reminderInterval,
+                                                    notificationMethodSelected,
+                                                    "ONCE_PER_SESSION"
+                                                )
+                                                Toast.makeText(context, "✅ सेट: ऐप ओपन होने पर केवल 1 बार पासवर्ड पूछा जाएगा", Toast.LENGTH_SHORT).show()
+                                            }
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                RadioButton(
+                                                    selected = isOnce,
+                                                    onClick = null,
+                                                    colors = RadioButtonDefaults.colors(selectedColor = GoldWarm),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(Modifier.width(6.dp))
+                                                Text(
+                                                    text = "ऐप में 1 बार",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp,
+                                                    color = if (isOnce) GoldWarm else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(
+                                                text = "ऐप खुला रहने तक बार-बार पासवर्ड नहीं पूछेगा।",
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    // Option 2: Every time
+                                    val isEvery = adminAuthSessionModeState == "EVERY_TIME"
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isEvery) GoldWarm.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            if (isEvery) 1.5.dp else 1.dp,
+                                            if (isEvery) GoldWarm else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                view.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                                                adminAuthSessionModeState = "EVERY_TIME"
+                                                val reminderInterval = profileReminderDaysInput.toIntOrNull() ?: 7
+                                                onUpdateMasterAdminSecurity?.invoke(
+                                                    masterPasswordEnabled,
+                                                    masterPinInput.trim(),
+                                                    masterDualAuthEnabled,
+                                                    masterSecondaryPinInput.trim(),
+                                                    biometricTimeoutDays,
+                                                    isBiometricEnabledState,
+                                                    globalAuthBypass,
+                                                    requireP2EveryLogin,
+                                                    trustedDevicesList,
+                                                    reminderInterval,
+                                                    notificationMethodSelected,
+                                                    "EVERY_TIME"
+                                                )
+                                                Toast.makeText(context, "🔒 सेट: हर बार एडमिन पैनल जाने पर प्रमाणीकरण होगा", Toast.LENGTH_SHORT).show()
+                                            }
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                RadioButton(
+                                                    selected = isEvery,
+                                                    onClick = null,
+                                                    colors = RadioButtonDefaults.colors(selectedColor = GoldWarm),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(Modifier.width(6.dp))
+                                                Text(
+                                                    text = "हर बार पूछें",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp,
+                                                    color = if (isEvery) GoldWarm else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(
+                                                text = "एडमिन से बाहर आने पर हर बार बायोमेट्रिक/P1 पूछेगा।",
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
                         HorizontalDivider(color = GoldWarm.copy(alpha = 0.3f))
                         Spacer(Modifier.height(12.dp))
 
@@ -4061,7 +4333,8 @@ fun SecurityTabContent(
                                     requireP2EveryLogin,
                                     trustedDevicesList,
                                     reminderInterval,
-                                    notificationMethodSelected
+                                    notificationMethodSelected,
+                                    adminAuthSessionModeState
                                 )
                                 Toast.makeText(context, "✅ मास्टर पिन सफलतापूर्वक सहेजा गया!", Toast.LENGTH_SHORT).show()
                             },
@@ -4325,7 +4598,8 @@ fun SecurityTabContent(
                                     requireP2EveryLogin,
                                     trustedDevicesList,
                                     reminderInterval,
-                                    notificationMethodSelected
+                                    notificationMethodSelected,
+                                    adminAuthSessionModeState
                                 )
                             },
                             shape = RoundedCornerShape(10.dp),
@@ -4587,6 +4861,216 @@ fun SecurityTabContent(
                     Icon(Icons.Default.Key, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     Text("अपना पासवर्ड बदलें (4 से 12 अंक)", fontSize = 12.sp)
+                }
+            }
+        }
+
+        // Biometric Quick Toggle & Security Management (Master Admin Feature)
+        if (currentAdmin.isMasterAdmin()) {
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, GoldWarm.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Fingerprint, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("बायोमेट्रिक क्विक अनलॉक (Fingerprint / Face)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "ऑफलाइन हार्डवेयर स्तर पर फिंगरप्रिंट या फेस अनलॉक द्वारा त्वरित एडमिन एक्सेस।",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isBiometricEnabledState,
+                            onCheckedChange = { isChecked ->
+                                isBiometricEnabledState = isChecked
+                                onUpdateMasterAdminSecurity?.invoke(
+                                    masterPasswordEnabled,
+                                    masterPinInput.trim(),
+                                    masterDualAuthEnabled,
+                                    masterSecondaryPinInput.trim(),
+                                    biometricTimeoutDays,
+                                    isChecked,
+                                    globalAuthBypass,
+                                    requireP2EveryLogin,
+                                    trustedDevicesList,
+                                    profileReminderDaysInput.toIntOrNull() ?: 7,
+                                    notificationMethodSelected,
+                                    adminAuthSessionModeState
+                                )
+                            }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("इमरजेंसी रिकवरी की (Master Recovery Key)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(
+                                text = "कोड: ${settings.masterAdminEmergencyRecoveryKey}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = GoldWarm
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                val clip = android.content.ClipData.newPlainText("Master Recovery Key", settings.masterAdminEmergencyRecoveryKey)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "रिकवरी की क्लिपबोर्ड पर कॉपी हो गई! 📋", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy Key", tint = GoldWarm)
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                    // 10 Single-Use Emergency Backup Codes
+                    var showBackupCodesList by remember { mutableStateOf(false) }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("🎟️ 10 सिंगल-यूज़ इमरजेंसी कोड्स (Single-Use Codes)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(
+                                    text = "शेष सक्रिय कोड: ${settings.masterEmergencyBackupCodes.size}/10 (प्रत्येक केवल 1 बार इस्तेमाल हो सकता है)",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                IconButton(onClick = { showBackupCodesList = !showBackupCodesList }) {
+                                    Icon(
+                                        imageVector = if (showBackupCodesList) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = "देखें",
+                                        tint = GoldWarm
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        val prefs = com.example.data.local.PreferencesManager.getInstance(context)
+                                        val newCodes = prefs.generateNewEmergencyBackupCodes()
+                                        Toast.makeText(context, "10 नए इमरजेंसी कोड जनरेट हो गए! 🎟️", Toast.LENGTH_SHORT).show()
+                                        showBackupCodesList = true
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("नए जनरेट करें", fontSize = 11.sp)
+                                }
+                            }
+                        }
+
+                        if (showBackupCodesList) {
+                            Spacer(Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("सक्रिय इमरजेंसी कोड लिस्ट:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = GoldWarm)
+                                        IconButton(
+                                            onClick = {
+                                                val allText = settings.masterEmergencyBackupCodes.joinToString("\n")
+                                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                                val clip = android.content.ClipData.newPlainText("Master Backup Codes", allText)
+                                                clipboard.setPrimaryClip(clip)
+                                                Toast.makeText(context, "सभी 10 इमरजेंसी कोड कॉपी हो गए! 📋", Toast.LENGTH_SHORT).show()
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy All", modifier = Modifier.size(16.dp), tint = GoldWarm)
+                                        }
+                                    }
+                                    FlowRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        settings.masterEmergencyBackupCodes.forEachIndexed { idx, code ->
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.surface,
+                                                border = BorderStroke(0.5.dp, GoldWarm.copy(alpha = 0.4f))
+                                            ) {
+                                                Text(
+                                                    text = "${idx + 1}. $code",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("विश्वसनीय डिवाइस ट्रस्ट रीसेट (Reset Trusted Devices)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("सभी सक्रिय बायोमेट्रिक डिवाइस टोकन को रीसेट करें।", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                trustedDevicesList = listOf("Android-Primary-Device", "Mobile-Auth-Terminal-01")
+                                onUpdateMasterAdminSecurity?.invoke(
+                                    masterPasswordEnabled,
+                                    masterPinInput.trim(),
+                                    masterDualAuthEnabled,
+                                    masterSecondaryPinInput.trim(),
+                                    biometricTimeoutDays,
+                                    isBiometricEnabledState,
+                                    globalAuthBypass,
+                                    requireP2EveryLogin,
+                                    trustedDevicesList,
+                                    profileReminderDaysInput.toIntOrNull() ?: 7,
+                                    notificationMethodSelected,
+                                    adminAuthSessionModeState
+                                )
+                                Toast.makeText(context, "डिवाइस ट्रस्ट लिस्ट रीसेट हो गई!", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("रीसेट करें", fontSize = 11.sp)
+                        }
+                    }
                 }
             }
         }

@@ -1,7 +1,30 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.util.Properties
+
+val versionPropsFile = rootProject.file("version.properties")
+val versionProps = Properties().apply {
+  if (versionPropsFile.exists()) {
+    FileInputStream(versionPropsFile).use { load(it) }
+  } else {
+    setProperty("VERSION_CODE", "85")
+    setProperty("VERSION_MAJOR", "70")
+    setProperty("VERSION_MINOR", "5")
+    setProperty("VERSION_PATCH", "0")
+    FileOutputStream(versionPropsFile).use { store(it, "Version Properties") }
+  }
+}
+
+val currentVersionCode = (versionProps.getProperty("VERSION_CODE") ?: "85").toInt()
+val currentMajor = versionProps.getProperty("VERSION_MAJOR") ?: "70"
+val currentMinor = versionProps.getProperty("VERSION_MINOR") ?: "5"
+val currentPatch = versionProps.getProperty("VERSION_PATCH") ?: "0"
+val currentVersionName = if (currentPatch == "0") "$currentMajor.$currentMinor" else "$currentMajor.$currentMinor.$currentPatch"
 
 plugins {
   alias(libs.plugins.android.application)
+  alias(libs.plugins.kotlin.android)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
@@ -11,14 +34,14 @@ plugins {
 
 android {
   namespace = "com.example"
-  compileSdk { version = release(36) { minorApiLevel = 1 } }
+  compileSdk = 34
 
   defaultConfig {
     applicationId = "com.vinay.newcreation.ncck"
     minSdk = 24
-    targetSdk = 36
-    versionCode = 69
-    versionName = "69"
+    targetSdk = 34
+    versionCode = currentVersionCode
+    versionName = currentVersionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -39,6 +62,15 @@ android {
     }
   }
 
+  splits {
+    abi {
+      isEnable = true
+      reset()
+      include("arm64-v8a", "armeabi-v7a")
+      isUniversalApk = true
+    }
+  }
+
   buildTypes {
     release {
       isCrunchPngs = false
@@ -50,8 +82,11 @@ android {
     debug { signingConfig = signingConfigs.getByName("debugConfig") }
   }
   compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+  }
+  kotlin {
+    jvmToolchain(21)
   }
   buildFeatures {
     compose = true
@@ -101,6 +136,7 @@ dependencies {
   implementation(libs.androidx.navigation.compose)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
+  implementation(libs.androidx.work.runtime.ktx)
   implementation("androidx.documentfile:documentfile:1.0.1")
   implementation(libs.zxing.core)
   implementation(libs.coil.compose)
@@ -110,6 +146,7 @@ dependencies {
   implementation(libs.firebase.database)
   implementation(libs.firebase.config)
   implementation(libs.firebase.firestore)
+  implementation("com.google.firebase:firebase-storage")
 
   // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
   // Sign-In via Credential Manager:
@@ -117,8 +154,8 @@ dependencies {
   // implementation(libs.androidx.credentials)
   // implementation(libs.androidx.credentials.play.services)
   // implementation(libs.googleid)
-  implementation(libs.firebase.appcheck.recaptcha)
-  implementation(libs.firebase.appcheck.debug)
+  // implementation(libs.firebase.appcheck.recaptcha)
+  // implementation(libs.firebase.appcheck.debug)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.logging.interceptor)
@@ -144,4 +181,44 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
+}
+
+tasks.register("incrementVersion") {
+  description = "Increments version code and minor version name for release builds"
+  group = "versioning"
+  doLast {
+    val props = Properties()
+    if (versionPropsFile.exists()) {
+      FileInputStream(versionPropsFile).use { props.load(it) }
+    }
+    val oldCode = (props.getProperty("VERSION_CODE") ?: "85").toInt()
+    val major = (props.getProperty("VERSION_MAJOR") ?: "70").toInt()
+    val minor = (props.getProperty("VERSION_MINOR") ?: "5").toInt()
+
+    val newCode = oldCode + 1
+    val newMinor = minor + 1
+    props.setProperty("VERSION_CODE", newCode.toString())
+    props.setProperty("VERSION_MAJOR", major.toString())
+    props.setProperty("VERSION_MINOR", newMinor.toString())
+    props.setProperty("VERSION_PATCH", "0")
+
+    FileOutputStream(versionPropsFile).use { props.store(it, "Auto-incremented release version") }
+    logger.lifecycle("Version auto-incremented: Code $newCode, Name $major.$newMinor")
+  }
+}
+
+tasks.register("incrementVersionCodeOnly") {
+  description = "Increments only version code"
+  group = "versioning"
+  doLast {
+    val props = Properties()
+    if (versionPropsFile.exists()) {
+      FileInputStream(versionPropsFile).use { props.load(it) }
+    }
+    val oldCode = (props.getProperty("VERSION_CODE") ?: "85").toInt()
+    val newCode = oldCode + 1
+    props.setProperty("VERSION_CODE", newCode.toString())
+    FileOutputStream(versionPropsFile).use { props.store(it, "Auto-incremented version code") }
+    logger.lifecycle("Version code incremented to: $newCode")
+  }
 }

@@ -68,7 +68,7 @@ class BibleRepository(
         chapter: Int,
         coroutineScope: CoroutineScope,
         dualHindiId: String = com.example.data.bible.model.BibleTranslation.HIOV.id,
-        dualEnglishId: String = com.example.data.bible.model.BibleTranslation.ENGLISH_ESV.id
+        dualEnglishId: String = com.example.data.bible.model.BibleTranslation.ENGLISH_NKJV.id
     ): Flow<List<BibleVerse>> {
         val bookmarksFlow = localDataSource.getAllBookmarks()
         val favoritesFlow = localDataSource.getAllFavorites()
@@ -160,8 +160,8 @@ class BibleRepository(
                     localDataSource.replaceChapterVerses(translationId, bookId, chapter, remoteVerses)
                 } else {
                     // Fallback to local default translation if remote is unavailable
-                    val fallbackId = if (translationId.startsWith("ENG") || translationId.equals("ESV", ignoreCase = true)) {
-                        com.example.data.bible.model.BibleTranslation.ENGLISH_ESV.id
+                    val fallbackId = if (translationId.startsWith("ENG") || translationId.equals("NKJV", ignoreCase = true) || translationId.equals("ESV", ignoreCase = true)) {
+                        com.example.data.bible.model.BibleTranslation.ENGLISH_NKJV.id
                     } else {
                         com.example.data.bible.model.BibleTranslation.HIOV.id
                     }

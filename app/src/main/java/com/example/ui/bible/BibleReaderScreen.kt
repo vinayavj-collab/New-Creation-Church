@@ -2090,7 +2090,7 @@ fun BibleReaderScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "“${verse.text}”",
+                        text = "“${UsfmTextParserEngine.cleanVerseText(verse.text)}”",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                             fontFamily = FontFamily.Serif,
@@ -2170,7 +2170,7 @@ fun BibleReaderScreen(
 
                 // Scripture preview text
                 Text(
-                    text = "“${verse.text}”",
+                    text = "“${UsfmTextParserEngine.cleanVerseText(verse.text)}”",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -2362,7 +2362,7 @@ fun BibleReaderScreen(
                         onClick = {
                             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                                 val transName = if (selectedTranslation.language == "hi") selectedTranslation.nameHindi else selectedTranslation.nameEnglish
-                                putExtra(Intent.EXTRA_TEXT, "“${verse.text}”\n- $verseRefLabel ($transName)")
+                                putExtra(Intent.EXTRA_TEXT, "“${UsfmTextParserEngine.cleanVerseText(verse.text)}”\n- $verseRefLabel ($transName)")
                                 type = "text/plain"
                             }
                             context.startActivity(Intent.createChooser(sendIntent, "Share Scripture"))

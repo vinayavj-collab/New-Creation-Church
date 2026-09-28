@@ -296,8 +296,8 @@ fun VersePopupDialog(
                                     Text(
                                         text = when (trans.id) {
                                             BibleTranslation.HIOV.id -> "हिन्दी (HIOV)"
-                                            BibleTranslation.ENGLISH_ESV.id -> "English (ESV)"
-                                            BibleTranslation.PARALLEL_HI_EN.id -> "हिन्दी + ESV"
+                                            BibleTranslation.ENGLISH_NKJV.id -> "English (NKJV)"
+                                            BibleTranslation.PARALLEL_HI_EN.id -> "हिन्दी + NKJV"
                                             else -> trans.nameHindi
                                         },
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,

@@ -161,6 +161,11 @@ fun YouTubePlayerView(
                                 }
 
                                 @JavascriptInterface
+                                fun onPlaybackQualityChange(quality: String) {
+                                    VideoPlaybackTracker.setQuality(videoId, quality)
+                                }
+
+                                @JavascriptInterface
                                 fun onPlaybackProgress(seconds: Float, duration: Float, isPlaying: Boolean) {
                                     VideoPlaybackTracker.setPosition(videoId, seconds)
                                     if (duration > 0f) {
@@ -402,7 +407,11 @@ fun YouTubePlayerView(
                                                         var dur = player.getDuration ? (player.getDuration() || 0) : 0;
                                                         var st = player.getPlayerState ? player.getPlayerState() : 1;
                                                         if (window.AndroidApp && window.AndroidApp.onPlaybackProgress) {
-                                                            window.AndroidApp.onPlaybackProgress(curr, dur, st === 1 || st === 3);
+                                                             window.AndroidApp.onPlaybackProgress(curr, dur, st === 1 || st === 3);
+                                                        }
+                                                        if (player.getPlaybackQuality && window.AndroidApp && window.AndroidApp.onPlaybackQualityChange) {
+                                                             var q = player.getPlaybackQuality();
+                                                             if (q) window.AndroidApp.onPlaybackQualityChange(q);
                                                         }
                                                     }
                                                 } catch(e){}
@@ -448,6 +457,13 @@ fun YouTubePlayerView(
                                                                 if (window.AndroidApp && window.AndroidApp.onPlaybackProgress) {
                                                                     window.AndroidApp.onPlaybackProgress(curr, dur, isPlaying);
                                                                 }
+                                                            }
+                                                        } catch(err){}
+                                                    },
+                                                    'onPlaybackQualityChange': function(e) {
+                                                        try {
+                                                            if (e && e.data && window.AndroidApp && window.AndroidApp.onPlaybackQualityChange) {
+                                                                window.AndroidApp.onPlaybackQualityChange(e.data);
                                                             }
                                                         } catch(err){}
                                                     },

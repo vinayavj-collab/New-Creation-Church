@@ -4,6 +4,9 @@ import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -60,6 +63,21 @@ class MainViewModel(
     val adminNoticeRepository = com.example.data.repository.AdminNoticeRepository(application)
     val adminRepository = com.example.data.repository.AdminRepository(application)
 
+    val attendanceGovernanceRepository = com.example.data.repository.AttendanceGovernanceRepository.getInstance(application)
+    val attendanceGlobalConfig: StateFlow<AttendanceGlobalConfig> = attendanceGovernanceRepository.globalConfig
+    val branchAttendanceSettings: StateFlow<BranchAttendanceSettings> = attendanceGovernanceRepository.branchSettings
+    val attendanceServiceSchedules: StateFlow<List<ServiceSchedule>> = attendanceGovernanceRepository.serviceSchedules
+    val todayAttendanceRecords: StateFlow<List<AttendanceRecord>> = attendanceGovernanceRepository.todayAttendanceRecords
+    val allSmartAttendanceRecords: StateFlow<List<AttendanceRecord>> = attendanceGovernanceRepository.allAttendanceRecords
+    val absenteeCareList: StateFlow<List<AbsenteeCareMember>> = attendanceGovernanceRepository.absenteeCareList
+    val activeServiceWindow: StateFlow<ActiveServiceWindowResult> = attendanceGovernanceRepository.activeServiceWindow
+    val attendanceOfflineQueue: StateFlow<List<AttendanceRecord>> = attendanceGovernanceRepository.offlineQueue
+    val attendanceOfflineQueueCount: StateFlow<Int> = attendanceGovernanceRepository.offlineQueueCount
+    val attendanceIsSyncing: StateFlow<Boolean> = attendanceGovernanceRepository.isSyncing
+    val attendanceSyncStatusText: StateFlow<String> = attendanceGovernanceRepository.syncStatusText
+    val todayMilestoneAlerts: StateFlow<List<PastoralMilestoneAlert>> = attendanceGovernanceRepository.todayMilestoneAlerts
+    val familyUnits: StateFlow<List<FamilyUnit>> = attendanceGovernanceRepository.familyUnits
+
     val currentAdmin: StateFlow<AdminUser?> = adminRepository.currentAdmin
     val allAdmins: StateFlow<List<AdminUser>> = adminRepository.allAdmins
     val allDesignations: StateFlow<List<DesignationAuthority>> = adminRepository.allDesignations
@@ -84,12 +102,113 @@ class MainViewModel(
     val isAdminRefreshing: StateFlow<Boolean> = adminRepository.isRefreshingData
     val adminDataFetchError: StateFlow<String?> = adminRepository.dataFetchError
 
+    private val _isAdminSessionUnlocked = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val isAdminSessionUnlocked: StateFlow<Boolean> = _isAdminSessionUnlocked.asStateFlow()
+
+    val branchContextManager = com.example.data.context.BranchContextManager.getInstance(application)
+    val activeBranchContextState = branchContextManager.contextState
+
+    fun switchBranchContext(targetBranchIdOrGlobal: String, onComplete: ((Boolean) -> Unit)? = null) {
+        branchContextManager.switchBranchContext(targetBranchIdOrGlobal) { success ->
+            if (success) {
+                refreshAttendanceAbsenteeAnalytics()
+                refreshAttendanceServiceWindow()
+            }
+            onComplete?.invoke(success)
+        }
+    }
+
+    fun rebindMemberFamily(
+        targetUserIdOrSerial: String,
+        newFamilyId: String,
+        newFamilyRole: String = "spouse",
+        remarks: String = "विवाह उपरांत परिवार लिंकेज",
+        onComplete: (Boolean, String?) -> Unit
+    ) {
+        val admin = currentAdmin.value ?: return onComplete(false, "व्यवस्थापक लॉगिन आवश्यक है")
+        adminRepository.rebindMemberFamily(
+            targetUserIdOrSerial = targetUserIdOrSerial,
+            newFamilyId = newFamilyId,
+            newFamilyRole = newFamilyRole,
+            callerAdmin = admin,
+            remarks = remarks,
+            onComplete = onComplete
+        )
+    }
+
+    fun transferMemberBranch(
+        targetUserIdOrSerial: String,
+        newBranchId: String,
+        remarks: String = "शाखा स्थानांतरण",
+        onComplete: (Boolean, String?) -> Unit
+    ) {
+        val admin = currentAdmin.value ?: return onComplete(false, "व्यवस्थापक लॉगिन आवश्यक है")
+        adminRepository.transferMemberBranch(
+            targetUserIdOrSerial = targetUserIdOrSerial,
+            newBranchId = newBranchId,
+            callerAdmin = admin,
+            remarks = remarks,
+            onComplete = onComplete
+        )
+    }
+
+    fun issueTransferCertificateAndRelocate(
+        targetUserIdOrSerial: String,
+        destinationChurchOrCity: String,
+        isMarriedOut: Boolean,
+        remarks: String = "",
+        onComplete: (Boolean, android.net.Uri?, String?) -> Unit
+    ) {
+        val admin = currentAdmin.value ?: return onComplete(false, null, "व्यवस्थापक लॉगिन आवश्यक है")
+        adminRepository.issueTransferCertificateAndRelocate(
+            targetUserIdOrSerial = targetUserIdOrSerial,
+            destinationChurchOrCity = destinationChurchOrCity,
+            isMarriedOut = isMarriedOut,
+            callerAdmin = admin,
+            remarks = remarks,
+            onComplete = onComplete
+        )
+    }
+
+    fun setAdminSessionUnlocked(unlocked: Boolean) {
+        _isAdminSessionUnlocked.value = unlocked
+    }
+
+    fun updateAdminAuthSessionMode(mode: String) {
+        preferencesManager.updateAdminAuthSessionMode(mode)
+    }
+
     fun registerNewChurchPrefix(prefix: ChurchPrefixRecord, onResult: (Boolean, String?) -> Unit) {
         adminRepository.registerNewPrefix(prefix, onResult)
     }
 
+    fun registerNewChurchPrefix(prefixCode: String, callerAdmin: AdminUser, onResult: (Boolean, String?) -> Unit) {
+        adminRepository.registerNewPrefix(prefixCode, callerAdmin, onResult)
+    }
+
+    fun peekNextSerialForPrefix(prefixId: String): String {
+        return adminRepository.peekNextSerial(prefixId)
+    }
+
     fun generateNextSerialForPrefix(prefixId: String): String {
         return adminRepository.generateNextSerial(prefixId)
+    }
+
+    fun mintSequentialMemberSerialNumber(
+        prefixId: String,
+        callerUid: String,
+        roleTier: String = "believer",
+        designationTitle: String = "विश्वासी (Believer)",
+        onResult: (Boolean, String, String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = adminRepository.mintSequentialMemberSerialNumber(prefixId, callerUid, roleTier, designationTitle)
+            res.onSuccess { (sn, uid) ->
+                onResult(true, sn, uid)
+            }.onFailure { err ->
+                onResult(false, "", err.localizedMessage ?: "त्रुटि")
+            }
+        }
     }
 
     fun generateLiveP2Otp(
@@ -99,7 +218,14 @@ class MainViewModel(
         authorityId: String,
         authorityName: String
     ): ActiveP2Session {
-        return adminRepository.generateLiveP2Otp(serialNumber, targetUserId, targetUserName, authorityId, authorityName)
+        val session = adminRepository.generateLiveP2Otp(serialNumber, targetUserId, targetUserName, authorityId, authorityName)
+        com.example.util.AdminNotificationHelper.showOtpNotification(
+            context = getApplication<Application>(),
+            adminName = targetUserName,
+            otp = session.otpCode,
+            role = "अधीनस्थ एडमिन"
+        )
+        return session
     }
 
     fun verifyAndConsumeP2Otp(
@@ -227,6 +353,18 @@ class MainViewModel(
         }
     }
 
+    fun canUseBiometricForAdmin(): Boolean {
+        return adminRepository.canUseBiometricForAdmin()
+    }
+
+    fun hasSavedAdminSession(): Boolean {
+        return adminRepository.hasSavedAdminSession()
+    }
+
+    fun getEnrolledOrCurrentAdmin(): AdminUser? {
+        return adminRepository.getEnrolledOrCurrentAdmin()
+    }
+
     fun directLoginAsAdmin(admin: AdminUser, onResult: (Boolean, AdminUser?, String?) -> Unit) {
         viewModelScope.launch {
             val result = adminRepository.directLoginAsAdmin(admin)
@@ -235,9 +373,9 @@ class MainViewModel(
         }
     }
 
-    fun loginAdminWithPin(pin: String, secondaryPin: String = "", profileName: String = "", onResult: (Boolean, AdminUser?, String?) -> Unit) {
+    fun loginAdminWithPin(pin: String, secondaryPin: String = "", profileName: String = "", serialNumber: String = "", onResult: (Boolean, AdminUser?, String?) -> Unit) {
         viewModelScope.launch {
-            val result = adminRepository.loginWithPin(pin, secondaryPin, profileName)
+            val result = adminRepository.loginWithPin(pin, secondaryPin, profileName, serialNumber)
             result.onSuccess { admin ->
                 val currentProfile = userProfile.value
                 val newDisplayName = if (admin.name.isNotBlank()) admin.name else currentProfile.displayName
@@ -435,6 +573,7 @@ class MainViewModel(
         expectedP2Otp: String,
         isVerifiedBeliever: Boolean = false,
         existingAdminId: String? = null,
+        serialNumber: String = "",
         onResult: (Boolean, AdminUser?, String?) -> Unit
     ) {
         viewModelScope.launch {
@@ -450,7 +589,8 @@ class MainViewModel(
                 p2OtpInput = p2OtpInput,
                 expectedP2Otp = expectedP2Otp,
                 isVerifiedBeliever = isVerifiedBeliever,
-                existingAdminId = existingAdminId
+                existingAdminId = existingAdminId,
+                serialNumber = serialNumber
             )
             result.onSuccess { assigned ->
                 onResult(true, assigned, null)
@@ -510,6 +650,7 @@ class MainViewModel(
         trustedDevicesList: List<String> = emptyList(),
         reminderIntervalDays: Int = 7,
         notificationMethod: String = "Local Notification",
+        adminAuthSessionMode: String = preferencesManager.settings.value.adminAuthSessionMode,
         onResult: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
@@ -524,7 +665,8 @@ class MainViewModel(
                 requireP2EveryLogin = requireP2EveryLogin,
                 trustedDevicesList = trustedDevicesList,
                 reminderIntervalDays = reminderIntervalDays,
-                notificationMethod = notificationMethod
+                notificationMethod = notificationMethod,
+                adminAuthSessionMode = adminAuthSessionMode
             )
             result.onSuccess { onResult(true, null) }
                 .onFailure { err -> onResult(false, err.localizedMessage) }
@@ -728,6 +870,150 @@ class MainViewModel(
             val result = adminRepository.deleteMember(memberId)
             result.onSuccess { onResult(true, null) }
                 .onFailure { err -> onResult(false, err.localizedMessage) }
+        }
+    }
+
+    // --- Attendance Governance & Smart Check-in Engine ---
+    fun processSmartCheckIn(
+        memberSerial: String,
+        memberName: String,
+        gender: String = "Male",
+        roleTier: String = "believer",
+        checkInMethod: String = "usher_scan",
+        scannedVenueQrPayload: String? = null,
+        userLat: Double? = null,
+        userLng: Double? = null,
+        verifiedByAdmin: AdminUser? = currentAdmin.value,
+        onResult: (Boolean, String?, AttendanceRecord?) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = attendanceGovernanceRepository.processCheckIn(
+                memberSerial = memberSerial,
+                memberName = memberName,
+                gender = gender,
+                roleTier = roleTier,
+                checkInMethod = checkInMethod,
+                scannedVenueQrPayload = scannedVenueQrPayload,
+                userLat = userLat,
+                userLng = userLng,
+                verifiedByAdmin = verifiedByAdmin
+            )
+            res.onSuccess { record ->
+                onResult(true, null, record)
+            }.onFailure { err ->
+                onResult(false, err.localizedMessage ?: "चेक-इन विफल हुआ", null)
+            }
+        }
+    }
+
+    fun updateAttendanceGlobalConfig(config: AttendanceGlobalConfig, onResult: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            val res = attendanceGovernanceRepository.updateGlobalConfig(config)
+            res.onSuccess { onResult(true, null) }
+                .onFailure { onResult(false, it.localizedMessage) }
+        }
+    }
+
+    fun updateBranchAttendanceSettings(settings: BranchAttendanceSettings, onResult: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            val res = attendanceGovernanceRepository.updateBranchSettings(settings)
+            res.onSuccess { onResult(true, null) }
+                .onFailure { onResult(false, it.localizedMessage) }
+        }
+    }
+
+    fun saveServiceSchedule(schedule: ServiceSchedule, onResult: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            val res = attendanceGovernanceRepository.saveServiceSchedule(schedule)
+            res.onSuccess { onResult(true, null) }
+                .onFailure { onResult(false, it.localizedMessage) }
+        }
+    }
+
+    fun deleteServiceSchedule(serviceId: String, onResult: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            val res = attendanceGovernanceRepository.deleteServiceSchedule(serviceId)
+            res.onSuccess { onResult(true, null) }
+                .onFailure { onResult(false, it.localizedMessage) }
+        }
+    }
+
+    fun refreshAttendanceAbsenteeAnalytics() {
+        attendanceGovernanceRepository.refreshAbsenteeAnalytics(appUserProfiles.value)
+    }
+
+    fun refreshAttendanceServiceWindow() {
+        attendanceGovernanceRepository.refreshServiceWindow()
+    }
+
+    fun forceSyncOfflineAttendance(onComplete: ((Boolean, Int) -> Unit)? = null) {
+        attendanceGovernanceRepository.forceSyncOfflineQueue(onComplete)
+    }
+
+    fun searchAttendanceMembers(query: String): List<UserProfileData> {
+        return attendanceGovernanceRepository.searchChurchDirectory(query, appUserProfiles.value)
+    }
+
+    fun getUserAttendanceHistory(memberSerial: String, memberId: String = ""): List<AttendanceRecord> {
+        return attendanceGovernanceRepository.getUserAttendanceHistory(memberSerial, memberId)
+    }
+
+    fun getFamilyUnitByHeadSerialOrId(familyId: String, headSerial: String): FamilyUnit {
+        return attendanceGovernanceRepository.getFamilyUnitByHeadSerialOrId(familyId, headSerial)
+    }
+
+    fun processFamilyBatchCheckIn(
+        familyUnit: FamilyUnit,
+        selectedMembers: List<FamilyMemberItem>,
+        onResult: (Boolean, List<AttendanceRecord>, String?) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = attendanceGovernanceRepository.processFamilyBatchCheckIn(
+                familyUnit = familyUnit,
+                selectedMembers = selectedMembers,
+                verifiedByAdmin = currentAdmin.value
+            )
+            res.onSuccess { list ->
+                onResult(true, list, null)
+            }.onFailure { err ->
+                onResult(false, emptyList(), err.localizedMessage)
+            }
+        }
+    }
+
+    fun refreshTodayMilestones(): List<PastoralMilestoneAlert> {
+        return attendanceGovernanceRepository.refreshTodayMilestones(appUserProfiles.value)
+    }
+
+    fun exportPhysicalBadgesPdf(): android.net.Uri? {
+        return attendanceGovernanceRepository.exportPhysicalBadgesPdf(appUserProfiles.value)
+    }
+
+    fun refreshUserAttendanceHistory(memberSerial: String, memberId: String = "", onComplete: ((List<AttendanceRecord>) -> Unit)? = null) {
+        viewModelScope.launch {
+            val list = attendanceGovernanceRepository.refreshUserAttendanceHistoryFromFirestore(memberSerial, memberId)
+            onComplete?.invoke(list)
+        }
+    }
+
+    fun scheduleServiceOneHourReminder(
+        context: Context,
+        schedule: ServiceSchedule,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        val (success, triggerTime) = ReminderScheduler.scheduleChurchServiceOneHourReminder(
+            context = context,
+            serviceId = schedule.serviceId,
+            serviceName = schedule.serviceName,
+            dayOfWeek = schedule.dayOfWeek,
+            startTimeStr = schedule.serviceStartTime
+        )
+
+        if (success) {
+            val timeFormatted = SimpleDateFormat("EEEE, hh:mm a", Locale.getDefault()).format(Date(triggerTime))
+            onResult(true, "आराधना स्मरण सेट किया गया! नोटिफिकेशन $timeFormatted बजे आएगा।")
+        } else {
+            onResult(false, "रिमाइंडर सेट नहीं हो सका (समय बीत चुका है या अनुमति नहीं है)")
         }
     }
 
@@ -1055,6 +1341,46 @@ class MainViewModel(
         firebaseDataRepository.updatePrayerRequestsConfig(config, onComplete)
     }
 
+    val audioMessageConfig: StateFlow<com.example.data.model.AudioMessageConfig> = firebaseDataRepository.audioMessageConfig
+    val dailyDevotions: StateFlow<List<com.example.data.model.DailyDevotion>> = firebaseDataRepository.dailyDevotions
+
+    fun updateAudioMessageConfig(config: com.example.data.model.AudioMessageConfig, onComplete: ((Boolean) -> Unit)? = null) {
+        firebaseDataRepository.updateAudioMessageConfig(config, onComplete)
+    }
+
+    fun saveDailyDevotion(devotion: com.example.data.model.DailyDevotion, onComplete: ((Boolean, String?) -> Unit)? = null) {
+        firebaseDataRepository.saveDailyDevotion(devotion, onComplete)
+    }
+
+    fun updateDevotionStatus(devotionId: String, status: String, approvedBy: String, onComplete: ((Boolean) -> Unit)? = null) {
+        firebaseDataRepository.updateDevotionStatus(devotionId, status, approvedBy, onComplete)
+    }
+
+    fun pinDailyDevotion(devotionId: String, isPinned: Boolean, reason: String, onComplete: ((Boolean) -> Unit)? = null) {
+        firebaseDataRepository.pinDailyDevotion(devotionId, isPinned, reason, onComplete)
+    }
+
+    fun deleteDailyDevotion(devotionId: String, onComplete: ((Boolean) -> Unit)? = null) {
+        firebaseDataRepository.deleteDailyDevotion(devotionId, onComplete)
+    }
+
+    fun incrementDevotionListens(devotionId: String) {
+        firebaseDataRepository.incrementDevotionListens(devotionId)
+    }
+
+    fun uploadAudioDevotionFile(
+        file: java.io.File,
+        storagePath: String,
+        onProgress: (Float) -> Unit,
+        onComplete: (Boolean, String?, String?) -> Unit
+    ) {
+        firebaseDataRepository.uploadAudioFileToStorage(file, storagePath, onProgress, onComplete)
+    }
+
+    fun runSmartFifoCleanup(targetFreeMb: Int = 0, onComplete: ((Boolean, Int, Long) -> Unit)? = null) {
+        firebaseDataRepository.runSmartFifoCleanup(targetFreeMb, onComplete)
+    }
+
     // Dual-Layer Vlog evaluation: Condition A (Local) && Condition B (Server DB & RemoteConfig)
     // EXCEPTION: In "Vinay Kumar Avj" profile, all content is always allowed even if Firebase has set the switch to OFF.
     val isPersonalVlogAllowed: StateFlow<Boolean> = combine(
@@ -1077,18 +1403,6 @@ class MainViewModel(
     fun getActiveTodayScripture(): String = com.example.data.repository.FirebaseDataRepository.getInstance().getTodayScripture()
     fun getActiveSongSpreadsheetUrl(): String = com.example.data.repository.FirebaseDataRepository.getInstance().getSongSpreadsheetUrl()
 
-    init {
-        preferencesManager.enableAdminLockSystem()
-        viewModelScope.launch {
-            appUpdateManager.checkForUpdates(force = false)
-            adminRepository.setAdminAuthRequired(true)
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            lyricsRepository.initializePreloadedLyrics()
-            com.example.service.AppFirebaseMessagingService.initialize(getApplication())
-        }
-    }
-
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
@@ -1097,6 +1411,37 @@ class MainViewModel(
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    init {
+        preferencesManager.enableAdminLockSystem()
+        viewModelScope.launch {
+            currentAdmin.collect { admin ->
+                branchContextManager.initializeUserBranchContext(admin)
+            }
+        }
+        viewModelScope.launch {
+            appUpdateManager.checkForUpdates(force = false)
+            adminRepository.setAdminAuthRequired(true)
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            lyricsRepository.initializePreloadedLyrics()
+            com.example.service.AppFirebaseMessagingService.initialize(getApplication())
+        }
+        try {
+            val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val request = android.net.NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            cm?.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: android.net.Network) {
+                    _isOffline.value = false
+                }
+                override fun onLost(network: android.net.Network) {
+                    _isOffline.value = true
+                }
+            })
+        } catch (_: Exception) {}
+    }
 
     // Posts stream responding immediately to dual-layer Personal Vlog status
     val allPosts: StateFlow<List<BlogPost>> = isPersonalVlogAllowed
@@ -1244,8 +1589,19 @@ class MainViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Filtered YouTube channel videos
-    val youtubeVideos: StateFlow<List<YouTubeVideo>> = rawYoutubeVideos
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val youtubeVideos: StateFlow<List<YouTubeVideo>> = combine(
+        rawYoutubeVideos,
+        isPersonalVlogAllowed
+    ) { list, vlogAllowed ->
+        list.filter { candidate ->
+            val isVlogItem = candidate.id.startsWith("dm_${com.example.data.remote.DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                    candidate.channelId == com.example.data.remote.DailymotionFeedService.CHANNEL_VLOG_ID ||
+                    candidate.channelTitle.contains("Vinay AVJ Vlog", ignoreCase = true) ||
+                    candidate.channelTitle.contains("Vinay avj vlogs", ignoreCase = true) ||
+                    (candidate.id.startsWith("dm_") && (candidate.channelTitle.contains("vlog", ignoreCase = true) || candidate.title.contains("vlog", ignoreCase = true)))
+            !isVlogItem || vlogAllowed
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Dynamic YouTube Playlists
     val youtubePlaylists: StateFlow<List<YouTubePlaylist>> = youtubeRepository
@@ -1271,10 +1627,23 @@ class MainViewModel(
     private val channelHasMoreMap = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
     private var hasMoreYouTube = true
 
-    // Upcoming Events: Extracted only from Fellowship Events with label "Upcoming"
+    // Upcoming Events: Extracted only from Sunday Fellowship Events
     val upcomingEvents: StateFlow<List<UpcomingEvent>> = fellowshipPosts
         .map { posts ->
             posts.mapNotNull { EventExtractor.extractUpcomingEvent(it) }
+                .filter { ev ->
+                    val cal = java.util.Calendar.getInstance().apply { timeInMillis = ev.startTimestamp }
+                    val isSundayDay = cal.get(java.util.Calendar.DAY_OF_WEEK) == java.util.Calendar.SUNDAY
+                    val textCheck = (ev.title + " " + ev.dateString).lowercase()
+                    val mentionsSunday = textCheck.contains("sunday") || textCheck.contains("रविवार") || textCheck.contains("इतवार")
+                    val mentionsNonSunday = textCheck.contains("wednesday") || textCheck.contains("बुधवार") ||
+                            textCheck.contains("saturday") || textCheck.contains("शनिवार") ||
+                            textCheck.contains("friday") || textCheck.contains("शुक्रवार") ||
+                            textCheck.contains("thursday") || textCheck.contains("गुरुवार") ||
+                            textCheck.contains("monday") || textCheck.contains("सोमवार") ||
+                            textCheck.contains("tuesday") || textCheck.contains("मंगलवार")
+                    (isSundayDay || mentionsSunday) && !mentionsNonSunday
+                }
                 .sortedBy { it.startTimestamp }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -1867,19 +2236,90 @@ class MainViewModel(
         preferencesManager.updateDataSaverEnabled(enabled)
     }
 
+    val remindedEventIds: StateFlow<Set<String>> = preferencesManager.remindedEventIds
+
+    fun toggleFellowshipEventReminder(
+        context: Context,
+        event: com.example.data.model.FellowshipEvent,
+        minutesBefore: Int = 60
+    ): Boolean {
+        val eventId = event.id.ifBlank { event.title }
+        val isCurrentlyReminded = preferencesManager.isEventReminderActive(eventId)
+        if (isCurrentlyReminded) {
+            com.example.util.EventReminderScheduler.cancelWorkReminder(context, eventId)
+            preferencesManager.setEventReminderActive(eventId, false)
+            return false
+        } else {
+            val success = com.example.util.EventReminderScheduler.scheduleWorkReminder(
+                context = context,
+                eventId = eventId,
+                title = event.title,
+                dateStr = event.dateString,
+                timeStr = event.timeString,
+                locationStr = event.locationString,
+                startTimestamp = event.startTimestamp,
+                minutesBefore = minutesBefore,
+                postUrl = event.postUrl
+            )
+            if (success) {
+                preferencesManager.setEventReminderActive(eventId, true)
+            }
+            return success
+        }
+    }
+
+    fun toggleUpcomingEventReminder(
+        context: Context,
+        event: com.example.data.model.UpcomingEvent,
+        minutesBefore: Int = 60
+    ): Boolean {
+        val eventId = event.post.id.ifBlank { event.title }
+        val isCurrentlyReminded = preferencesManager.isEventReminderActive(eventId)
+        if (isCurrentlyReminded) {
+            com.example.util.EventReminderScheduler.cancelWorkReminder(context, eventId)
+            preferencesManager.setEventReminderActive(eventId, false)
+            return false
+        } else {
+            val success = com.example.util.EventReminderScheduler.scheduleWorkReminder(
+                context = context,
+                eventId = eventId,
+                title = event.title,
+                dateStr = event.dateString,
+                timeStr = event.timeString ?: "",
+                locationStr = event.locationString ?: "",
+                startTimestamp = event.startTimestamp,
+                minutesBefore = minutesBefore,
+                postUrl = event.post.url
+            )
+            if (success) {
+                preferencesManager.setEventReminderActive(eventId, true)
+            }
+            return success
+        }
+    }
+
     fun scheduleEventReminder(
         context: Context,
         event: UpcomingEvent,
         offset: ReminderScheduler.ReminderOffset
     ): Boolean {
-        return ReminderScheduler.scheduleReminder(
+        val minutes = (offset.millisBefore / (60 * 1000L)).toInt()
+        val eventId = event.post.id.ifBlank { event.title }
+        val success = com.example.util.EventReminderScheduler.scheduleWorkReminder(
             context = context,
-            postId = event.post.id,
-            eventTitle = event.title,
-            eventDate = event.dateString,
-            eventTimestamp = event.startTimestamp,
-            offset = offset
+            eventId = eventId,
+            title = event.title,
+            dateStr = event.dateString,
+            timeStr = event.timeString ?: "",
+            locationStr = event.locationString ?: "",
+            startTimestamp = event.startTimestamp,
+            minutesBefore = minutes,
+            postUrl = event.post.url
         )
+        if (success) {
+            preferencesManager.setEventReminderActive(eventId, true)
+        }
+        return success
     }
 
     fun submitFellowshipRsvp(
@@ -2197,10 +2637,78 @@ class MainViewModel(
         }
     }
 
+    fun isAppOnboardingCompleted(): Boolean = preferencesManager.isAppOnboardingCompleted()
+    fun setAppOnboardingCompleted(completed: Boolean = true) = preferencesManager.setAppOnboardingCompleted(completed)
     fun isNotificationOnboardingCompleted(): Boolean = preferencesManager.isNotificationOnboardingCompleted()
     fun setNotificationOnboardingCompleted(completed: Boolean = true) = preferencesManager.setNotificationOnboardingCompleted(completed)
     fun isNotificationPromptShownForVersion(versionCode: Int): Boolean = preferencesManager.isNotificationPromptShownForVersion(versionCode)
     fun setNotificationPromptShownForVersion(versionCode: Int, shown: Boolean = true) = preferencesManager.setNotificationPromptShownForVersion(versionCode, shown)
+
+    // Master Admin Security Methods
+    fun generateMasterAdminP2Otp(): String {
+        val newOtp = (100000..999999).random().toString()
+        preferencesManager.setMasterAdminP2Otp(newOtp)
+        adminRepository.setMasterAdminSecondaryPinDirect(newOtp)
+        com.example.util.AdminNotificationHelper.showOtpNotification(
+            context = getApplication<Application>(),
+            adminName = "Vinay Kumar (Master Admin)",
+            otp = newOtp,
+            role = "Master Admin"
+        )
+        return newOtp
+    }
+    fun updateBiometricEnabled(enabled: Boolean) = preferencesManager.updateBiometricEnabled(enabled)
+    fun updateMasterAdminDualAuth(enabled: Boolean) = preferencesManager.updateMasterAdminDualAuth(enabled)
+    fun updateMasterAdminEmergencyRecoveryKey(key: String) = preferencesManager.updateMasterAdminEmergencyRecoveryKey(key)
+    fun resetTrustedDevices() = preferencesManager.resetTrustedDevices()
+    fun generateNewEmergencyBackupCodes(): List<String> = preferencesManager.generateNewEmergencyBackupCodes()
+    fun consumeEmergencyBackupCode(code: String): Boolean = preferencesManager.consumeEmergencyBackupCode(code)
+
+    fun recordFailedLoginAttempt(context: Context, serial: String, onLocked: (Boolean, Long) -> Unit) {
+        val sp = context.getSharedPreferences("admin_sec_lockout", Context.MODE_PRIVATE)
+        val attempts = sp.getInt("failed_attempts_$serial", 0) + 1
+        val lockUntil = sp.getLong("lock_until_$serial", 0L)
+        val now = System.currentTimeMillis()
+
+        if (now < lockUntil) {
+            onLocked(true, (lockUntil - now) / 1000)
+            return
+        }
+
+        if (attempts >= 3) {
+            val newLock = now + (5 * 60 * 1000L) // 5 min lockout
+            sp.edit().putInt("failed_attempts_$serial", 0).putLong("lock_until_$serial", newLock).apply()
+            // Record alert notification
+            viewModelScope.launch {
+                notificationRepository.insertNotification(
+                    com.example.data.local.NotificationEntity(
+                        title = "⚠️ सुरक्षा चेतावनी: अनधिकृत एक्सेस प्रयास!",
+                        body = "मास्टर एडमिन ($serial) में 3 बार गलत पासवर्ड दर्ज किया गया। सुरक्षा हेतु 5 मिनट का लॉकआउट सक्रिय किया गया।",
+                        timestamp = now,
+                        isRead = false,
+                        type = "security_alert",
+                        linkUrl = null
+                    )
+                )
+            }
+            onLocked(true, 300)
+        } else {
+            sp.edit().putInt("failed_attempts_$serial", attempts).apply()
+            onLocked(false, 0)
+        }
+    }
+
+    fun checkLockoutStatus(context: Context, serial: String): Long {
+        val sp = context.getSharedPreferences("admin_sec_lockout", Context.MODE_PRIVATE)
+        val lockUntil = sp.getLong("lock_until_$serial", 0L)
+        val now = System.currentTimeMillis()
+        return if (now < lockUntil) (lockUntil - now) / 1000 else 0L
+    }
+
+    fun resetFailedLoginAttempts(context: Context, serial: String) {
+        val sp = context.getSharedPreferences("admin_sec_lockout", Context.MODE_PRIVATE)
+        sp.edit().remove("failed_attempts_$serial").remove("lock_until_$serial").apply()
+    }
 
     fun createPoll(question: String, optionsTexts: List<String>, targetAudience: String, onResult: (Boolean, String?) -> Unit) {
         viewModelScope.launch {

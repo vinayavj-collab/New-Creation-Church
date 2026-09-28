@@ -46,6 +46,7 @@ fun EventsScreen(
     val strings = appStrings()
     val fellowshipEvents by viewModel.fellowshipEvents.collectAsState()
     val blogEvents by viewModel.upcomingEvents.collectAsState()
+    val remindedEventIds by viewModel.remindedEventIds.collectAsState()
     val userRsvps by viewModel.userRsvps.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val currentAdmin by viewModel.currentAdmin.collectAsState()
@@ -85,7 +86,19 @@ fun EventsScreen(
                 )
             }
         }
-        combined.filter { it.startTimestamp >= todayStart - 86400000L }.sortedBy { it.startTimestamp }
+        combined.filter { ev ->
+            val cal = Calendar.getInstance().apply { timeInMillis = ev.startTimestamp }
+            val isSundayDay = cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
+            val textCheck = (ev.title + " " + ev.dateString + " " + ev.category).lowercase()
+            val mentionsSunday = textCheck.contains("sunday") || textCheck.contains("रविवार") || textCheck.contains("इतवार")
+            val mentionsNonSunday = textCheck.contains("wednesday") || textCheck.contains("बुधवार") ||
+                    textCheck.contains("saturday") || textCheck.contains("शनिवार") ||
+                    textCheck.contains("friday") || textCheck.contains("शुक्रवार") ||
+                    textCheck.contains("thursday") || textCheck.contains("गुरुवार") ||
+                    textCheck.contains("monday") || textCheck.contains("सोमवार") ||
+                    textCheck.contains("tuesday") || textCheck.contains("मंगलवार")
+            (isSundayDay || mentionsSunday) && !mentionsNonSunday && (ev.startTimestamp >= todayStart - 86400000L)
+        }.sortedBy { it.startTimestamp }
     }
 
     val eventDates = remember(allEvents) {
@@ -439,6 +452,28 @@ fun EventsScreen(
                                     }
 
                                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        val eventKey = event.id.ifBlank { event.title }
+                                        val isReminded = remindedEventIds.contains(eventKey)
+
+                                        IconButton(
+                                            onClick = {
+                                                val nowActive = viewModel.toggleFellowshipEventReminder(context, event, 60)
+                                                val msg = if (nowActive) {
+                                                    "🔔 रिमाइंडर सेट किया गया (शुरू होने से 1 घंटा पहले अलर्ट)"
+                                                } else {
+                                                    "🔕 रिमाइंडर बंद किया गया"
+                                                }
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isReminded) Icons.Default.NotificationsActive else Icons.Default.AddAlert,
+                                                contentDescription = if (isReminded) "Remind Me (On)" else "Remind Me (Off)",
+                                                tint = if (isReminded) GoldWarm else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+
                                         IconButton(
                                             onClick = {
                                                 try {

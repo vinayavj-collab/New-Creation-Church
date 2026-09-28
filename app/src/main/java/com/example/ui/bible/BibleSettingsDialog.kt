@@ -297,8 +297,8 @@ fun BibleSettingsDialog(
                                     Text(
                                         when (translation.id) {
                                             BibleTranslation.HIOV.id -> "हिन्दी (HIOV)"
-                                            BibleTranslation.ENGLISH_ESV.id -> "English (ESV)"
-                                            BibleTranslation.PARALLEL_HI_EN.id -> "द्विभाषी (HIOV + ESV)"
+                                            BibleTranslation.ENGLISH_NKJV.id -> "English (NKJV)"
+                                            BibleTranslation.PARALLEL_HI_EN.id -> "द्विभाषी (HIOV + NKJV)"
                                             else -> translation.nameHindi
                                         },
                                         fontSize = 11.sp

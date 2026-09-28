@@ -70,6 +70,8 @@ fun UserProfileScreen(
     onOpenBible: (bookId: Int, chapter: Int, verse: Int) -> Unit = { _, _, _ -> },
     onOpenPrayer: () -> Unit = {},
     onOpenNotes: () -> Unit = {},
+    onOpenReadingPlans: () -> Unit = {},
+    onOpenUpcomingEvents: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -79,61 +81,61 @@ fun UserProfileScreen(
     val allAdmins by viewModel.allAdmins.collectAsState()
     val allDesignations by viewModel.allDesignations.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val isAdminSessionUnlocked by viewModel.isAdminSessionUnlocked.collectAsState()
+    val upcomingEvents by viewModel.upcomingEvents.collectAsState()
 
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(pageCount = { 3 })
     var showPhotoPickerSheet by remember { mutableStateOf(false) }
     var showCameraPermissionDialog by remember { mutableStateOf(false) }
-    var showAdminLoginDialog by remember { mutableStateOf(false) }
+    var showAdminQuickP1Dialog by remember { mutableStateOf(false) }
+    var showAdminFullLoginDialog by remember { mutableStateOf(false) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
     var selectedImageUriForCrop by remember { mutableStateOf<Uri?>(null) }
 
     val handleAdminAccess = {
-        val isMasterVinay = com.example.util.ProfileManager.isVinayProfile() ||
-                currentAdmin?.rank == com.example.data.model.AdminHierarchy.RANK_VINAY_KUMAR ||
-                currentAdmin?.designation?.contains("Vinay", ignoreCase = true) == true
-
-        if (settings.masterAdminPasswordEnabled) {
-            val fragmentActivity = context as? androidx.fragment.app.FragmentActivity
-            if (settings.isBiometricEnabled && fragmentActivity != null && com.example.util.BiometricAuthManager.isBiometricAvailable(context)) {
-                com.example.util.BiometricAuthManager.authenticate(
-                    activity = fragmentActivity,
-                    title = "एडमिन बायोमेट्रिक सत्यापन",
-                    subtitle = "एडमिन प्रोफ़ाइल व अधिकारों में प्रवेश हेतु अंगूठा/फ़ेस स्कैन करें",
-                    onSuccess = {
-                        onOpenAdminPanel()
-                    },
-                    onError = {
-                        showAdminLoginDialog = true
-                    }
-                )
-            } else {
-                showAdminLoginDialog = true
-            }
+        val isOncePerSession = settings.adminAuthSessionMode == "ONCE_PER_SESSION"
+        if (currentAdmin != null && (!settings.masterAdminPasswordEnabled || (isOncePerSession && isAdminSessionUnlocked))) {
+            onOpenAdminPanel()
         } else {
-            if (isMasterVinay && currentAdmin == null) {
-                viewModel.loginVinayKumarAutomatic { _, _ ->
-                    onOpenAdminPanel()
+            val fragmentActivity = context as? androidx.fragment.app.FragmentActivity
+            val canBiometric = viewModel.canUseBiometricForAdmin() &&
+                    fragmentActivity != null &&
+                    com.example.util.BiometricAuthManager.isBiometricAvailable(context)
+
+            if (canBiometric) {
+                val enrolledAdmin = viewModel.getEnrolledOrCurrentAdmin()
+                if (enrolledAdmin != null) {
+                    com.example.util.BiometricAuthManager.authenticate(
+                        activity = fragmentActivity!!,
+                        title = "👑 एडमिन बायोमेट्रिक सत्यापन",
+                        subtitle = "${enrolledAdmin.designation} ${enrolledAdmin.name} के रूप में अनलॉक करने हेतु स्कैन करें",
+                        onSuccess = {
+                            viewModel.directLoginAsAdmin(enrolledAdmin) { success, _, _ ->
+                                if (success) {
+                                    viewModel.setAdminSessionUnlocked(true)
+                                    android.widget.Toast.makeText(context, "👑 बायोमेट्रिक सत्यापित! स्वागत है ${enrolledAdmin.name} जी! 🙏", android.widget.Toast.LENGTH_SHORT).show()
+                                    onOpenAdminPanel()
+                                }
+                            }
+                        },
+                        onError = {
+                            showAdminQuickP1Dialog = true
+                        }
+                    )
+                } else {
+                    showAdminQuickP1Dialog = true
                 }
             } else {
-                onOpenAdminPanel()
+                // First-time or not enrolled: Must enter PIN/Password first to verify identity
+                showAdminQuickP1Dialog = true
             }
         }
     }
 
-    // Auto-redirect ONLY if masterAdminPasswordEnabled is false (Lock is OFF)
-    LaunchedEffect(currentAdmin, com.example.util.ProfileManager.isVinayProfile(), settings.masterAdminPasswordEnabled) {
-        if (!settings.masterAdminPasswordEnabled) {
-            if (com.example.util.ProfileManager.isVinayProfile()) {
-                if (currentAdmin == null) {
-                    viewModel.loginVinayKumarAutomatic { _, _ ->
-                        onOpenAdminPanel()
-                    }
-                } else {
-                    onOpenAdminPanel()
-                }
-            } else if (currentAdmin != null) {
-                onOpenAdminPanel()
-            }
+    // Auto-redirect ONLY if masterAdminPasswordEnabled is false (Lock is OFF) and admin is already logged in
+    LaunchedEffect(currentAdmin, settings.masterAdminPasswordEnabled) {
+        if (!settings.masterAdminPasswordEnabled && currentAdmin != null) {
+            onOpenAdminPanel()
         }
     }
 
@@ -339,9 +341,9 @@ fun UserProfileScreen(
                     },
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(17.dp))
+                            Icon(Icons.Default.Dashboard, contentDescription = null, modifier = Modifier.size(17.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("विवरण व संपादन", fontSize = 12.sp, fontWeight = if (pagerState.currentPage == 0) FontWeight.Bold else FontWeight.Normal)
+                            Text("डैशबोर्ड", fontSize = 12.sp, fontWeight = if (pagerState.currentPage == 0) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 )
@@ -354,9 +356,24 @@ fun UserProfileScreen(
                     },
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(17.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("प्रोफ़ाइल", fontSize = 12.sp, fontWeight = if (pagerState.currentPage == 1) FontWeight.Bold else FontWeight.Normal)
+                        }
+                    }
+                )
+                Tab(
+                    selected = pagerState.currentPage == 2,
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(2)
+                        }
+                    },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(17.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("इतिहास (${activityList.size})", fontSize = 12.sp, fontWeight = if (pagerState.currentPage == 1) FontWeight.Bold else FontWeight.Normal)
+                            Text("इतिहास (${activityList.size})", fontSize = 12.sp, fontWeight = if (pagerState.currentPage == 2) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 )
@@ -370,6 +387,24 @@ fun UserProfileScreen(
             ) { page ->
                 when (page) {
                     0 -> {
+                        // Member Dashboard Tab
+                        MemberDashboardContent(
+                            userProfile = userProfile,
+                            currentAdmin = currentAdmin,
+                            upcomingEvents = upcomingEvents,
+                            onEditProfileClick = {
+                                coroutineScope.launch { pagerState.animateScrollToPage(1) }
+                            },
+                            onOpenReadingPlans = onOpenReadingPlans,
+                            onOpenUpcomingEvents = onOpenUpcomingEvents,
+                            onOpenBible = onOpenBible,
+                            onOpenPrayer = onOpenPrayer,
+                            onOpenNotes = onOpenNotes,
+                            onOpenAdminPanel = onOpenAdminPanel,
+                            viewModel = viewModel
+                        )
+                    }
+                    1 -> {
                         // Profile Edit Form Tab
                         ProfileEditForm(
                             nameInput = nameInput,
@@ -430,7 +465,7 @@ fun UserProfileScreen(
                             }
                         )
                     }
-                    1 -> {
+                    2 -> {
                         // Activity History Tab
                         ActivityHistoryContent(
                             activityList = activityList,
@@ -731,14 +766,32 @@ fun UserProfileScreen(
         )
     }
 
-    // Admin PIN Login Modal Dialog
-    if (showAdminLoginDialog) {
+    // Quick Admin P1 Login Modal Dialog (Only asks for P1, or Biometric)
+    if (showAdminQuickP1Dialog) {
+        com.example.ui.components.AdminQuickP1Dialog(
+            viewModel = viewModel,
+            onDismiss = { showAdminQuickP1Dialog = false },
+            onOpenAdminPanel = {
+                viewModel.setAdminSessionUnlocked(true)
+                showAdminQuickP1Dialog = false
+                onOpenAdminPanel()
+            },
+            onSwitchToFullLogin = {
+                showAdminQuickP1Dialog = false
+                showAdminFullLoginDialog = true
+            }
+        )
+    }
+
+    // Full Admin Multi-Stage Login Modal Dialog (Fallback)
+    if (showAdminFullLoginDialog) {
         AdminInvitationAccessDialog(
             viewModel = viewModel,
-            onDismiss = { showAdminLoginDialog = false },
-            onOpenNormalProfile = { showAdminLoginDialog = false },
+            onDismiss = { showAdminFullLoginDialog = false },
+            onOpenNormalProfile = { showAdminFullLoginDialog = false },
             onOpenAdminPanel = {
-                showAdminLoginDialog = false
+                viewModel.setAdminSessionUnlocked(true)
+                showAdminFullLoginDialog = false
                 onOpenAdminPanel()
             },
             initialStage = com.example.ui.components.InvitationStage.SERIAL

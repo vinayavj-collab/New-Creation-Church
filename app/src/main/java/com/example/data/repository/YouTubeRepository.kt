@@ -55,13 +55,18 @@ class YouTubeRepository(
                 keySelector = { it.id.ifBlank { it.videoUrl } },
                 timestampSelector = { it.publishedTimestamp }
             )
-            val isVlogAllowed = (activeProfile == com.example.data.model.AppProfile.VINAY) || PersonalVlogSecurity.isVlogServerAllowed()
+            val isVlogAllowed = (activeProfile == com.example.data.model.AppProfile.VINAY) || PersonalVlogSecurity.isPersonalVlogAllowed()
             merged.filter { candidate ->
                 val titleLower = candidate.title.lowercase()
                 val descLower = candidate.description.lowercase()
+                val isVlogItem = candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                        candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID ||
+                        candidate.channelTitle.contains("Vinay AVJ Vlog", ignoreCase = true) ||
+                        candidate.channelTitle.contains("Vinay avj vlogs", ignoreCase = true) ||
+                        (candidate.id.startsWith("dm_") && (candidate.channelTitle.contains("vlog", ignoreCase = true) || candidate.title.contains("vlog", ignoreCase = true)))
                 !candidate.id.startsWith("local_vid") &&
                 !candidate.thumbnailUrl.contains("local_vid") &&
-                (isVlogAllowed || !candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_")) &&
+                (!isVlogItem || isVlogAllowed) &&
                 !titleLower.contains("metdaan") && !titleLower.contains("met daan") &&
                 !descLower.contains("metdaan") && !descLower.contains("met daan") &&
                 !PredefinedPlaylists.isBlockedYouTubeChannel(candidate.channelTitle, candidate.channelId)
@@ -94,13 +99,18 @@ class YouTubeRepository(
                 keySelector = { it.id.ifBlank { it.videoUrl } },
                 timestampSelector = { it.publishedTimestamp }
             )
-            val isVlogAllowed = (activeProfile == com.example.data.model.AppProfile.VINAY) || PersonalVlogSecurity.isVlogServerAllowed()
+            val isVlogAllowed = (activeProfile == com.example.data.model.AppProfile.VINAY) || PersonalVlogSecurity.isPersonalVlogAllowed()
             merged.filter { candidate ->
                 val titleLower = candidate.title.lowercase()
                 val descLower = candidate.description.lowercase()
+                val isVlogItem = candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                        candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID ||
+                        candidate.channelTitle.contains("Vinay AVJ Vlog", ignoreCase = true) ||
+                        candidate.channelTitle.contains("Vinay avj vlogs", ignoreCase = true) ||
+                        (candidate.id.startsWith("dm_") && (candidate.channelTitle.contains("vlog", ignoreCase = true) || candidate.title.contains("vlog", ignoreCase = true)))
                 !candidate.id.startsWith("local_vid") &&
                 !candidate.thumbnailUrl.contains("local_vid") &&
-                (isVlogAllowed || !candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_")) &&
+                (!isVlogItem || isVlogAllowed) &&
                 !titleLower.contains("metdaan") && !titleLower.contains("met daan") &&
                 !descLower.contains("metdaan") && !descLower.contains("met daan") &&
                 !PredefinedPlaylists.isBlockedYouTubeChannel(candidate.channelTitle, candidate.channelId)

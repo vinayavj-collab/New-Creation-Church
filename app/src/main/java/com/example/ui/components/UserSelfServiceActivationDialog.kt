@@ -181,31 +181,7 @@ fun UserSelfServiceActivationDialog(
 
                 // STEP 1: Enter Serial & Choose P1 Password
                 if (currentStep == ActivationStep.ENTER_SERIAL_AND_P1) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = GoldWarm.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, GoldWarm.copy(alpha = 0.4f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showQrScanner = true }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "📷 QR कोड स्कैन करें (Scan Serial QR)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
 
-                    Spacer(Modifier.height(10.dp))
 
                     Text(
                         text = "कलीसिया/डायोसिस द्वारा जारी सदस्यता सीरियल आईडी (जैसे NCC1, DIO5) व अपना निजी P1 पासवर्ड दर्ज करें:",

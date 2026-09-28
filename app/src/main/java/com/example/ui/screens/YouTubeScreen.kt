@@ -70,6 +70,7 @@ fun YouTubeScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val isLoadingMoreVideos by viewModel.isLoadingMoreVideos.collectAsStateWithLifecycle()
     val currentAdmin by viewModel.currentAdmin.collectAsStateWithLifecycle()
+    val isPersonalVlogAllowed by viewModel.isPersonalVlogAllowed.collectAsStateWithLifecycle()
     val isMasterOrAdmin = currentAdmin != null || com.example.util.ProfileManager.isVinayProfile()
     var showVideoBarManagerDialog by remember { mutableStateOf(false) }
 
@@ -85,6 +86,7 @@ fun YouTubeScreen(
                 YouTubeDefaultTab.ALL -> "all"
                 YouTubeDefaultTab.AVJ_WORSHIP -> "worship"
                 YouTubeDefaultTab.VINAY_KUMAR_AVJ -> "vinay_kumar"
+                YouTubeDefaultTab.NEW_CREATION_CHURCH -> "new_creation_church"
             }
         )
     }
@@ -142,11 +144,23 @@ fun YouTubeScreen(
             }
             "CHANNEL" -> {
                 if (currentTab.filterValue.equals("dailymotion", ignoreCase = true) || currentTab.id == "dailymotion") {
-                    sortedAll.filter { it.id.startsWith("dm_") || it.channelId == DailymotionFeedService.CHANNEL_MAIN_ID || it.channelId == DailymotionFeedService.CHANNEL_VLOG_ID }.ifEmpty { sortedAll }
+                    sortedAll.filter { candidate ->
+                        val isVlog = candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                                candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID ||
+                                candidate.channelTitle.contains("Vinay AVJ Vlog", ignoreCase = true) ||
+                                candidate.channelTitle.contains("Vinay avj vlogs", ignoreCase = true) ||
+                                (candidate.id.startsWith("dm_") && (candidate.channelTitle.contains("vlog", ignoreCase = true) || candidate.title.contains("vlog", ignoreCase = true)))
+                        val isDm = candidate.id.startsWith("dm_") ||
+                                candidate.channelId == DailymotionFeedService.CHANNEL_MAIN_ID ||
+                                candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID
+                        isDm && (!isVlog || isPersonalVlogAllowed)
+                    }.ifEmpty { sortedAll }
                 } else if (currentTab.filterValue == PredefinedPlaylists.channelWorship.id || currentTab.id == "worship") {
                     sortedAll.filter { it.channelId == PredefinedPlaylists.channelWorship.id }.ifEmpty { sortedAll }
                 } else if (currentTab.filterValue == PredefinedPlaylists.channelMain.id || currentTab.id == "vinay_kumar") {
                     sortedAll.filter { it.channelId == PredefinedPlaylists.channelMain.id }.ifEmpty { sortedAll }
+                } else if (currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id || currentTab.id == "new_creation_church") {
+                    sortedAll.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id || it.channelTitle.contains("New Creation", ignoreCase = true) }.ifEmpty { sortedAll }
                 } else {
                     sortedAll.filter { it.channelId == currentTab.filterValue || it.channelTitle.contains(currentTab.filterValue, ignoreCase = true) }.ifEmpty { sortedAll }
                 }
@@ -170,6 +184,7 @@ fun YouTubeScreen(
         currentTab.filterType == "ALL" -> null
         currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> PredefinedPlaylists.channelWorship.id
         currentTab.id == "vinay_kumar" || currentTab.filterValue == PredefinedPlaylists.channelMain.id -> PredefinedPlaylists.channelMain.id
+        currentTab.id == "new_creation_church" || currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id -> PredefinedPlaylists.channelNewCreationChurch.id
         currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> DailymotionFeedService.CHANNEL_MAIN_ID
         else -> currentTab.filterValue.ifBlank { null }
     }
@@ -186,6 +201,8 @@ fun YouTubeScreen(
                     allPlaylists.filter { it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
                 } else if (currentTab.filterValue == PredefinedPlaylists.channelMain.id || currentTab.id == "vinay_kumar") {
                     allPlaylists.filter { it.channelTitle.contains("Vinay Kumar", ignoreCase = true) && !it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
+                } else if (currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id || currentTab.id == "new_creation_church") {
+                    allPlaylists.filter { it.channelTitle.contains("New Creation", ignoreCase = true) }.ifEmpty { allPlaylists }
                 } else {
                     allPlaylists.filter { it.channelTitle.contains(currentTab.filterValue, ignoreCase = true) }.ifEmpty { allPlaylists }
                 }
@@ -372,6 +389,7 @@ fun YouTubeScreen(
                     currentTab.filterType == "ALL" -> null
                     currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> PredefinedPlaylists.channelWorship
                     currentTab.id == "vinay_kumar" || currentTab.filterValue == PredefinedPlaylists.channelMain.id -> PredefinedPlaylists.channelMain
+                    currentTab.id == "new_creation_church" || currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id -> PredefinedPlaylists.channelNewCreationChurch
                     currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> YouTubeChannelInfo(
                         id = DailymotionFeedService.CHANNEL_MAIN_ID,
                         name = DailymotionFeedService.CHANNEL_MAIN_TITLE,
@@ -411,6 +429,7 @@ fun YouTubeScreen(
                                 ) {
                                     val initials = when {
                                         currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> "AVJ"
+                                        currentTab.id == "new_creation_church" || currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id -> "NCC"
                                         currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> "DM"
                                         else -> "VK"
                                     }
@@ -613,7 +632,8 @@ fun YouTubeScreen(
                     listOf(
                         YouTubeDefaultTab.ALL to "All Channels (सभी वीडियो समय अनुसार)",
                         YouTubeDefaultTab.AVJ_WORSHIP to "AVJ Worship (आराधना गीत)",
-                        YouTubeDefaultTab.VINAY_KUMAR_AVJ to "Vinay Kumar AVJ (मुख्य चैनल / प्रचार)"
+                        YouTubeDefaultTab.VINAY_KUMAR_AVJ to "Vinay Kumar AVJ (मुख्य चैनल / प्रचार)",
+                        YouTubeDefaultTab.NEW_CREATION_CHURCH to "New Creation Church"
                     ).forEach { (tabOption, labelText) ->
                         val isSelected = settings.youtubeDefaultTab == tabOption
                         Surface(
@@ -625,6 +645,7 @@ fun YouTubeScreen(
                                         YouTubeDefaultTab.ALL -> "all"
                                         YouTubeDefaultTab.AVJ_WORSHIP -> "worship"
                                         YouTubeDefaultTab.VINAY_KUMAR_AVJ -> "vinay_kumar"
+                                        YouTubeDefaultTab.NEW_CREATION_CHURCH -> "new_creation_church"
                                     }
                                     showDefaultChannelDialog = false
                                     Toast.makeText(context, "डिफ़ॉल्ट चैनल सेट किया गया", Toast.LENGTH_SHORT).show()
@@ -644,6 +665,7 @@ fun YouTubeScreen(
                                             YouTubeDefaultTab.ALL -> "all"
                                             YouTubeDefaultTab.AVJ_WORSHIP -> "worship"
                                             YouTubeDefaultTab.VINAY_KUMAR_AVJ -> "vinay_kumar"
+                                            YouTubeDefaultTab.NEW_CREATION_CHURCH -> "new_creation_church"
                                         }
                                         showDefaultChannelDialog = false
                                         Toast.makeText(context, "डिफ़ॉल्ट चैनल सेट किया गया", Toast.LENGTH_SHORT).show()

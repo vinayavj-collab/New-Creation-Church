@@ -515,29 +515,29 @@ fun Bible3ColumnGridNavigatorContent(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items((1..maxChapter).toList(), key = { "grid_chap_$it" }) { chap ->
+                    items(count = maxChapter, key = { it + 1 }) { idx ->
+                        val chap = idx + 1
                         val isSelected = chap == selectedChapter
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                            border = if (isSelected) null else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .aspectRatio(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                                .then(if (isSelected) Modifier else Modifier.border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp)))
                                 .clickable {
                                     selectedChapter = chap
                                     selectedVerse = null
                                 }
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "$chap",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 12.sp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                    )
+                            Text(
+                                text = "$chap",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 12.sp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                                 )
-                            }
+                            )
                         }
                     }
                 }
@@ -561,54 +561,53 @@ fun Bible3ColumnGridNavigatorContent(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     // Option 1: "सभी" / Full Chapter -> Auto-Navigates immediately!
-                    item(key = "grid_all_verses") {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f),
-                            border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.tertiary),
+                    item(key = 0) {
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .aspectRatio(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f))
+                                .border(0.8.dp, MaterialTheme.colorScheme.tertiary, RoundedCornerShape(6.dp))
                                 .clickable {
                                     onNavigate(selectedBook, selectedChapter, null)
                                 }
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "सभी",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.5.sp,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
+                            Text(
+                                text = "सभी",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.5.sp,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
-                            }
+                            )
                         }
                     }
 
                     // Individual Verses 1..maxVerse -> Auto-Navigates immediately on tap!
-                    items((1..maxVerse).toList(), key = { "grid_v_$it" }) { vNum ->
+                    items(count = maxVerse, key = { it + 1 }) { idx ->
+                        val vNum = idx + 1
                         val isSelected = selectedVerse == vNum
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                            border = if (isSelected) null else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .aspectRatio(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                                .then(if (isSelected) Modifier else Modifier.border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp)))
                                 .clickable {
                                     // CRITICAL: Auto-Navigate immediately on verse tap
                                     onNavigate(selectedBook, selectedChapter, vNum)
                                 }
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "$vNum",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 12.sp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                    )
+                            Text(
+                                text = "$vNum",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 12.sp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                                 )
-                            }
+                            )
                         }
                     }
                 }
@@ -951,29 +950,29 @@ fun BibleStepByStepListNavigatorContent(
                             contentPadding = PaddingValues(bottom = 16.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items((1..maxChapter).toList(), key = { "list_chap_$it" }) { chap ->
+                            items(count = maxChapter, key = { it + 1 }) { idx ->
+                                val chap = idx + 1
                                 val isSelected = chap == activeChapter
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                    border = if (isSelected) null else BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant),
+                                Box(
+                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                        .then(if (isSelected) Modifier else Modifier.border(0.8.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)))
                                         .clickable {
                                             activeChapter = chap
                                             // Advance to Verse step
                                             currentStep = SelectorStep.VERSE
                                         }
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = "$chap",
-                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                            )
+                                    Text(
+                                        text = "$chap",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                                         )
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -1013,27 +1012,27 @@ fun BibleStepByStepListNavigatorContent(
                             contentPadding = PaddingValues(bottom = 16.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items((1..maxVerse).toList(), key = { "list_v_$it" }) { vNum ->
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant),
+                            items(count = maxVerse, key = { it + 1 }) { idx ->
+                                val vNum = idx + 1
+                                Box(
+                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                        .border(0.8.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
                                         .clickable {
                                             // CRITICAL: Auto-Navigate immediately on verse tap
                                             onNavigate(activeBook, activeChapter, vNum)
                                         }
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = "$vNum",
-                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
+                                    Text(
+                                        text = "$vNum",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
-                                    }
+                                    )
                                 }
                             }
                         }

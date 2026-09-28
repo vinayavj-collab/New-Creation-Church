@@ -132,7 +132,7 @@ class FirebaseDataRepository private constructor() {
     private val _isPersonalVlogEnabled = MutableStateFlow(true)
     val isPersonalVlogEnabled: StateFlow<Boolean> = _isPersonalVlogEnabled.asStateFlow()
 
-    private val _privateProfilePassword = MutableStateFlow("Vin@122333")
+    private val _privateProfilePassword = MutableStateFlow("Vin@22914125")
     val privateProfilePassword: StateFlow<String> = _privateProfilePassword.asStateFlow()
 
     private val _isPrivateProfileEnabled = MutableStateFlow(true)
@@ -159,6 +159,12 @@ class FirebaseDataRepository private constructor() {
 
     private val _dailyAudioDevotional = MutableStateFlow<DailyAudioDevotional?>(null)
     val dailyAudioDevotional: StateFlow<DailyAudioDevotional?> = _dailyAudioDevotional.asStateFlow()
+
+    private val _audioMessageConfig = MutableStateFlow(com.example.data.model.AudioMessageConfig())
+    val audioMessageConfig: StateFlow<com.example.data.model.AudioMessageConfig> = _audioMessageConfig.asStateFlow()
+
+    private val _dailyDevotions = MutableStateFlow<List<com.example.data.model.DailyDevotion>>(emptyList())
+    val dailyDevotions: StateFlow<List<com.example.data.model.DailyDevotion>> = _dailyDevotions.asStateFlow()
 
     private val _pinnedVideoId = MutableStateFlow<String?>(null)
     val pinnedVideoId: StateFlow<String?> = _pinnedVideoId.asStateFlow()
@@ -237,7 +243,7 @@ class FirebaseDataRepository private constructor() {
                 override fun onCancelled(error: DatabaseError) {}
             })
 
-            // --- Dynamic Security: Private Profile Password (Default: Vin@122333) ---
+            // --- Dynamic Security: Private Profile Password (Default: Vin@22914125) ---
             database.getReference("private_profile_password").addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     val remotePass = snapshot.getValue(String::class.java)?.trim().orEmpty()
@@ -245,7 +251,7 @@ class FirebaseDataRepository private constructor() {
                         Log.i(TAG, "Firebase private_profile_password override received successfully")
                         _privateProfilePassword.value = remotePass
                     } else {
-                        _privateProfilePassword.value = "Vin@122333"
+                        _privateProfilePassword.value = "Vin@22914125"
                     }
                 }
                 override fun onCancelled(error: DatabaseError) {
@@ -903,6 +909,117 @@ class FirebaseDataRepository private constructor() {
                     Log.w(TAG, "daily_audio_devotional cancelled: ${error.message}")
                 }
             })
+
+            // --- Audio Message Global Config (RTDB + Firestore) ---
+            database.getReference("audio_message_config").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val isServiceActive = snapshot.child("isServiceActive").getValue(Boolean::class.java) ?: true
+                        val maxDurationSeconds = snapshot.child("maxDurationSeconds").getValue(Int::class.java) ?: 180
+                        val dailyPublishTime = snapshot.child("dailyPublishTime").getValue(String::class.java) ?: "06:00"
+                        val dailySlotsCount = snapshot.child("dailySlotsCount").getValue(Int::class.java) ?: 1
+                        val recordingQuality = snapshot.child("recordingQuality").getValue(String::class.java) ?: "standard_64k"
+                        val requiresPrePublishApproval = snapshot.child("requiresPrePublishApproval").getValue(Boolean::class.java) ?: false
+                        val fallbackAudioUrl = snapshot.child("fallbackAudioUrl").getValue(String::class.java) ?: ""
+                        val retentionDays = snapshot.child("retentionDays").getValue(Int::class.java) ?: 30
+                        val storageCapMb = snapshot.child("storageCapMb").getValue(Int::class.java) ?: 500
+                        val maxFileSizeMb = snapshot.child("maxFileSizeMb").getValue(Int::class.java) ?: 10
+                        val enableFifoAutoCleanup = snapshot.child("enableFifoAutoCleanup").getValue(Boolean::class.java) ?: true
+                        val roles = snapshot.child("allowedRoleTiersForRecording").children.mapNotNull { it.getValue(String::class.java) }
+                        val managers = snapshot.child("delegatedMediaManagerIds").children.mapNotNull { it.getValue(String::class.java) }
+                        _audioMessageConfig.value = com.example.data.model.AudioMessageConfig(
+                            isServiceActive = isServiceActive,
+                            maxDurationSeconds = maxDurationSeconds,
+                            dailyPublishTime = dailyPublishTime,
+                            dailySlotsCount = dailySlotsCount,
+                            recordingQuality = recordingQuality,
+                            requiresPrePublishApproval = requiresPrePublishApproval,
+                            fallbackAudioUrl = fallbackAudioUrl,
+                            retentionDays = retentionDays,
+                            allowedRoleTiersForRecording = if (roles.isNotEmpty()) roles else listOf("master_admin", "bishop", "pastor"),
+                            delegatedMediaManagerIds = managers,
+                            storageCapMb = storageCapMb,
+                            maxFileSizeMb = maxFileSizeMb,
+                            enableFifoAutoCleanup = enableFifoAutoCleanup
+                        )
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+
+            // --- Daily Devotions List (RTDB) ---
+            database.getReference("daily_devotions").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val list = mutableListOf<com.example.data.model.DailyDevotion>()
+                    for (child in snapshot.children) {
+                        try {
+                            val item = child.getValue(com.example.data.model.DailyDevotion::class.java)
+                            if (item != null) list.add(item)
+                        } catch (e: Exception) {}
+                    }
+                    if (list.isNotEmpty()) {
+                        _dailyDevotions.value = list.sortedByDescending { it.scheduledDate }
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+
+            // --- Firestore snapshot listeners for app_settings/audio_message_config & daily_devotions ---
+            try {
+                val firestore = FirebaseFirestore.getInstance()
+                firestore.collection("app_settings").document("audio_message_config")
+                    .addSnapshotListener { snapshot, _ ->
+                        if (snapshot != null && snapshot.exists()) {
+                            val isServiceActive = snapshot.getBoolean("isServiceActive") ?: true
+                            val maxDurationSeconds = snapshot.getLong("maxDurationSeconds")?.toInt() ?: 180
+                            val dailyPublishTime = snapshot.getString("dailyPublishTime") ?: "06:00"
+                            val dailySlotsCount = snapshot.getLong("dailySlotsCount")?.toInt() ?: 1
+                            val recordingQuality = snapshot.getString("recordingQuality") ?: "standard_64k"
+                            val requiresPrePublishApproval = snapshot.getBoolean("requiresPrePublishApproval") ?: false
+                            val fallbackAudioUrl = snapshot.getString("fallbackAudioUrl") ?: ""
+                            val retentionDays = snapshot.getLong("retentionDays")?.toInt() ?: 30
+                            val storageCapMb = snapshot.getLong("storageCapMb")?.toInt() ?: 500
+                            val maxFileSizeMb = snapshot.getLong("maxFileSizeMb")?.toInt() ?: 10
+                            val enableFifoAutoCleanup = snapshot.getBoolean("enableFifoAutoCleanup") ?: true
+                            @Suppress("UNCHECKED_CAST")
+                            val roles = snapshot.get("allowedRoleTiersForRecording") as? List<String> ?: listOf("master_admin", "bishop", "pastor")
+                            @Suppress("UNCHECKED_CAST")
+                            val managers = snapshot.get("delegatedMediaManagerIds") as? List<String> ?: emptyList()
+
+                            _audioMessageConfig.value = com.example.data.model.AudioMessageConfig(
+                                isServiceActive = isServiceActive,
+                                maxDurationSeconds = maxDurationSeconds,
+                                dailyPublishTime = dailyPublishTime,
+                                dailySlotsCount = dailySlotsCount,
+                                recordingQuality = recordingQuality,
+                                requiresPrePublishApproval = requiresPrePublishApproval,
+                                fallbackAudioUrl = fallbackAudioUrl,
+                                retentionDays = retentionDays,
+                                allowedRoleTiersForRecording = roles,
+                                delegatedMediaManagerIds = managers,
+                                storageCapMb = storageCapMb,
+                                maxFileSizeMb = maxFileSizeMb,
+                                enableFifoAutoCleanup = enableFifoAutoCleanup
+                            )
+                        }
+                    }
+
+                firestore.collection("daily_devotions")
+                    .addSnapshotListener { snapshots, _ ->
+                        if (snapshots != null && !snapshots.isEmpty) {
+                            val list = snapshots.documents.mapNotNull { doc ->
+                                try {
+                                    doc.toObject(com.example.data.model.DailyDevotion::class.java)
+                                } catch (e: Exception) { null }
+                            }
+                            if (list.isNotEmpty()) {
+                                _dailyDevotions.value = list.sortedByDescending { it.scheduledDate }
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Log.w(TAG, "Firestore audio message listener init error: ${e.message}")
+            }
 
         } catch (e: Exception) {
             Log.w(TAG, "Firebase Realtime Database initialization/listener error: ${e.message}")
@@ -1891,6 +2008,195 @@ class FirebaseDataRepository private constructor() {
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateHomeSectionsConfig: ${e.message}", e)
             onComplete?.invoke(false)
+        }
+    }
+
+    // =========================================================================
+    // AUDIO MESSAGE ENGINE & MEDIA GOVERNANCE METHODS
+    // =========================================================================
+
+    fun updateAudioMessageConfig(config: com.example.data.model.AudioMessageConfig, onComplete: ((Boolean) -> Unit)? = null) {
+        try {
+            _audioMessageConfig.value = config
+            val database = FirebaseDatabase.getInstance()
+            database.getReference("audio_message_config").setValue(config)
+
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("app_settings").document("audio_message_config").set(config)
+                .addOnCompleteListener { task ->
+                    onComplete?.invoke(task.isSuccessful)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating AudioMessageConfig: ${e.message}", e)
+            onComplete?.invoke(false)
+        }
+    }
+
+    fun saveDailyDevotion(devotion: com.example.data.model.DailyDevotion, onComplete: ((Boolean, String?) -> Unit)? = null) {
+        try {
+            val database = FirebaseDatabase.getInstance()
+            database.getReference("daily_devotions").child(devotion.devotionId).setValue(devotion)
+
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("daily_devotions").document(devotion.devotionId).set(devotion)
+                .addOnSuccessListener {
+                    onComplete?.invoke(true, null)
+                }
+                .addOnFailureListener { e ->
+                    onComplete?.invoke(false, e.message)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving DailyDevotion: ${e.message}", e)
+            onComplete?.invoke(false, e.message)
+        }
+    }
+
+    fun updateDevotionStatus(devotionId: String, status: String, approvedBy: String, onComplete: ((Boolean) -> Unit)? = null) {
+        try {
+            val updates = mapOf<String, Any>(
+                "status" to status,
+                "approvedBy" to approvedBy,
+                "approvedAt" to System.currentTimeMillis()
+            )
+            val database = FirebaseDatabase.getInstance()
+            database.getReference("daily_devotions").child(devotionId).updateChildren(updates)
+
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("daily_devotions").document(devotionId).update(updates)
+                .addOnCompleteListener { task ->
+                    onComplete?.invoke(task.isSuccessful)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating DevotionStatus: ${e.message}", e)
+            onComplete?.invoke(false)
+        }
+    }
+
+    fun pinDailyDevotion(devotionId: String, isPinned: Boolean, reason: String, onComplete: ((Boolean) -> Unit)? = null) {
+        try {
+            val updates = mapOf<String, Any>(
+                "isPinned" to isPinned,
+                "pinnedReason" to reason
+            )
+            val database = FirebaseDatabase.getInstance()
+            database.getReference("daily_devotions").child(devotionId).updateChildren(updates)
+
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("daily_devotions").document(devotionId).update(updates)
+                .addOnCompleteListener { task ->
+                    onComplete?.invoke(task.isSuccessful)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error pinning devotion: ${e.message}", e)
+            onComplete?.invoke(false)
+        }
+    }
+
+    fun deleteDailyDevotion(devotionId: String, onComplete: ((Boolean) -> Unit)? = null) {
+        try {
+            val database = FirebaseDatabase.getInstance()
+            database.getReference("daily_devotions").child(devotionId).removeValue()
+
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("daily_devotions").document(devotionId).delete()
+                .addOnCompleteListener { task ->
+                    onComplete?.invoke(task.isSuccessful)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting devotion: ${e.message}", e)
+            onComplete?.invoke(false)
+        }
+    }
+
+    fun incrementDevotionListens(devotionId: String) {
+        try {
+            val database = FirebaseDatabase.getInstance()
+            database.getReference("daily_devotions").child(devotionId).child("listensCount")
+                .setValue(com.google.firebase.database.ServerValue.increment(1))
+
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("daily_devotions").document(devotionId)
+                .update("listensCount", com.google.firebase.firestore.FieldValue.increment(1))
+        } catch (e: Exception) {
+            Log.w(TAG, "Error incrementing devotion listens: ${e.message}")
+        }
+    }
+
+    fun uploadAudioFileToStorage(
+        file: java.io.File,
+        storagePath: String,
+        onProgress: (Float) -> Unit,
+        onComplete: (Boolean, String?, String?) -> Unit
+    ) {
+        try {
+            val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
+            val storageRef = storage.reference.child(storagePath)
+            val uri = android.net.Uri.fromFile(file)
+            val uploadTask = storageRef.putFile(uri)
+            uploadTask.addOnProgressListener { taskSnapshot ->
+                val progress = if (taskSnapshot.totalByteCount > 0) {
+                    taskSnapshot.bytesTransferred.toFloat() / taskSnapshot.totalByteCount.toFloat()
+                } else 0f
+                onProgress(progress)
+            }.addOnSuccessListener {
+                storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                    onComplete(true, downloadUri.toString(), null)
+                }.addOnFailureListener { e ->
+                    onComplete(false, null, e.message)
+                }
+            }.addOnFailureListener { e ->
+                onComplete(false, null, e.message)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Firebase Storage upload error: ${e.message}", e)
+            onComplete(false, null, e.message)
+        }
+    }
+
+    fun runSmartFifoCleanup(targetFreeMb: Int = 0, onComplete: ((Boolean, Int, Long) -> Unit)? = null) {
+        try {
+            val all = _dailyDevotions.value
+            val config = _audioMessageConfig.value
+            val totalCapBytes = config.storageCapMb * 1024L * 1024L
+            var currentUsedBytes = all.sumOf { it.fileSizeBytes }
+
+            val targetThresholdBytes = if (targetFreeMb > 0) {
+                (totalCapBytes - targetFreeMb * 1024L * 1024L).coerceAtLeast(0L)
+            } else {
+                (totalCapBytes * 0.85).toLong()
+            }
+
+            if (currentUsedBytes <= targetThresholdBytes && targetFreeMb == 0) {
+                onComplete?.invoke(true, 0, 0L)
+                return
+            }
+
+            val nonPinnedDevotions = all.filter { !it.isPinned }
+                .sortedBy { if (it.createdAt > 0L) it.createdAt.toString() else it.scheduledDate }
+
+            var removedCount = 0
+            var bytesFreed = 0L
+
+            for (devotion in nonPinnedDevotions) {
+                if (currentUsedBytes <= targetThresholdBytes && removedCount > 0) break
+
+                deleteDailyDevotion(devotion.devotionId)
+                if (devotion.storagePath.isNotBlank()) {
+                    try {
+                        com.google.firebase.storage.FirebaseStorage.getInstance().reference.child(devotion.storagePath).delete()
+                    } catch (e: Exception) {}
+                }
+
+                currentUsedBytes -= devotion.fileSizeBytes
+                bytesFreed += devotion.fileSizeBytes
+                removedCount++
+            }
+
+            Log.i(TAG, "Smart FIFO cleanup completed: removed $removedCount devotions, freed $bytesFreed bytes")
+            onComplete?.invoke(true, removedCount, bytesFreed)
+        } catch (e: Exception) {
+            Log.e(TAG, "Smart FIFO cleanup failed: ${e.message}", e)
+            onComplete?.invoke(false, 0, 0L)
         }
     }
 }

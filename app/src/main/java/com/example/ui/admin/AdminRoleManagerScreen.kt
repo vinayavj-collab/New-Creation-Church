@@ -5,12 +5,14 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -47,6 +49,8 @@ import com.example.ui.theme.GoldAccent
 import com.example.ui.components.SerialQrCard
 import com.example.ui.components.SerialQrDisplayDialog
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.QrCodeHelper
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -79,6 +83,7 @@ fun AdminRoleManagerScreen(
     var adminToEditRights by remember { mutableStateOf<AdminUser?>(null) }
     var adminToRename by remember { mutableStateOf<AdminUser?>(null) }
     var adminToDelete by remember { mutableStateOf<AdminUser?>(null) }
+    var adminToViewProfile by remember { mutableStateOf<AdminUser?>(null) }
     var renameInput by remember { mutableStateOf("") }
     var masterP1Input by remember { mutableStateOf("") }
     var masterP2Input by remember { mutableStateOf("") }
@@ -141,167 +146,24 @@ fun AdminRoleManagerScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(top = 12.dp, bottom = 40.dp)
     ) {
-        // 1. Current Authority Level Banner
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("admin_role_manager_hero_card"),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isVinayKumar) GoldWarm.copy(alpha = 0.16f)
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                ),
-                border = BorderStroke(
-                    1.5.dp,
-                    if (isVinayKumar) GoldWarm else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+        // 1. Top Action Toolbar (Keeping only Category Customization)
+        if (isVinayKumar || currentAdmin?.isMasterAdmin() == true) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("admin_role_manager_top_toolbar"),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = { showCategoryCustomizationDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.testTag("btn_category_customization")
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(CircleShape)
-                                .background(if (isVinayKumar) GoldWarm else MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                if (isVinayKumar) Icons.Default.WorkspacePremium else Icons.Default.AdminPanelSettings,
-                                contentDescription = null,
-                                tint = if (isVinayKumar) Color(0xFF1E1B4B) else MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(30.dp)
-                            )
-                        }
-
-                        Spacer(Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = currentAdmin?.name ?: "एडमिन",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
-                                    color = if (isVinayKumar) GoldWarm else MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Icon(
-                                    Icons.Default.Verified,
-                                    contentDescription = "Verified",
-                                    tint = if (isVinayKumar) GoldWarm else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            Text(
-                                text = "${currentAdmin?.designation ?: "अधिकृत एडमिन"} • लेवल $creatorRank",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    if (creatorRank <= AdminHierarchy.RANK_PURANIYA) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "ℹ️ पुरनिया (Puraniya) के पास कोई अधीनस्थ श्रेणी नहीं है। आप केवल आपको सौंपे गए कार्यों का संचालन कर सकते हैं।",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(10.dp)
-                            )
-                        }
-                    } else {
-                        Text(
-                            text = "आपके अधिकार क्षेत्र में आने वाली अधीनस्थ श्रेणियां: " +
-                                    allowedCategories.joinToString(", ") { it.first },
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 16.sp
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        // Action Buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = { showAddSubordinateDialog = true },
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("btn_add_subordinate_admin"),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("+ नया एडमिन अलॉट करें", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            }
-
-                            if (onNavigateToOtpManager != null) {
-                                Button(
-                                    onClick = onNavigateToOtpManager,
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                    modifier = Modifier.testTag("btn_navigate_otp_manager")
-                                ) {
-                                    Icon(Icons.Default.LockClock, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("10-मिनट OTP", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-
-                            if (isVinayKumar || currentAdmin?.isMasterAdmin() == true) {
-                                OutlinedButton(
-                                    onClick = { showCategoryCustomizationDialog = true },
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.testTag("btn_category_customization")
-                                ) {
-                                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("श्रेणी कस्टमाइजेशन", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        masterP1Input = currentAdmin?.pin ?: ""
-                                        masterP2Input = currentAdmin?.secondaryPin ?: ""
-                                        showMasterPermanentPinDialog = true
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, GoldWarm),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = GoldWarm),
-                                    modifier = Modifier.testTag("btn_master_permanent_pin")
-                                ) {
-                                    Icon(Icons.Default.VpnKey, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("🔐 स्थायी P1/P2", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = {
-                                        profileSwitchPasswordInput = ""
-                                        showProfileSwitchPasswordDialog = true
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.testTag("btn_profile_switch_pwd")
-                                ) {
-                                    Icon(Icons.Default.LockReset, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("स्विच पासवर्ड", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
+                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("श्रेणी कस्टमाइजेशन", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -691,6 +553,31 @@ fun AdminRoleManagerScreen(
                     )
                 }
 
+                // Add Profile / Role dedicated action bar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "अधीनस्थ एडमिन सूची (${filteredSubordinates.size})",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Button(
+                        onClick = { showAddSubordinateDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.height(34.dp).testTag("btn_add_role_profile_list_top")
+                    ) {
+                        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("+ नया प्रोफ़ाइल / रोल जोड़ें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
                 // Search bar for subordinate administrators across delegation tree
                 OutlinedTextField(
                     value = searchQuery,
@@ -698,7 +585,7 @@ fun AdminRoleManagerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("admin_search_bar"),
-                    placeholder = { Text("नाम, पदनाम या श्रेणी से खोजें... (Search)") },
+                    placeholder = { Text("नाम, पदनाम, SN या श्रेणी से खोजें... (Search)") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
@@ -783,9 +670,22 @@ fun AdminRoleManagerScreen(
                 }
             }
         } else {
-            items(filteredSubordinates, key = { it.id }) { subordinate ->
+            itemsIndexed(filteredSubordinates, key = { _, it -> it.id }) { index, subordinate ->
+                val canManageThisAdmin = isVinayKumar || currentAdmin?.isMasterAdmin() == true || AdminHierarchy.canManageAdmin(creatorRank, subordinate.rank)
                 SubordinateAdminCard(
+                    index = index + 1,
                     admin = subordinate,
+                    canManage = canManageThisAdmin,
+                    onOpenProfile = { adminToViewProfile = subordinate },
+                    onUpdateSpecialAccess = { newFunctions ->
+                        viewModel.updateAdminAssignedFunctions(subordinate.id, newFunctions) { success, err ->
+                            if (success) {
+                                Toast.makeText(context, "${subordinate.name} के विशेष अधिकार अपडेट हो गए!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
                     onRegenerateOtp = {
                         viewModel.regenerateSecondaryPin(subordinate.id) { success, newOtp, err ->
                             if (success && newOtp != null) {
@@ -1537,8 +1437,9 @@ fun AdminRoleManagerScreen(
             creatorAdmin = currentAdmin,
             allowedCategories = allowedCategories,
             allAdmins = allAdmins,
+            viewModel = viewModel,
             onDismiss = { showAddSubordinateDialog = false },
-            onConfirm = { designation, name, phone, roleTier, reportsToSeniorId, reportsToSeniorName, pin, secondaryPin, assignedFunctions, applyToCategory ->
+            onConfirm = { designation, name, phone, roleTier, reportsToSeniorId, reportsToSeniorName, pin, secondaryPin, assignedFunctions, applyToCategory, serialNumber ->
                 viewModel.assignOrUpdateHierarchicalRole(
                     targetUserId = "usr_${System.currentTimeMillis() % 100000}",
                     name = name,
@@ -1551,7 +1452,8 @@ fun AdminRoleManagerScreen(
                     p2OtpInput = secondaryPin,
                     expectedP2Otp = secondaryPin,
                     isVerifiedBeliever = (roleTier == "believer"),
-                    existingAdminId = null
+                    existingAdminId = null,
+                    serialNumber = serialNumber
                 ) { success, createdAdmin, err ->
                     if (success && createdAdmin != null) {
                         clipboardManager.setText(AnnotatedString(secondaryPin))
@@ -1567,6 +1469,91 @@ fun AdminRoleManagerScreen(
                         showAddSubordinateDialog = false
                     } else {
                         Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        )
+    }
+
+    // Detailed Admin Profile View & Edit Modal (Only for Master Admin and Authorized Seniors)
+    if (adminToViewProfile != null && currentAdmin != null) {
+        AdminProfileDetailDialog(
+            admin = adminToViewProfile!!,
+            currentAdmin = currentAdmin,
+            onDismiss = { adminToViewProfile = null },
+            onUpdateName = { newName ->
+                viewModel.renameAdmin(adminToViewProfile!!.id, newName) { ok, err ->
+                    if (ok) {
+                        Toast.makeText(context, "नाम सफलतापूर्वक अपडेट हुआ!", Toast.LENGTH_SHORT).show()
+                        adminToViewProfile = adminToViewProfile?.copy(name = newName)
+                    } else {
+                        Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onChangePin = { newPin ->
+                viewModel.updateAdminPin(adminToViewProfile!!.id, newPin) { ok, err ->
+                    if (ok) {
+                        Toast.makeText(context, "पासवर्ड 1 (P1) अपडेट हुआ!", Toast.LENGTH_SHORT).show()
+                        adminToViewProfile = adminToViewProfile?.copy(pin = newPin)
+                    } else {
+                        Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onRegenerateOtp = {
+                viewModel.regenerateSecondaryPin(adminToViewProfile!!.id) { ok, newOtp, err ->
+                    if (ok && newOtp != null) {
+                        clipboardManager.setText(AnnotatedString(newOtp))
+                        Toast.makeText(context, "नया P2 OTP ($newOtp) जनरेट हुआ व कॉपी किया गया!", Toast.LENGTH_LONG).show()
+                        adminToViewProfile = adminToViewProfile?.copy(
+                            secondaryPin = newOtp,
+                            secondaryPinGeneratedTimestamp = System.currentTimeMillis()
+                        )
+                    } else {
+                        Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onUpdateFunctions = { newFns ->
+                viewModel.updateAdminAssignedFunctions(adminToViewProfile!!.id, newFns) { ok, err ->
+                    if (ok) {
+                        Toast.makeText(context, "विशेष अधिकार सफलतापूर्वक अपडेट हुए!", Toast.LENGTH_SHORT).show()
+                        adminToViewProfile = adminToViewProfile?.copy(assignedFunctions = newFns)
+                    } else {
+                        Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onToggleBlockDevice = { isBlocked ->
+                viewModel.toggleBlockDevice(adminToViewProfile!!.id, isBlocked) { ok, err ->
+                    if (ok) {
+                        val msg = if (isBlocked) "डिवाइस ब्लॉक कर दिया गया! 🚫" else "डिवाइस अनब्लॉक हो गया! ✅"
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        adminToViewProfile = adminToViewProfile?.copy(isDeviceBlocked = isBlocked)
+                    } else {
+                        Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onToggleStatus = { isEnabled ->
+                viewModel.toggleAdminStatus(adminToViewProfile!!.id, isEnabled) { ok, err ->
+                    if (ok) {
+                        val msg = if (isEnabled) "खाता सक्रिय (Active) किया गया।" else "खाता निष्क्रिय (Disabled) किया गया।"
+                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        adminToViewProfile = adminToViewProfile?.copy(isEnabled = isEnabled)
+                    } else {
+                        Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onDelete = {
+                viewModel.deleteAdmin(adminToViewProfile!!.id) { ok, err ->
+                    if (ok) {
+                        Toast.makeText(context, "प्रोफ़ाइल सफलतापूर्वक हटाई गई!", Toast.LENGTH_SHORT).show()
+                        adminToViewProfile = null
+                    } else {
+                        Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -1921,12 +1908,314 @@ fun AdminRoleManagerScreen(
 }
 
 /**
- * Card representing an individual subordinate admin
+ * Detailed Profile View & Edit Modal for Master Admin and Authorized Seniors
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun AdminProfileDetailDialog(
+    admin: AdminUser,
+    currentAdmin: AdminUser,
+    onDismiss: () -> Unit,
+    onUpdateName: (String) -> Unit,
+    onChangePin: (String) -> Unit,
+    onRegenerateOtp: () -> Unit,
+    onUpdateFunctions: (List<String>) -> Unit,
+    onToggleBlockDevice: (Boolean) -> Unit,
+    onToggleStatus: (Boolean) -> Unit,
+    onDelete: () -> Unit
+) {
+    val clipboardManager = LocalClipboardManager.current
+    var nameInput by remember(admin) { mutableStateOf(admin.name) }
+    var pinInput by remember(admin) { mutableStateOf(admin.pin) }
+    var isEditingName by remember { mutableStateOf(false) }
+    var isEditingPin by remember { mutableStateOf(false) }
+    val selectedFunctions = remember(admin) { mutableStateListOf<String>().apply { addAll(admin.assignedFunctions) } }
+
+    val rankColor = when (admin.rank) {
+        AdminHierarchy.RANK_VINAY_KUMAR -> GoldWarm
+        AdminHierarchy.RANK_BISHOP -> Color(0xFF9333EA)
+        AdminHierarchy.RANK_DEPUTY_BISHOP -> Color(0xFF3B82F6)
+        AdminHierarchy.RANK_PASTOR -> Color(0xFF10B981)
+        else -> Color(0xFFEAB308)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = null, tint = rankColor, modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "प्रोफ़ाइल विवरण (Profile Detail)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = "${admin.designation} • SN: ${admin.serialNumber.ifBlank { admin.id }}",
+                            fontSize = 11.sp,
+                            color = rankColor,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Name Section
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("सदस्य / एडमिन नाम:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                if (!isEditingName) {
+                                    TextButton(onClick = { isEditingName = true }) {
+                                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(13.dp))
+                                        Spacer(Modifier.width(3.dp))
+                                        Text("बदलें", fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                            if (isEditingName) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = nameInput,
+                                        onValueChange = { nameInput = it },
+                                        singleLine = true,
+                                        label = { Text("नया नाम") },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Button(
+                                        onClick = {
+                                            if (nameInput.isNotBlank()) {
+                                                onUpdateName(nameInput.trim())
+                                                isEditingName = false
+                                            }
+                                        }
+                                    ) {
+                                        Text("सेव")
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = admin.name.ifBlank { "लॉगिन प्रतीक्षारत (Pending User)" },
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Security Passwords (P1 & P2)
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("🔐 सुरक्षा पासवर्ड (P1 & P2):", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+
+                            // P1
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("P1 पासवर्ड: ${if (admin.pin.isNotBlank()) admin.pin else "0000"}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                TextButton(onClick = { isEditingPin = true }) {
+                                    Text("P1 बदलें", fontSize = 11.sp)
+                                }
+                            }
+                            if (isEditingPin) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = pinInput,
+                                        onValueChange = { pinInput = it },
+                                        singleLine = true,
+                                        label = { Text("नया P1 पासवर्ड") },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Button(
+                                        onClick = {
+                                            if (pinInput.isNotBlank()) {
+                                                onChangePin(pinInput.trim())
+                                                isEditingPin = false
+                                            }
+                                        }
+                                    ) {
+                                        Text("सेव")
+                                    }
+                                }
+                            }
+
+                            // P2 OTP
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "P2 OTP: ${if (admin.secondaryPin.isNotBlank()) admin.secondaryPin else "अनुपलब्ध"}",
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF10B981)
+                                )
+                                Row {
+                                    if (admin.secondaryPin.isNotBlank()) {
+                                        IconButton(onClick = {
+                                            clipboardManager.setText(AnnotatedString(admin.secondaryPin))
+                                        }) {
+                                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                    Button(
+                                        onClick = onRegenerateOtp,
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("नया P2 जनरेट", fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Special Access Rights Checklist
+                item {
+                    Text("🛡️ विशेष अधिकार (Special Access Functions):", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    val allFunctions = AdminFunction.entries
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        allFunctions.forEach { fn ->
+                            val isChecked = selectedFunctions.contains(fn.id)
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isChecked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    if (isChecked) {
+                                        selectedFunctions.remove(fn.id)
+                                    } else {
+                                        selectedFunctions.add(fn.id)
+                                    }
+                                    onUpdateFunctions(selectedFunctions.toList())
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = isChecked,
+                                        onCheckedChange = { checked ->
+                                            if (checked) selectedFunctions.add(fn.id) else selectedFunctions.remove(fn.id)
+                                            onUpdateFunctions(selectedFunctions.toList())
+                                        }
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Column {
+                                        Text(fn.hindiTitle, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                                        Text(fn.description, fontSize = 9.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Controls & Deletion
+                item {
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { onToggleBlockDevice(!admin.isDeviceBlocked) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = if (admin.isDeviceBlocked) Color(0xFF10B981) else MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(if (admin.isDeviceBlocked) Icons.Default.LockOpen else Icons.Default.Block, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(if (admin.isDeviceBlocked) "डिवाइस अनब्लॉक" else "डिवाइस ब्लॉक")
+                        }
+
+                        Button(
+                            onClick = onDelete,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("प्रोफ़ाइल हटाएं (Delete)")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("संपन्न (Done)")
+            }
+        }
+    )
+}
+
+/**
+ * Card representing an individual subordinate admin / profile item matching exact spec:
+ * 1. क्रमांक (Auto-generated Index #1, #2...)
+ * 2. SN (Serial Number monospace badge)
+ * 3. श्रेणी (Category / Designation)
+ * 4. Name (Admin/Member name)
+ * 5. P2 (P2 OTP with live validity timer and copy button)
+ * 6. Special Access Dropdown Menu (Direct access delegation selector)
+ * 7. Edit Toggle (Opens profile detail dialog ONLY for Master Admin and authorized seniors)
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SubordinateAdminCard(
+    index: Int = 1,
     admin: AdminUser,
+    canManage: Boolean = true,
+    onOpenProfile: () -> Unit,
+    onUpdateSpecialAccess: ((List<String>) -> Unit)? = null,
     onRegenerateOtp: () -> Unit,
     onRename: () -> Unit = {},
     onChangePin: () -> Unit,
@@ -1939,6 +2228,7 @@ fun SubordinateAdminCard(
     val context = LocalContext.current
     var isPinVisible by remember { mutableStateOf(false) }
     var showQrDialog by remember { mutableStateOf(false) }
+    var expandedSpecialAccessDropdown by remember { mutableStateOf(false) }
 
     // Live remaining timer
     var remainingTimeMs by remember { mutableLongStateOf(admin.getRemainingOtpTimeMs()) }
@@ -1953,8 +2243,10 @@ fun SubordinateAdminCard(
     val isOtpValid = admin.isOtpValid()
     val remainingMinutes = (remainingTimeMs / 60000L)
     val remainingSeconds = ((remainingTimeMs % 60000L) / 1000L)
+    val displaySn = if (admin.serialNumber.isNotBlank()) admin.serialNumber else "SN-${admin.id.takeLast(4)}"
 
     val rankColor = when (admin.rank) {
+        AdminHierarchy.RANK_VINAY_KUMAR -> GoldWarm
         AdminHierarchy.RANK_BISHOP -> Color(0xFF9333EA)
         AdminHierarchy.RANK_DEPUTY_BISHOP -> Color(0xFF3B82F6)
         AdminHierarchy.RANK_PASTOR -> Color(0xFF10B981)
@@ -1973,49 +2265,136 @@ fun SubordinateAdminCard(
         border = BorderStroke(
             1.dp,
             if (!admin.isEnabled) MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
-            else rankColor.copy(alpha = 0.35f)
+            else rankColor.copy(alpha = 0.45f)
         )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Header Row: Designation, Name, Status Badge
+            // Top Row: [क्रमांक Auto] + [SN Box Badge] + [श्रेणी / Category] + Status Chip
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // क्रमांक Auto Generated
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Text(
+                        text = "#$index",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+
+                Spacer(Modifier.width(6.dp))
+
+                // SN (Serial Number) Monospace Badge
+                val displaySn = if (admin.serialNumber.isNotBlank()) admin.serialNumber else "SN-${admin.id.takeLast(4)}"
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Tag, contentDescription = null, modifier = Modifier.size(11.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(2.dp))
+                        Text(
+                            text = displaySn,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(6.dp))
+
+                // श्रेणी (Category / Designation Badge)
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
                     color = rankColor.copy(alpha = 0.15f),
                     border = BorderStroke(1.dp, rankColor.copy(alpha = 0.4f))
                 ) {
                     Text(
-                        text = admin.designation,
+                        text = admin.designation.ifBlank { "अधिकृत पद" },
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
                         color = rankColor,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                     )
                 }
 
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.weight(1f))
 
+                // Status chip
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = when {
+                        admin.isDeviceBlocked -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                        admin.isEnabled -> Color(0xFF10B981).copy(alpha = 0.15f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(
+                                    color = when {
+                                        admin.isDeviceBlocked -> MaterialTheme.colorScheme.error
+                                        admin.isEnabled -> Color(0xFF10B981)
+                                        else -> Color.Gray
+                                    },
+                                    shape = CircleShape
+                                )
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = when {
+                                admin.isDeviceBlocked -> "ब्लॉक"
+                                admin.isEnabled -> "सक्रिय"
+                                else -> "निष्क्रिय"
+                            },
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                admin.isDeviceBlocked -> MaterialTheme.colorScheme.error
+                                admin.isEnabled -> Color(0xFF10B981)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Name Row: [Name (Auto fetch or custom)] + Edit Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = admin.name,
+                            text = admin.name.ifBlank { "Pending User (${displaySn})" },
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
+                            fontSize = 15.sp,
                             color = if (admin.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline
                         )
-                        IconButton(
-                            onClick = onRename,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "नाम बदलें",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(13.dp)
-                            )
+                        if (admin.name.isNotBlank()) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Default.Verified, contentDescription = "Verified", tint = rankColor, modifier = Modifier.size(15.dp))
                         }
                     }
                     if (admin.createdByDesignation.isNotBlank()) {
@@ -2025,133 +2404,34 @@ fun SubordinateAdminCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    if (admin.isDeviceBlocked) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
-                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.error),
-                            modifier = Modifier.padding(top = 2.dp)
-                        ) {
-                            Text(
-                                text = "🚫 डिवाइस ब्लॉक (Device Blocked)",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
-                        }
-                    }
                 }
 
-                // Enabled / Disabled & Activity status chip
-                Column(horizontalAlignment = Alignment.End) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = when {
-                            admin.isDeviceBlocked -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                            admin.isEnabled -> Color(0xFF10B981).copy(alpha = 0.15f)
-                            else -> MaterialTheme.colorScheme.surfaceVariant
+                // Edit Profile Toggle (Only for Master Admin & Authorized Seniors)
+                Button(
+                    onClick = {
+                        if (canManage) {
+                            onOpenProfile()
+                        } else {
+                            Toast.makeText(context, "केवल मास्टर एडमिन और अधिकृत अधिकारी ही इस प्रोफाइल को खोल सकते हैं।", Toast.LENGTH_SHORT).show()
                         }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(
-                                        color = when {
-                                            admin.isDeviceBlocked -> MaterialTheme.colorScheme.error
-                                            admin.isEnabled -> Color(0xFF10B981)
-                                            else -> Color.Gray
-                                        },
-                                        shape = CircleShape
-                                    )
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = when {
-                                    admin.isDeviceBlocked -> "ब्लॉक (Blocked)"
-                                    admin.isEnabled -> "ऑनलाइन (Online)"
-                                    else -> "ऑफ़लाइन (Offline)"
-                                },
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = when {
-                                    admin.isDeviceBlocked -> MaterialTheme.colorScheme.error
-                                    admin.isEnabled -> Color(0xFF10B981)
-                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                        }
-                    }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (canManage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (canManage) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp).testTag("btn_edit_profile_toggle_${admin.id}")
+                ) {
+                    Icon(Icons.Default.ManageAccounts, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("✏️ प्रोफाइल संपादित करें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
 
-            // PASSWORD 1 BOX (Manual & Permanent)
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Key, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = "पासवर्ड 1 (मैनुअल व स्थायी):",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = if (isPinVisible) admin.pin else "••••",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = GoldWarm
-                            )
-                            IconButton(
-                                onClick = { isPinVisible = !isPinVisible },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    if (isPinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = "Hide/Show PIN",
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
-
-                        TextButton(
-                            onClick = onChangePin,
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("पासवर्ड 1 बदलें", fontSize = 11.sp)
-                        }
-                    }
-                    Text(
-                        text = "ℹ️ यह पासवर्ड मैनुअल व स्थाई है। इसे बदलने पर उस व्यक्ति का पुराना लॉगिन तुरंत अवैध हो जाएगा।",
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 13.sp
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // PASSWORD 2 BOX (OTP - 10 Minutes Valid)
+            // P2 GENERATOR & DISPLAY BOX
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = if (isOtpValid) Color(0xFF10B981).copy(alpha = 0.08f)
@@ -2178,22 +2458,23 @@ fun SubordinateAdminCard(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = "पासवर्ड 2 (OTP):",
+                                text = "P2 टोकन (OTP):",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 text = if (admin.secondaryPin.isNotBlank()) admin.secondaryPin else "अनुपलब्ध",
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.ExtraBold,
+                                fontFamily = FontFamily.Monospace,
                                 color = if (isOtpValid) Color(0xFF10B981) else MaterialTheme.colorScheme.error
                             )
                             if (admin.secondaryPin.isNotBlank()) {
                                 IconButton(
                                     onClick = {
                                         clipboardManager.setText(AnnotatedString(admin.secondaryPin))
-                                        Toast.makeText(context, "OTP कॉपी किया गया: ${admin.secondaryPin}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "P2 OTP कॉपी किया गया: ${admin.secondaryPin}", Toast.LENGTH_SHORT).show()
                                     },
                                     modifier = Modifier.size(24.dp)
                                 ) {
@@ -2210,13 +2491,13 @@ fun SubordinateAdminCard(
                                 containerColor = if (isOtpValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("पासवर्ड जनरेट करें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Spacer(Modifier.width(3.dp))
+                            Text("P2 जनरेट करें", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(4.dp))
 
                     // Visual 10-minute Countdown Timer specifically for Password 2 (OTP)
                     OtpCountdownTimer(
@@ -2229,25 +2510,108 @@ fun SubordinateAdminCard(
 
             Spacer(Modifier.height(8.dp))
 
-            // Assigned Rights Summary
+            // SPECIAL ACCESS DROP DOWN MENU ROW
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "अधिकार: ${admin.assignedFunctions.size} सौंपे गए",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                TextButton(
-                    onClick = onEditRights,
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(14.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Security, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(15.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("अधिकार बदलें", fontSize = 11.sp)
+                    Text(
+                        text = "विशेष अधिकार (Special Access):",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Interactive Dropdown Menu for Special Access
+                Box {
+                    OutlinedButton(
+                        onClick = { expandedSpecialAccessDropdown = true },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Text(
+                            text = when {
+                                admin.assignedFunctions.size >= 10 -> "⭐ पूर्ण अधिकार"
+                                admin.assignedFunctions.any { it.contains("broadcast", ignoreCase = true) || it.contains("scripture", ignoreCase = true) } -> "📢 सामग्री व प्रसारण"
+                                admin.assignedFunctions.any { it.contains("prayer", ignoreCase = true) } -> "🙏 प्रार्थना मॉडरेशन"
+                                admin.assignedFunctions.any { it.contains("account", ignoreCase = true) } -> "💰 लेखा व दशमांश"
+                                admin.assignedFunctions.any { it.contains("attendance", ignoreCase = true) } -> "📋 उपस्थिति"
+                                admin.assignedFunctions.isEmpty() -> "🔒 केवल पठन"
+                                else -> "🛡️ ${admin.assignedFunctions.size} अधिकार"
+                            },
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.width(2.dp))
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(14.dp))
+                    }
+
+                    DropdownMenu(
+                        expanded = expandedSpecialAccessDropdown,
+                        onDismissRequest = { expandedSpecialAccessDropdown = false }
+                    ) {
+                        val accessPresets = listOf(
+                            "⭐ पूर्ण अधिकार (Full Access)" to listOf(
+                                AdminFunction.SPECIAL_ANNOUNCEMENTS.id,
+                                AdminFunction.TODAY_SCRIPTURE_UPDATE.id,
+                                AdminFunction.LIVE_STREAM_BROADCAST.id,
+                                AdminFunction.PRAYER_REQUEST_MODERATION.id,
+                                AdminFunction.PRAYER_REPLY_ENCOURAGEMENT.id,
+                                AdminFunction.CHURCH_EVENTS_CALENDAR.id,
+                                AdminFunction.DAILY_PRAYER_AUDIO.id,
+                                AdminFunction.MEMBER_DIRECTORY_VIEW.id,
+                                AdminFunction.ATTENDANCE_TRACKER.id,
+                                AdminFunction.CHURCH_ACCOUNTS_TITHES.id
+                            ),
+                            "📢 सामग्री व प्रसारण (Content & Broadcast)" to listOf(
+                                AdminFunction.SPECIAL_ANNOUNCEMENTS.id,
+                                AdminFunction.TODAY_SCRIPTURE_UPDATE.id,
+                                AdminFunction.LIVE_STREAM_BROADCAST.id,
+                                AdminFunction.DAILY_PRAYER_AUDIO.id
+                            ),
+                            "🙏 प्रार्थना मॉडरेशन (Prayer Moderation)" to listOf(
+                                AdminFunction.PRAYER_REQUEST_MODERATION.id,
+                                AdminFunction.PRAYER_REPLY_ENCOURAGEMENT.id
+                            ),
+                            "💰 लेखा व दशमांश (Finance & Accounts)" to listOf(
+                                AdminFunction.CHURCH_ACCOUNTS_TITHES.id,
+                                AdminFunction.MEMBER_DIRECTORY_VIEW.id
+                            ),
+                            "📋 उपस्थिति प्रबंधन (Attendance Tracker)" to listOf(
+                                AdminFunction.ATTENDANCE_TRACKER.id,
+                                AdminFunction.MEMBER_DIRECTORY_VIEW.id
+                            ),
+                            "🔒 केवल पठन (View Only)" to emptyList<String>()
+                        )
+
+                        accessPresets.forEach { (title, fns) ->
+                            DropdownMenuItem(
+                                text = { Text(title, fontSize = 12.sp) },
+                                onClick = {
+                                    expandedSpecialAccessDropdown = false
+                                    onUpdateSpecialAccess?.invoke(fns)
+                                }
+                            )
+                        }
+
+                        HorizontalDivider()
+
+                        DropdownMenuItem(
+                            text = { Text("⚙️ कस्टमाइज़ अधिकार (Custom Rights)...", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) },
+                            onClick = {
+                                expandedSpecialAccessDropdown = false
+                                onEditRights()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            }
+                        )
+                    }
                 }
             }
 
@@ -2255,9 +2619,9 @@ fun SubordinateAdminCard(
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                 ) {
-                    admin.assignedFunctions.take(4).forEach { fnKey ->
+                    admin.assignedFunctions.take(3).forEach { fnKey ->
                         val fn = AdminFunction.fromKey(fnKey)
                         Surface(
                             shape = RoundedCornerShape(4.dp),
@@ -2271,9 +2635,9 @@ fun SubordinateAdminCard(
                             )
                         }
                     }
-                    if (admin.assignedFunctions.size > 4) {
+                    if (admin.assignedFunctions.size > 3) {
                         Text(
-                            text = "+${admin.assignedFunctions.size - 4} और...",
+                            text = "+${admin.assignedFunctions.size - 3} और...",
                             fontSize = 9.sp,
                             color = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.align(Alignment.CenterVertically)
@@ -2284,7 +2648,7 @@ fun SubordinateAdminCard(
 
             Spacer(Modifier.height(10.dp))
 
-            // Actions: Disable (गुप्त रूप से निष्क्रिय), Block Device & Delete
+            // Actions Bottom Row: Active switch, Block Device, QR Pass, Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -2374,7 +2738,7 @@ fun SubordinateAdminCard(
 
     if (showQrDialog) {
         SerialQrDisplayDialog(
-            serialNumber = if (admin.id.isNotBlank()) admin.id else admin.name,
+            serialNumber = if (admin.serialNumber.isNotBlank()) admin.serialNumber else admin.id,
             p2Otp = if (admin.secondaryPin.isNotBlank()) admin.secondaryPin else null,
             roleTitle = admin.designation,
             remainingSeconds = (remainingTimeMs / 1000L).coerceAtLeast(0L),
@@ -2384,13 +2748,12 @@ fun SubordinateAdminCard(
 }
 
 /**
- * Specialized Dialog for adding/assigning hierarchical admin role matching exact specs:
- * 1. अधिकार श्रेणी सिलेक्ट करें (Master Admin, Bishop, उप बिशप, पास्टर, पुरनिया, विश्वासी)
- * 2. टारगेट मेंबर खोज व विवरण (नाम, फोन नंबर)
- * 3. वरिष्ठ प्राधिकारी चयन (Cascading Senior Authority Selector)
- * 4. P1 परमानेंट सिक्योरिटी पासवर्ड (4-12 डिजिट, कीबोर्ड टॉगल) व P2 6-अंकीय OTP (10 मिनट)
- * 5. अधिकारों की चेक लिस्ट (केवल अपने अंदर के अधिकार दे सके)
- * 6. प्रॉमिनेंट सेव बटन
+ * Complete Dialog for adding / issuing new Profile & Hierarchical Role:
+ * 1. श्रेणी (Category / Designation) Drop Down Menu
+ * 2. SN Box (Serial Number Box with Prefix chips & Random SN generator)
+ * 3. Name (Auto fetch after login or manual input)
+ * 4. P2 Generator Box (Triggered on tap or user login tap, with validity countdown)
+ * 5. Special Access / Rights Selection
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -2398,6 +2761,7 @@ fun AddSubordinateAdminDialog(
     creatorAdmin: AdminUser,
     allowedCategories: List<Pair<String, Int>>,
     allAdmins: List<AdminUser> = emptyList(),
+    viewModel: MainViewModel,
     onDismiss: () -> Unit,
     onConfirm: (
         designation: String,
@@ -2409,19 +2773,22 @@ fun AddSubordinateAdminDialog(
         pin: String,
         secondaryPin: String,
         assignedFunctions: List<String>,
-        applyToCategory: Boolean
+        applyToCategory: Boolean,
+        serialNumber: String
     ) -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
-    var selectedCategory by remember { mutableStateOf(allowedCategories.firstOrNull()?.first ?: "पास्टर (Pastor)") }
-    var selectedPrefix by remember { mutableStateOf("NCC") }
-    var customPrefixInput by remember { mutableStateOf("") }
-    var applyToCategory by remember { mutableStateOf(false) }
-    var showPreviewDialog by remember { mutableStateOf(false) }
+    val churchPrefixes by viewModel.churchPrefixes.collectAsStateWithLifecycle()
 
-    // Map designation to internal roleTier
+    // SECTION A: Role Tier Selection
+    var selectedCategory by remember {
+        mutableStateOf(allowedCategories.firstOrNull()?.first ?: "विश्वासी (Believer)")
+    }
+    var expandedCategoryDropdown by remember { mutableStateOf(false) }
+
     val roleTier = remember(selectedCategory) {
         when {
             selectedCategory.contains("मास्टर", ignoreCase = true) || selectedCategory.contains("विनय", ignoreCase = true) -> "master_admin"
@@ -2429,124 +2796,163 @@ fun AddSubordinateAdminDialog(
             selectedCategory.contains("बिशप", ignoreCase = true) || selectedCategory.contains("Bishop", ignoreCase = true) -> "bishop"
             selectedCategory.contains("पास्टर", ignoreCase = true) || selectedCategory.contains("Pastor", ignoreCase = true) -> "pastor"
             selectedCategory.contains("पुरनिया", ignoreCase = true) || selectedCategory.contains("Elder", ignoreCase = true) -> "elder"
+            selectedCategory.contains("डीकन", ignoreCase = true) || selectedCategory.contains("Deacon", ignoreCase = true) -> "deacon"
+            selectedCategory.contains("स्वयंसेवक", ignoreCase = true) || selectedCategory.contains("Volunteer", ignoreCase = true) -> "volunteer"
             else -> "believer"
         }
     }
 
-    // Cascading Senior Authorities list based on selected role tier
-    val eligibleSeniors = remember(roleTier, allAdmins, creatorAdmin) {
-        val list = when (roleTier) {
-            "bishop" -> allAdmins.filter { it.rank >= AdminHierarchy.RANK_VINAY_KUMAR }
-            "deputy_bishop" -> allAdmins.filter { it.rank >= AdminHierarchy.RANK_BISHOP }
-            "pastor" -> allAdmins.filter { it.rank >= AdminHierarchy.RANK_DEPUTY_BISHOP }
-            "elder" -> allAdmins.filter { it.rank >= AdminHierarchy.RANK_PASTOR }
-            "believer" -> allAdmins.filter { it.rank >= AdminHierarchy.RANK_PURANIYA }
-            else -> allAdmins.filter { it.rank >= AdminHierarchy.RANK_VINAY_KUMAR }
+    // SECTION B: Prefixes accessible to active authority
+    val availablePrefixes = remember(churchPrefixes, creatorAdmin) {
+        val fromAdmin = creatorAdmin.accessiblePrefixes
+        val fromChurch = churchPrefixes.filter {
+            it.ownerAuthorityId == creatorAdmin.id || creatorAdmin.rank >= AdminHierarchy.RANK_VINAY_KUMAR
+        }.map { it.prefixId }
+        val all = (fromAdmin + fromChurch + churchPrefixes.map { it.prefixId }).filter { it.isNotBlank() }.distinct()
+        if (all.isEmpty()) listOf("NCC") else all
+    }
+
+    var selectedPrefix by remember(availablePrefixes) {
+        mutableStateOf(availablePrefixes.firstOrNull() ?: "NCC")
+    }
+    var expandedPrefixDropdown by remember { mutableStateOf(false) }
+
+    // Dialog state for inline New Prefix
+    var showAddPrefixDialog by remember { mutableStateOf(false) }
+    var newPrefixInput by remember { mutableStateOf("") }
+    var newPrefixError by remember { mutableStateOf<String?>(null) }
+    var isRegisteringPrefix by remember { mutableStateOf(false) }
+
+    // Sequential counter logic: Serial Number = [ Selected Prefix ] + [ Current Counter + 1 ]
+    val currentPrefixRecord = remember(selectedPrefix, churchPrefixes) {
+        churchPrefixes.find { it.prefixId.equals(selectedPrefix, ignoreCase = true) }
+    }
+    val currentCounter = currentPrefixRecord?.lastCount ?: 0
+    var displayedSerialNumber by remember(selectedPrefix, currentCounter) {
+        mutableStateOf("$selectedPrefix${currentCounter + 1}")
+    }
+    var isMintingNextSn by remember { mutableStateOf(false) }
+
+    // Toggle for QR Code display
+    var showQrCode by remember { mutableStateOf(false) }
+    var isSavingBadgeToGallery by remember { mutableStateOf(false) }
+
+    // Dynamic QR generation
+    val qrPayload = remember(displayedSerialNumber) {
+        QrCodeHelper.createMemberOnboardingPayload(displayedSerialNumber)
+    }
+    val qrBitmap = remember(qrPayload) {
+        QrCodeHelper.generateQrBitmap(qrPayload, sizePx = 420)
+    }
+    val brandedBadgeBitmap = remember(qrBitmap, displayedSerialNumber, selectedCategory) {
+        qrBitmap?.let {
+            QrCodeHelper.createBrandedQrBadgeBitmap(
+                context = context,
+                qrBitmap = it,
+                serialNumber = displayedSerialNumber,
+                churchTitle = "नई सृष्टि कलीसिया",
+                roleTitle = selectedCategory
+            )
         }
-        if (list.isEmpty()) listOf(creatorAdmin) else list
     }
 
-    var selectedSenior by remember(eligibleSeniors) {
-        mutableStateOf(eligibleSeniors.firstOrNull() ?: creatorAdmin)
-    }
-
-    // Auto-generate Password 2 (OTP) initially
-    var otpInput by remember { mutableStateOf((100000..999999).random().toString()) }
-    var otpGeneratedTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
-
-    // Timer calculation for 10 minutes
-    var remainingSeconds by remember { mutableLongStateOf(600L) }
-    LaunchedEffect(otpGeneratedTimestamp) {
-        while (true) {
-            val elapsedSec = (System.currentTimeMillis() - otpGeneratedTimestamp) / 1000L
-            val rem = 600L - elapsedSec
-            remainingSeconds = if (rem > 0L) rem else 0L
-            delay(1000L)
-        }
-    }
-
-    val availableFunctions = remember(creatorAdmin) {
-        if (creatorAdmin.rank >= AdminHierarchy.RANK_VINAY_KUMAR) {
-            AdminFunction.entries
-        } else {
-            AdminFunction.entries.filter { creatorAdmin.hasFunction(it) }
-        }
-    }
-
-    val selectedFunctions = remember { mutableStateListOf<String>() }
-
-    LaunchedEffect(selectedCategory) {
-        val targetRank = AdminHierarchy.getRankForDesignation(selectedCategory)
-        val defaultIds = AdminHierarchy.getDefaultFunctionsForRank(targetRank)
-        selectedFunctions.clear()
-        selectedFunctions.addAll(defaultIds.filter { fnId: String ->
-            creatorAdmin.rank >= AdminHierarchy.RANK_VINAY_KUMAR || creatorAdmin.hasFunction(fnId)
-        })
-    }
-
-    var mintedSerialResult by remember { mutableStateOf<String?>(null) }
+    var mintedSuccessSerial by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var showFullscreenQrModal by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.ConfirmationNumber, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Icon(
+                    imageVector = Icons.Default.Badge,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = if (mintedSerialResult != null) "सीरियल आईडी जारी (Serial Issued)" else "नया सीरियल आईडी जारी करें (Issue Serial ID)",
+                    text = if (mintedSuccessSerial != null) "सदस्य प्रोफ़ाइल जारी (Profile Minted)" else "सदस्य आईडी जारी करें (Add Profile)",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
+                    fontSize = 17.sp
                 )
             }
         },
         text = {
-            if (mintedSerialResult != null) {
+            if (mintedSuccessSerial != null) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    SerialQrCard(
-                        serialNumber = mintedSerialResult ?: "",
-                        p2Otp = otpInput,
-                        roleTitle = selectedCategory,
-                        onExpandFullscreen = { showFullscreenQrModal = true }
-                    )
-
-                    Spacer(Modifier.height(10.dp))
-
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF10B981).copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFF10B981).copy(alpha = 0.12f),
+                        border = BorderStroke(1.5.dp, Color(0xFF10B981).copy(alpha = 0.5f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Key, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("P2 एक्टिवेशन OTP: $otpInput", fontWeight = FontWeight.Bold, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
-                            }
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF10B981),
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = "प्रोफ़ाइल सफलतापूर्वक स्टेज की गई!",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color(0xFF047857)
+                            )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                text = "⏳ वैधता: %02d:%02d शेष (यह OTP सदस्य को एक्टिवेशन के लिए दें)".format(remainingSeconds / 60, remainingSeconds % 60),
-                                fontSize = 10.sp,
+                                text = "सीरियल नंबर (SN): $mintedSuccessSerial",
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "भूमिका / पद: $selectedCategory",
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(14.dp))
+
+                    if (qrBitmap != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.size(190.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    bitmap = qrBitmap.asImageBitmap(),
+                                    contentDescription = "QR Code",
+                                    modifier = Modifier.size(170.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
 
                     Text(
-                        text = "ℹ️ नया सदस्य अपने फोन में QR कोड स्कैन करके या सीरियल आईडी दर्ज करके अपनी प्रोफ़ाइल एक्टिवेट कर सकते हैं।",
+                        text = "Zero Data Entry: सदस्य द्वारा ऐप में QR स्कैन या SN दर्ज करने पर उनकी प्रोफ़ाइल स्वतः एक्टिवेट हो जाएगी।",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(14.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -2554,15 +2960,19 @@ fun AddSubordinateAdminDialog(
                     ) {
                         OutlinedButton(
                             onClick = {
-                                clipboardManager.setText(AnnotatedString("सीरियल आईडी: $mintedSerialResult\nP2 OTP: $otpInput\nपद: $selectedCategory"))
-                                Toast.makeText(context, "सीरियल व OTP कॉपी किया गया!", Toast.LENGTH_SHORT).show()
+                                if (brandedBadgeBitmap != null) {
+                                    QrCodeHelper.shareOnboardingBadge(context, mintedSuccessSerial ?: displayedSerialNumber, brandedBadgeBitmap)
+                                } else {
+                                    clipboardManager.setText(AnnotatedString(mintedSuccessSerial ?: displayedSerialNumber))
+                                    Toast.makeText(context, "सीरियल नंबर कॉपी किया गया!", Toast.LENGTH_SHORT).show()
+                                }
                             },
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("कॉपी करें", fontSize = 11.sp)
+                            Text("शेयर करें", fontSize = 12.sp)
                         }
 
                         Button(
@@ -2570,7 +2980,7 @@ fun AddSubordinateAdminDialog(
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("संपन्न (Done)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("संपन्न (Done)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -2578,167 +2988,480 @@ fun AddSubordinateAdminDialog(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 500.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .heightIn(max = 520.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // =========================================================================
+                    // SECTION A: Role Tier Selection
+                    // =========================================================================
                     item {
                         Text(
-                            text = "1. पदानुक्रम पद / श्रेणी चुनें (Role Tier) *",
+                            text = "अनुभाग A: पदनाम / भूमिका चयन (Role Tier Selection) *",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 12.5.sp,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(Modifier.height(4.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            allowedCategories.forEach { (categoryName, _) ->
-                                FilterChip(
-                                    selected = selectedCategory == categoryName,
-                                    onClick = { selectedCategory = categoryName },
-                                    label = { Text(categoryName, fontSize = 11.sp, fontWeight = FontWeight.Medium) },
-                                    leadingIcon = if (selectedCategory == categoryName) {
-                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                                    } else null
-                                )
-                            }
-                        }
-                    }
+                        Spacer(Modifier.height(6.dp))
 
-                    item {
-                        Text(
-                            text = "2. क्षेत्रीय / कलीसिया प्रिफिक्स चुनें (Prefix) *",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        val defaultPrefixes = listOf("NCC", "DIO", "KOL", "VLG", "+ नया प्रिफिक्स")
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            defaultPrefixes.forEach { pfx ->
-                                val isSelected = if (pfx == "+ नया प्रिफिक्स") selectedPrefix == "CUSTOM" else selectedPrefix == pfx
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        if (pfx == "+ नया प्रिफिक्स") {
-                                            selectedPrefix = "CUSTOM"
-                                        } else {
-                                            selectedPrefix = pfx
-                                        }
-                                    },
-                                    label = { Text(pfx, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                                )
-                            }
-                        }
-
-                        if (selectedPrefix == "CUSTOM") {
-                            Spacer(Modifier.height(6.dp))
-                            OutlinedTextField(
-                                value = customPrefixInput,
-                                onValueChange = { customPrefixInput = it.uppercase().trim() },
-                                label = { Text("नया प्रिफिक्स दर्ज करें (उदा. BPL, RCH)") },
-                                singleLine = true,
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-
-                    item {
-                        Text(
-                            text = "3. रिपोर्टिंग सीनियर ऑथोरिटी (Reporting Senior):",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedCard(
+                                onClick = { expandedCategoryDropdown = true },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("dropdown_role_tier_selector")
                             ) {
-                                Icon(Icons.Default.AccountTree, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        text = "${selectedSenior.name} (${selectedSenior.designation})",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 13.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.SupervisedUserCircle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = selectedCategory,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "Tier: $roleTier",
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
-                                    Text("आईडी: ${selectedSenior.id}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = expandedCategoryDropdown,
+                                onDismissRequest = { expandedCategoryDropdown = false },
+                                modifier = Modifier.fillMaxWidth(0.85f)
+                            ) {
+                                allowedCategories.forEach { (categoryName, _) ->
+                                    val isSelected = selectedCategory == categoryName
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = categoryName,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                fontSize = 13.sp
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedCategory = categoryName
+                                            expandedCategoryDropdown = false
+                                        },
+                                        leadingIcon = {
+                                            if (isSelected) {
+                                                Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            } else {
+                                                Icon(Icons.Default.Circle, contentDescription = null, modifier = Modifier.size(8.dp), tint = MaterialTheme.colorScheme.outline)
+                                            }
+                                        }
+                                    )
                                 }
                             }
                         }
                     }
 
+                    // =========================================================================
+                    // SECTION B: Serial Number (SN Box) & Dynamic Prefix Management
+                    // =========================================================================
                     item {
+                        Text(
+                            text = "अनुभाग B: सीरियल नंबर व गतिशील प्रीफ़िक्स (SN & Prefix Management) *",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.5.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(6.dp))
+
+                        // Dynamic Prefix Selector Dropdown & Inline Add Prefix button
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                OutlinedCard(
+                                    onClick = { expandedPrefixDropdown = true },
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 10.dp, vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = "प्रीफ़िक्स (Prefix)",
+                                                fontSize = 9.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = selectedPrefix,
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = FontFamily.Monospace,
+                                                fontSize = 14.sp,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+
+                                DropdownMenu(
+                                    expanded = expandedPrefixDropdown,
+                                    onDismissRequest = { expandedPrefixDropdown = false },
+                                    modifier = Modifier.widthIn(min = 140.dp)
+                                ) {
+                                    availablePrefixes.forEach { pfx ->
+                                        val isSel = selectedPrefix == pfx
+                                        val count = churchPrefixes.find { it.prefixId == pfx }?.lastCount ?: 0
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(pfx, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                                                    Text("($count)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                }
+                                            },
+                                            onClick = {
+                                                selectedPrefix = pfx
+                                                val next = count + 1
+                                                displayedSerialNumber = "$pfx$next"
+                                                expandedPrefixDropdown = false
+                                            },
+                                            leadingIcon = {
+                                                if (isSel) {
+                                                    Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Inline button: [ ➕ नया प्रीफ़िक्स जोड़ें (+ Add Prefix) ]
+                            OutlinedButton(
+                                onClick = {
+                                    newPrefixInput = ""
+                                    newPrefixError = null
+                                    showAddPrefixDialog = true
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                modifier = Modifier.height(48.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("+ नया प्रीफ़िक्स", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        // Atomic Sequential (+1) SN Generator Row:
+                        // ┌─────────────────────────────────────────────────────────────┐
+                        // │ प्रीफ़िक्स: [ NCC ▼ ]    सीरियल नंबर (SN): [ NCC1 ]   [ ➕ अगला SN ] │
+                        // └─────────────────────────────────────────────────────────────┘
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.TouchApp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = "💡 जीरो-डेटा-एंट्री: आपको सदस्य का नाम या फोन भरने की आवश्यकता नहीं है। सिर्फ सीरियल आईडी जारी करें, बाकी विवरण सदस्य स्वयं भरेंगे।",
-                                    fontSize = 10.5.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "सीरियल नंबर (SN) [क्रमबद्ध +1]",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = displayedSerialNumber,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (!isMintingNextSn) {
+                                            isMintingNextSn = true
+                                            viewModel.mintSequentialMemberSerialNumber(
+                                                prefixId = selectedPrefix,
+                                                callerUid = creatorAdmin.id,
+                                                roleTier = roleTier,
+                                                designationTitle = selectedCategory
+                                            ) { success, sn, err ->
+                                                isMintingNextSn = false
+                                                if (success) {
+                                                    displayedSerialNumber = sn
+                                                    Toast.makeText(context, "अगला SN $sn मिंट किया गया!", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    errorMessage = err
+                                                    Toast.makeText(context, err ?: "त्रुटि", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = !isMintingNextSn,
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                    modifier = Modifier.height(44.dp)
+                                ) {
+                                    if (isMintingNextSn) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("➕ अगला SN", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // =========================================================================
+                    // 3. Dynamic QR Code Engine (Toggle, View, Share & Download)
+                    // =========================================================================
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { showQrCode = !showQrCode },
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.QrCode2,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = "📷 क्यूआर कोड दिखाएं / Show QR",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp
+                                            )
+                                            Text(
+                                                text = "सदस्य ऑनबोर्डिंग व एक्टिवेशन पास",
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    Switch(
+                                        checked = showQrCode,
+                                        onCheckedChange = { showQrCode = it }
+                                    )
+                                }
+
+                                AnimatedVisibility(
+                                    visible = showQrCode,
+                                    enter = expandVertically() + fadeIn(),
+                                    exit = shrinkVertically() + fadeOut()
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 12.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        if (qrBitmap != null) {
+                                            Surface(
+                                                shape = RoundedCornerShape(12.dp),
+                                                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                                                shadowElevation = 2.dp,
+                                                modifier = Modifier.size(190.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Image(
+                                                        bitmap = qrBitmap.asImageBitmap(),
+                                                        contentDescription = "Onboarding QR Code",
+                                                        modifier = Modifier.size(170.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(Modifier.height(8.dp))
+
+                                        Text(
+                                            text = "पेलोड: { \"type\": \"MEMBER_ONBOARDING\", \"sn\": \"$displayedSerialNumber\" }",
+                                            fontSize = 9.5.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+
+                                        Spacer(Modifier.height(12.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            // Action 1: [ 📤 शेयर करें (Share) ] -> Native OS share sheet
+                                            OutlinedButton(
+                                                onClick = {
+                                                    if (brandedBadgeBitmap != null) {
+                                                        QrCodeHelper.shareOnboardingBadge(context, displayedSerialNumber, brandedBadgeBitmap)
+                                                    } else if (qrBitmap != null) {
+                                                        QrCodeHelper.shareOnboardingBadge(context, displayedSerialNumber, qrBitmap)
+                                                    }
+                                                },
+                                                shape = RoundedCornerShape(10.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp))
+                                                Spacer(Modifier.width(4.dp))
+                                                Text("📤 शेयर करें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+
+                                            // Action 2: [ 💾 डाउनलोड करें (Download) ] -> Saves high-res badge to gallery
+                                            Button(
+                                                onClick = {
+                                                    if (!isSavingBadgeToGallery) {
+                                                        isSavingBadgeToGallery = true
+                                                        val targetBitmap = brandedBadgeBitmap ?: qrBitmap
+                                                        if (targetBitmap != null) {
+                                                            val ok = QrCodeHelper.saveQrBadgeToGallery(context, targetBitmap, displayedSerialNumber)
+                                                            if (ok) {
+                                                                Toast.makeText(context, "QR बैज गैलरी में सुरक्षित कर लिया गया!", Toast.LENGTH_SHORT).show()
+                                                            } else {
+                                                                Toast.makeText(context, "गैलरी में सेव नहीं हो सका", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        }
+                                                        isSavingBadgeToGallery = false
+                                                    }
+                                                },
+                                                shape = RoundedCornerShape(10.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(15.dp))
+                                                Spacer(Modifier.width(4.dp))
+                                                Text("💾 डाउनलोड करें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
 
                     if (errorMessage != null) {
                         item {
-                            Text(errorMessage ?: "", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = errorMessage ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
             }
         },
         confirmButton = {
-            if (mintedSerialResult == null) {
+            if (mintedSuccessSerial == null) {
                 Button(
                     onClick = {
-                        val effectivePrefix = if (selectedPrefix == "CUSTOM") customPrefixInput.ifBlank { "NCC" } else selectedPrefix
-                        val serial = "${effectivePrefix}${(1..99).random()}"
-                        mintedSerialResult = serial
+                        val isMasterAdminCreator = creatorAdmin.rank >= AdminHierarchy.RANK_VINAY_KUMAR
+                        if (!isMasterAdminCreator && displayedSerialNumber.startsWith("ADMIN", ignoreCase = true)) {
+                            errorMessage = "'ADMIN' प्रिफिक्स केवल मास्टर एडमिन द्वारा ही जारी किया जा सकता है।"
+                            return@Button
+                        }
 
-                        onConfirm(
-                            selectedCategory,
-                            "Pending User ($serial)",
-                            "",
-                            roleTier,
-                            selectedSenior.id,
-                            "${selectedSenior.name} (${selectedSenior.designation})",
-                            "0000",
-                            otpInput.trim(),
-                            selectedFunctions.toList(),
-                            applyToCategory
-                        )
+                        // Staging in database and confirming
+                        viewModel.mintSequentialMemberSerialNumber(
+                            prefixId = selectedPrefix,
+                            callerUid = creatorAdmin.id,
+                            roleTier = roleTier,
+                            designationTitle = selectedCategory
+                        ) { success, sn, err ->
+                            if (success) {
+                                mintedSuccessSerial = sn
+                                onConfirm(
+                                    selectedCategory,
+                                    "प्रतीक्षारत सदस्य ($sn)",
+                                    "",
+                                    roleTier,
+                                    creatorAdmin.id,
+                                    "${creatorAdmin.name} (${creatorAdmin.designation})",
+                                    "0000",
+                                    "",
+                                    emptyList(),
+                                    false,
+                                    sn
+                                )
+                            } else {
+                                errorMessage = err
+                                Toast.makeText(context, err ?: "त्रुटि आई", Toast.LENGTH_LONG).show()
+                            }
+                        }
                     },
                     modifier = Modifier.testTag("save_subordinate_admin_button")
                 ) {
                     Icon(Icons.Default.ConfirmationNumber, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("सीरियल आईडी जारी करें (Issue Serial)", fontWeight = FontWeight.Bold)
+                    Text("प्रोफ़ाइल जारी करें (Issue Profile)", fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
-            if (mintedSerialResult == null) {
+            if (mintedSuccessSerial == null) {
                 TextButton(onClick = onDismiss) {
                     Text("रद्द करें")
                 }
@@ -2746,13 +3469,96 @@ fun AddSubordinateAdminDialog(
         }
     )
 
-    if (showFullscreenQrModal && mintedSerialResult != null) {
-        SerialQrDisplayDialog(
-            serialNumber = mintedSerialResult ?: "",
-            p2Otp = otpInput,
-            roleTitle = selectedCategory,
-            remainingSeconds = remainingSeconds,
-            onDismiss = { showFullscreenQrModal = false }
+    // =========================================================================
+    // INLINE NEW PREFIX DIALOG (3 to 5 uppercase alphanumeric chars, counter=0)
+    // =========================================================================
+    if (showAddPrefixDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddPrefixDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AddCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("नया प्रीफ़िक्स जोड़ें (Add Prefix)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "3 से 5 बड़े अक्षरों का कलीसिया प्रीफ़िक्स दर्ज करें (उदा. NCC, KHWR, DIO):",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = newPrefixInput,
+                        onValueChange = {
+                            newPrefixInput = it.uppercase().trim().take(5)
+                            newPrefixError = null
+                        },
+                        label = { Text("प्रीफ़िक्स कोड (Prefix Code)") },
+                        placeholder = { Text("उदा. KHWR") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (newPrefixError != null) {
+                        Text(
+                            text = newPrefixError ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Text(
+                        text = "ℹ️ इस नए प्रीफ़िक्स के लिए क्रमिक काउंटर 0 से आरंभ होगा (पहला SN: [PREFIX]1).",
+                        fontSize = 10.5.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val clean = newPrefixInput.trim().uppercase()
+                        if (clean.length !in 3..5 || !clean.matches(Regex("^[A-Z0-9]{3,5}$"))) {
+                            newPrefixError = "प्रीफ़िक्स 3 से 5 बड़े अक्षरों (A-Z, 0-9) का होना अनिवार्य है"
+                            return@Button
+                        }
+                        if (availablePrefixes.any { it.equals(clean, true) }) {
+                            newPrefixError = "प्रीफ़िक्स $clean पहले से उपलब्ध है"
+                            return@Button
+                        }
+
+                        isRegisteringPrefix = true
+                        viewModel.registerNewChurchPrefix(clean, creatorAdmin) { ok, msg ->
+                            isRegisteringPrefix = false
+                            if (ok) {
+                                selectedPrefix = clean
+                                displayedSerialNumber = "${clean}1"
+                                showAddPrefixDialog = false
+                                Toast.makeText(context, "नया प्रीफ़िक्स $clean सक्रिय हुआ!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                newPrefixError = msg
+                            }
+                        }
+                    },
+                    enabled = !isRegisteringPrefix
+                ) {
+                    if (isRegisteringPrefix) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                    } else {
+                        Text("सहेजें (Save)")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddPrefixDialog = false }) {
+                    Text("रद्द करें")
+                }
+            }
         )
     }
 }

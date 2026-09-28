@@ -378,6 +378,9 @@ data class AdminUser(
     val serialNumber: String = "", // Monospace Alphanumeric
     val previousSerials: List<String> = emptyList(),
     val churchId: String = "",
+    val homeBranchId: String = "branch_ncc_01", // Primary local church
+    val accessibleBranches: List<String> = emptyList(), // Permitted branch IDs (or ["*"] for Global)
+    val activeContextBranchId: String = "", // Persisted active branch
     val lastUpdated: Long = System.currentTimeMillis()
 ) {
     fun isMasterAdmin(): Boolean {
@@ -636,6 +639,22 @@ object AdminHierarchy {
                admin.hasPermission(AdminPermission.CAN_MODERATE_PRAYERS) ||
                admin.hasFunction(AdminFunction.PRAYER_REQUEST_MODERATION)
     }
+
+    /**
+     * Checks if the admin has Pastor rank or higher (Pastor, Deputy Bishop, Bishop, Master Admin)
+     */
+    fun isPastorOrAbove(admin: AdminUser?): Boolean {
+        if (admin == null) return false
+        if (admin.isMasterAdmin() || admin.rank >= RANK_VINAY_KUMAR) return true
+        val rank = admin.rank
+        val d = admin.designation.lowercase()
+        return rank >= RANK_PASTOR ||
+               d.contains("पास्टर") || d.contains("pastor") ||
+               d.contains("बिशप") || d.contains("bishop") ||
+               d.contains("उप बिशप") || d.contains("deputy") ||
+               d.contains("विनय") || d.contains("vinay") ||
+               d.contains("मास्टर") || d.contains("master")
+    }
 }
 
 @Keep
@@ -782,7 +801,10 @@ data class AdminAuditLog(
     val targetUserId: String = "",
     val performedByAdminId: String = "",
     val p1Validated: Boolean = false,
-    val p2Verified: Boolean = false
+    val p2Verified: Boolean = false,
+    val activeBranchId: String = "",
+    val activeRole: String = "",
+    val performedBy: String = ""
 )
 
 @Keep
@@ -926,6 +948,7 @@ data class ChurchAccountTransaction(
     val dateString: String = "",
     val notes: String = "",
     val recordedByAdmin: String = "",
+    val branchId: String = "branch_ncc_01",
     val timestamp: Long = System.currentTimeMillis()
 )
 

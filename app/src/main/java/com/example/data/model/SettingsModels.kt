@@ -22,7 +22,8 @@ enum class BibleReadingStyle(val displayName: String) {
 enum class YouTubeDefaultTab(val displayName: String) {
     ALL("All Channels (सभी चैनल)"),
     AVJ_WORSHIP("Vinay Kumar AVJ Worship (Worship)"),
-    VINAY_KUMAR_AVJ("Vinay Kumar AVJ")
+    VINAY_KUMAR_AVJ("Vinay Kumar AVJ"),
+    NEW_CREATION_CHURCH("New Creation Church")
 }
 
 enum class CustomFourthTab(val titleHindi: String, val titleEnglish: String) {
@@ -178,11 +179,19 @@ data class UserSettings(
     val isGlobalAdminEmergencyLock: Boolean = false,
     val hasSeenProfileAdminPrompt: Boolean = false,
     val masterAdminPasswordEnabled: Boolean = true,
-    val masterAdminPin: String = "9876",
-    val masterAdminDualAuthEnabled: Boolean = false,
-    val masterAdminSecondaryPin: String = "123456",
+    val masterAdminPin: String = "2291",
+    val masterAdminDualAuthEnabled: Boolean = true,
+    val masterAdminSecondaryPin: String = "",
+    val masterAdminEmergencyRecoveryKey: String = "VK99-EMERGENCY-2026-AVJ1",
+    val masterEmergencyBackupCodes: List<String> = listOf(
+        "VK-7821-4902", "VK-3194-8820", "VK-6502-1147", "VK-9923-5561", "VK-4481-9032",
+        "VK-1279-3345", "VK-8830-7712", "VK-5591-2284", "VK-7742-6690", "VK-2239-4418"
+    ),
+    val maxFailedLoginAttempts: Int = 3,
+    val temporaryLockoutMinutes: Int = 5,
     val biometricTimeoutDays: Int = 30,
     val isBiometricEnabled: Boolean = true,
+    val adminAuthSessionMode: String = "ONCE_PER_SESSION", // "ONCE_PER_SESSION" or "EVERY_TIME"
     val globalAuthBypass: Boolean = false,
     val requireP2EveryLogin: Boolean = true,
     val trustedDevices: List<String> = listOf("Android-Primary-Device", "Mobile-Auth-Terminal-01"),

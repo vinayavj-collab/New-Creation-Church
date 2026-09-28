@@ -11,7 +11,8 @@ object ScriptureSpeechUtils {
      */
     fun formatVerseForSpeech(verse: VerseOfTheDay): String {
         val book = verse.bookNameHindi.ifBlank { verse.bookNameEnglish }
-        return "$book अध्याय ${verse.chapter}, वचन ${verse.verseNumber}। ... ${verse.textHindi}"
+        val cleanBody = com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(verse.textHindi)
+        return "$book अध्याय ${verse.chapter}, वचन ${verse.verseNumber}। ... $cleanBody"
     }
 
     /**
@@ -21,7 +22,8 @@ object ScriptureSpeechUtils {
     fun formatScriptureTextForSpeech(text: String?): String {
         if (text.isNullOrBlank()) return ""
 
-        val trimmed = text.trim()
+        val cleaned = com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(text)
+        val trimmed = cleaned.trim()
 
         // 1. If text is in format "Verse Text - Book Chapter:Verse" or "Verse Text — Book Chapter:Verse"
         val dashSplit = trimmed.split(Regex("""\s*[-–—]\s*"""))

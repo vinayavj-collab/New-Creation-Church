@@ -55,7 +55,7 @@ object RemoteConfigHelper {
     private const val DEFAULT_LATEST_VERSION_CODE = 0
     private const val DEFAULT_UPDATE_APK_URL = ""
     const val DEFAULT_PERSONAL_VLOG_PASSWORD = "9479"
-    const val DEFAULT_PRIVATE_PROFILE_PASSWORD = "Vin@122333"
+    const val DEFAULT_PRIVATE_PROFILE_PASSWORD = "Vin@22914125"
     private const val DEFAULT_PRIVATE_PROFILE_ENABLED = true
     private const val DEFAULT_THEME_PRIMARY_COLOR = ""
     private const val DEFAULT_THEME_SECONDARY_COLOR = ""

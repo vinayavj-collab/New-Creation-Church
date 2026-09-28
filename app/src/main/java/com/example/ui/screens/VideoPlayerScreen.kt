@@ -29,9 +29,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
@@ -41,6 +44,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -175,6 +180,42 @@ fun VideoPlayerScreen(
 
     var showYouTubeSettingsDialog by remember { mutableStateOf(false) }
     var isDescriptionExpanded by remember { mutableStateOf(false) }
+    var showQualityDropdown by remember { mutableStateOf(false) }
+
+    val ytSettings by com.example.util.YouTubeSettingsManager.settings.collectAsStateWithLifecycle()
+    val activeQualityFromTracker by com.example.util.VideoPlaybackTracker.currentQuality.collectAsStateWithLifecycle()
+
+    val qualityDisplayMap = mapOf(
+        "auto" to "Auto",
+        "default" to "Auto",
+        "tiny" to "144p",
+        "144p" to "144p",
+        "small" to "240p",
+        "240p" to "240p",
+        "medium" to "360p",
+        "360p" to "360p",
+        "large" to "480p",
+        "480p" to "480p",
+        "hd720" to "720p",
+        "720p" to "720p",
+        "hd1080" to "1080p",
+        "1080p" to "1080p",
+        "hd1440" to "1444p",
+        "1440p" to "1444p",
+        "1444p" to "1444p",
+        "highres" to "1444p"
+    )
+
+    val currentQualityDisplay = when {
+        ytSettings.selectedQuality.isNotBlank() && ytSettings.selectedQuality != "auto" -> {
+            qualityDisplayMap[ytSettings.selectedQuality.lowercase()] ?: ytSettings.selectedQuality
+        }
+        activeQualityFromTracker.isNotBlank() && activeQualityFromTracker != "auto" && activeQualityFromTracker != "default" -> {
+            qualityDisplayMap[activeQualityFromTracker.lowercase()] ?: activeQualityFromTracker
+        }
+        else -> "Auto"
+    }
+
     val playTarget = if (video.videoUrl.isNotBlank()) video.videoUrl else video.id
     
     // Check if video is Shorts or vertical video (by URL, title, description or user toggle)
@@ -414,14 +455,90 @@ fun VideoPlayerScreen(
                                 Text(if (is916VerticalMode) "9:16 Mode" else "16:9 Mode", fontSize = 12.sp)
                             }
 
-                            OutlinedButton(
-                                onClick = { showYouTubeSettingsDialog = true },
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Icon(Icons.Default.Settings, contentDescription = "YouTube Settings", modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Player Setting", fontSize = 12.sp)
+                            // Working Quality Selector Dropdown
+                            Box {
+                                OutlinedButton(
+                                    onClick = { showQualityDropdown = true },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.HighQuality,
+                                        contentDescription = "Video Quality",
+                                        modifier = Modifier.size(15.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Quality: $currentQualityDisplay",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.width(2.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showQualityDropdown,
+                                    onDismissRequest = { showQualityDropdown = false }
+                                ) {
+                                    val qualityOptions = listOf(
+                                        "auto" to "Auto (स्वचालित)",
+                                        "tiny" to "144p",
+                                        "small" to "240p",
+                                        "medium" to "360p",
+                                        "large" to "480p",
+                                        "hd720" to "720p",
+                                        "hd1080" to "1080p",
+                                        "hd1440" to "1444p"
+                                    )
+
+                                    qualityOptions.forEach { (code, label) ->
+                                        val isCurrent = if (code == "auto") {
+                                            ytSettings.selectedQuality == "auto" || ytSettings.selectedQuality.isBlank() || ytSettings.selectedQuality == "default"
+                                        } else {
+                                            ytSettings.selectedQuality == code || activeQualityFromTracker == code
+                                        }
+
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = label,
+                                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    if (isCurrent) {
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Icon(
+                                                            imageVector = Icons.Default.Check,
+                                                            contentDescription = "Active",
+                                                            modifier = Modifier.size(16.dp),
+                                                            tint = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                            onClick = {
+                                                com.example.util.YouTubeSettingsManager.updateSettings(
+                                                    context,
+                                                    ytSettings.copy(selectedQuality = code)
+                                                )
+                                                com.example.util.VideoPlaybackTracker.setQuality(video.id, code)
+                                                showQualityDropdown = false
+                                                Toast.makeText(context, "Quality: $label", Toast.LENGTH_SHORT).show()
+                                            }
+                                        )
+                                    }
+                                }
                             }
 
                             if (onEnterPipClick != null) {
@@ -520,7 +637,6 @@ fun VideoPlayerScreen(
 
     // YouTube Player Settings Dialog
     if (showYouTubeSettingsDialog) {
-        val ytSettings by com.example.util.YouTubeSettingsManager.settings.collectAsStateWithLifecycle()
         AlertDialog(
             onDismissRequest = { showYouTubeSettingsDialog = false },
             title = {
@@ -597,6 +713,7 @@ fun VideoPlayerScreen(
 
                         val qualityList = listOf(
                             "auto" to "ऑटोमैटिक (Auto)",
+                            "hd1440" to "1444p QHD",
                             "hd1080" to "1080p HD",
                             "hd720" to "720p HD",
                             "large" to "480p SD",

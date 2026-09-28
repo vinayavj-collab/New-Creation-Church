@@ -73,72 +73,6 @@ fun AdminAttendanceScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "कलीसिया सभा उपस्थिति ट्रैकर",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${attendanceRecords.size} सभाओं का रिकॉर्ड",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("attendance_back_button")
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            val uri = com.example.util.CsvExportHelper.exportAttendanceToCsv(context, attendanceRecords)
-                            if (uri != null) {
-                                com.example.util.CsvExportHelper.shareCsvFile(
-                                    context,
-                                    uri,
-                                    "कलीसिया उपस्थिति रिकॉर्ड CSV रिपोर्ट"
-                                )
-                            } else {
-                                Toast.makeText(context, "CSV फ़ाइल बनाने में त्रुटि हुई", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.testTag("export_attendance_csv_button")
-                    ) {
-                        Icon(
-                            Icons.Default.FileDownload,
-                            contentDescription = "CSV डाउनलोड (Export CSV)",
-                            tint = com.example.ui.theme.GoldWarm
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            val report = onExportReport()
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, "Church Attendance Report")
-                                putExtra(Intent.EXTRA_TEXT, report)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "उपस्थिति रिपोर्ट साझा करें"))
-                        },
-                        modifier = Modifier.testTag("export_attendance_button")
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Export Text")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddDialog = true },
@@ -154,35 +88,148 @@ fun AdminAttendanceScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            // Stats summary card
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                ),
+            // Action & Metrics Header Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "सभा उपस्थिति एनालिटिक्स",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            val uri = com.example.util.CsvExportHelper.exportAttendanceToCsv(context, attendanceRecords)
+                            if (uri != null) {
+                                com.example.util.CsvExportHelper.shareCsvFile(
+                                    context,
+                                    uri,
+                                    "कलीसिया उपस्थिति रिकॉर्ड CSV रिपोर्ट"
+                                )
+                            } else {
+                                Toast.makeText(context, "CSV फ़ाइल बनाने में त्रुटि हुई", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("export_attendance_csv_button")
+                    ) {
+                        Icon(
+                            Icons.Default.FileDownload,
+                            contentDescription = "CSV डाउनलोड",
+                            tint = com.example.ui.theme.GoldWarm,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            val report = onExportReport()
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "Church Attendance Report")
+                                putExtra(Intent.EXTRA_TEXT, report)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "उपस्थिति रिपोर्ट साझा करें"))
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("export_attendance_button")
+                    ) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Share Report",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            // Horizontal Scroll Metrics (YouTube Studio Style - Prevents Squishing on Mobile)
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "$totalAttendanceSum", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Text(text = "कुल उपस्थिति", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 120.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "$totalAttendanceSum", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(text = "कुल उपस्थिति", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                    Divider(modifier = Modifier.height(36.dp).width(1.dp))
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "$avgAttendance", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
-                        Text(text = "औसत प्रति सभा", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 120.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "$avgAttendance", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                            Text(text = "औसत प्रति सभा", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                    Divider(modifier = Modifier.height(36.dp).width(1.dp))
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "$totalVisitors", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
-                        Text(text = "नये आगंतुक", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 120.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "$totalVisitors", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
+                            Text(text = "नये आगंतुक", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 120.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "${attendanceRecords.size}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+                            Text(text = "कुल सभाएं", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }

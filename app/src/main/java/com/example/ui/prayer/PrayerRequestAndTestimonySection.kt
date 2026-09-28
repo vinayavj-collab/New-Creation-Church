@@ -90,6 +90,7 @@ fun PrayerRequestAndTestimonySection(
 
     val currentAdmin by viewModel.currentAdmin.collectAsState()
     val canReply = remember(currentAdmin) { AdminHierarchy.canReplyToPrayers(currentAdmin) }
+    val isPastorOrAbove = remember(currentAdmin) { AdminHierarchy.isPastorOrAbove(currentAdmin) }
 
     var showAddDialog by remember { mutableStateOf(false) }
     var answeringRequest by remember { mutableStateOf<PrayerRequestItem?>(null) }
@@ -98,11 +99,20 @@ fun PrayerRequestAndTestimonySection(
     var itemToDelete by remember { mutableStateOf<PrayerRequestItem?>(null) }
 
     // Separate active requests vs answered testimonies
-    val activeRequests = remember(allRequests) {
-        allRequests.filter { !it.isAnswered && !it.isPrivate }
+    // Note: If request is marked 'isPrivate' (केवल पास्टर को भेजें), show only to Pastor and higher roles OR if it's the sender's own request
+    val activeRequests = remember(allRequests, isPastorOrAbove) {
+        allRequests.filter { item ->
+            if (item.isAnswered) return@filter false
+            if (!item.isPrivate) return@filter true
+            isPastorOrAbove || UserDeviceHelper.isMyRequest(context, item.id, item.senderDeviceId)
+        }
     }
-    val answeredTestimonies = remember(allRequests) {
-        allRequests.filter { it.isAnswered }
+    val answeredTestimonies = remember(allRequests, isPastorOrAbove) {
+        allRequests.filter { item ->
+            if (!item.isAnswered) return@filter false
+            if (!item.isPrivate) return@filter true
+            isPastorOrAbove || UserDeviceHelper.isMyRequest(context, item.id, item.senderDeviceId)
+        }
     }
 
     // Filter and sort for the active tab
@@ -715,6 +725,23 @@ fun ActivePrayerRequestCard(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    if (item.isPrivate) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF7C3AED).copy(alpha = 0.15f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF7C3AED).copy(alpha = 0.6f))
+                        ) {
+                            Text(
+                                text = "🔒 केवल पास्टर",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF7C3AED)
                                 )
                             )
                         }
@@ -1542,20 +1569,47 @@ fun AddNewPrayerRequestDialog(
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isPrivate) Color(0xFF7C3AED).copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isPrivate) Color(0xFF7C3AED).copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { isPrivate = !isPrivate }
-                        .padding(4.dp)
                 ) {
-                    Checkbox(checked = isPrivate, onCheckedChange = { isPrivate = it })
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "गोपनीय रखें (केवल पास्टर व प्रार्थना दल को दिखे)",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                    ) {
+                        Checkbox(
+                            checked = isPrivate,
+                            onCheckedChange = { isPrivate = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFF7C3AED)
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "🔒 केवल पास्टर को भेजें (Pastor Only)",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isPrivate) Color(0xFF7C3AED) else MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                            Text(
+                                text = "यह प्रार्थना निवेदन केवल पास्टर और उच्च श्रेणी के अधिकारियों (बिशप, मास्टर एडमिन) को ही दिखाया जाएगा।",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+                    }
                 }
 
                 Button(
@@ -1775,6 +1829,23 @@ fun PrayerAndTestimonyDetailsDialog(
                                 text = "🚨 अति-आवश्यक / तत्काल",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    if (item.isPrivate) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF7C3AED).copy(alpha = 0.15f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF7C3AED).copy(alpha = 0.6f))
+                        ) {
+                            Text(
+                                text = "🔒 केवल पास्टर (Pastor Only)",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = Color(0xFF7C3AED),
                                     fontWeight = FontWeight.Bold
                                 ),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

@@ -99,7 +99,7 @@ data class BibleReadingSettings(
     // Dual / Bilingual Bible Options
     val isDualBibleEnabled: Boolean = false,
     val dualHindiVersionId: String = BibleTranslation.HIOV.id,
-    val dualEnglishVersionId: String = BibleTranslation.ENGLISH_ESV.id,
+    val dualEnglishVersionId: String = BibleTranslation.ENGLISH_NKJV.id,
     val dualViewMode: DualViewMode = DualViewMode.INTERLEAVED,
     // Version 21 & 22 Settings
     val showTodaysScriptureOnHome: Boolean = false, // By default hidden on Bible main navigation page

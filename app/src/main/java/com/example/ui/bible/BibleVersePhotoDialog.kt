@@ -202,7 +202,7 @@ fun BibleVersePhotoDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = verse.text,
+                            text = com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(verse.text),
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontSize = fontSize.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -306,7 +306,8 @@ fun BibleVersePhotoDialog(
 
                     Button(
                         onClick = {
-                            val shareText = "✝ \"${verse.text}\"\n\n— ${verse.bookName} ${verse.chapter}:${verse.verseNumber}\n\nसच्चा मसीही जीवन (Hindi Bible App)"
+                            val cleanText = com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(verse.text)
+                            val shareText = "✝ \"$cleanText\"\n\n— ${verse.bookName} ${verse.chapter}:${verse.verseNumber}\n\nसच्चा मसीही जीवन (Hindi Bible App)"
                             val sendIntent = Intent().apply {
                                 action = Intent.ACTION_SEND
                                 putExtra(Intent.EXTRA_TEXT, shareText)

@@ -289,6 +289,10 @@ fun VideoQuickAccessManagerDialog(
                                         label = { Text("Main AVJ", fontSize = 10.sp) }
                                     )
                                     SuggestionChip(
+                                        onClick = { formFilterValue = PredefinedPlaylists.channelNewCreationChurch.id },
+                                        label = { Text("NCC", fontSize = 10.sp) }
+                                    )
+                                    SuggestionChip(
                                         onClick = { formFilterValue = "dailymotion" },
                                         label = { Text("Dailymotion", fontSize = 10.sp) }
                                     )

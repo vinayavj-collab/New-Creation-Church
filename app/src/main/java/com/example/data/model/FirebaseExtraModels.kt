@@ -165,3 +165,49 @@ data class PrayerDeletionAuditLog(
     val action: String = "DELETE_PRAYER_REQUEST"
 )
 
+@Keep
+data class AudioMessageConfig(
+    val isServiceActive: Boolean = true,
+    val maxDurationSeconds: Int = 180,
+    val dailyPublishTime: String = "06:00",
+    val dailySlotsCount: Int = 1,
+    val recordingQuality: String = "standard_64k",
+    val requiresPrePublishApproval: Boolean = false,
+    val fallbackAudioUrl: String = "",
+    val retentionDays: Int = 30,
+    val allowedRoleTiersForRecording: List<String> = listOf("master_admin", "bishop", "pastor"),
+    val delegatedMediaManagerIds: List<String> = emptyList(),
+    val storageCapMb: Int = 500, // 100 MB to 4096 MB (4 GB)
+    val maxFileSizeMb: Int = 10, // Per-file maximum upload limit allowed by Master Admin
+    val enableFifoAutoCleanup: Boolean = true // Auto cleanup non-pinned items when storage reaches >= 95%
+)
+
+@Keep
+data class DailyDevotion(
+    val devotionId: String = "",
+    val scheduledDate: String = "",
+    val slotIndex: Int = 1,
+    val slotLabel: String = "सुबह का मनन",
+    val title: String = "",
+    val scriptureRef: String = "",
+    val speakerId: String = "",
+    val speakerName: String = "",
+    val speakerRole: String = "",
+    val audioUrl: String = "",
+    val storagePath: String = "",
+    val durationSeconds: Int = 0,
+    val fileSizeBytes: Long = 0L,
+    val bitrateKbps: Int = 64,
+    val status: String = "scheduled", // "scheduled", "pending_approval", "published", "rejected"
+    val isPinned: Boolean = false,
+    val pinnedReason: String = "",
+    val isOverwritten: Boolean = false,
+    val overwrittenBy: String = "",
+    val overwrittenAt: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val approvedBy: String = "",
+    val approvedAt: Long? = null,
+    val listensCount: Long = 0L
+)
+
+

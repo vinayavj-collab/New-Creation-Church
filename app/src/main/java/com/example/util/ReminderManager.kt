@@ -66,6 +66,78 @@ object ReminderScheduler {
         ONE_HOUR("1 Hour Before", 60 * 60 * 1000L)
     }
 
+    fun scheduleChurchServiceOneHourReminder(
+        context: Context,
+        serviceId: String,
+        serviceName: String,
+        dayOfWeek: Int,
+        startTimeStr: String
+    ): Pair<Boolean, Long> {
+        val nextStartTimestamp = calculateNextServiceTimestamp(dayOfWeek, startTimeStr)
+        val triggerTime = nextStartTimestamp - (60 * 60 * 1000L) // 1 hour before
+
+        if (triggerTime <= System.currentTimeMillis()) {
+            return Pair(false, 0L)
+        }
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return Pair(false, 0L)
+        val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
+            putExtra("title", "आराधना स्मरण: $serviceName")
+            putExtra("subtitle", "$serviceName ठीक 1 घंटे में ($startTimeStr बजे) शुरू होने वाली है। प्रभु की संगति के लिए तैयार रहें।")
+            putExtra("postId", "service_reminder_$serviceId")
+        }
+
+        val requestCode = ("service_reminder_$serviceId").hashCode()
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+        )
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            }
+            return Pair(true, triggerTime)
+        } catch (e: SecurityException) {
+            try {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                return Pair(true, triggerTime)
+            } catch (ex: Exception) {
+                return Pair(false, 0L)
+            }
+        } catch (e: Exception) {
+            return Pair(false, 0L)
+        }
+    }
+
+    fun calculateNextServiceTimestamp(dayOfWeek: Int, startTimeStr: String): Long {
+        val parts = startTimeStr.split(":")
+        val hour = parts.getOrNull(0)?.trim()?.toIntOrNull() ?: 9
+        val minute = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
+
+        val calendar = java.util.Calendar.getInstance()
+        val currentDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK) - 1 // 0 = Sunday
+
+        val daysDifference = (dayOfWeek - currentDayOfWeek + 7) % 7
+
+        calendar.add(java.util.Calendar.DAY_OF_YEAR, daysDifference)
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, hour)
+        calendar.set(java.util.Calendar.MINUTE, minute)
+        calendar.set(java.util.Calendar.SECOND, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+
+        // If today and time has already passed, schedule for next week
+        if (daysDifference == 0 && calendar.timeInMillis <= System.currentTimeMillis()) {
+            calendar.add(java.util.Calendar.DAY_OF_YEAR, 7)
+        }
+
+        return calendar.timeInMillis
+    }
+
     fun scheduleReminder(
         context: Context,
         postId: String,

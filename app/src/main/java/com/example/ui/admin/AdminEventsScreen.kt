@@ -76,58 +76,6 @@ fun AdminEventsScreen(
     val totalRsvps = remember(events) { events.sumOf { it.rsvpCount } }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "कार्यक्रम प्रबंधन",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Text(
-                                    text = "Events",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = "${events.size} कार्यक्रम रिकॉर्ड • $totalRsvps कुल उपस्थिति",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("admin_events_back_button")
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            editingEvent = null
-                            showAddEditDialog = true
-                        },
-                        modifier = Modifier.testTag("admin_events_add_button")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Event", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            )
-        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
@@ -149,33 +97,70 @@ fun AdminEventsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Quick Stats Cards Row
+            // Top Action & Section Title
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    EventStatCard(
-                        title = "कुल सभाएं",
-                        value = "${events.size}",
-                        icon = Icons.Default.Event,
-                        bgColor = Color(0xFF2563EB),
-                        modifier = Modifier.weight(1f)
+                    Text(
+                        text = "कार्यक्रम प्रबंधन",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
-                    EventStatCard(
-                        title = "ऑनलाइन सभाएं",
-                        value = "$onlineCount",
-                        icon = Icons.Default.Videocam,
-                        bgColor = Color(0xFF7C3AED),
-                        modifier = Modifier.weight(1f)
-                    )
-                    EventStatCard(
-                        title = "कुल RSVPs",
-                        value = "$totalRsvps",
-                        icon = Icons.Default.Group,
-                        bgColor = Color(0xFF059669),
-                        modifier = Modifier.weight(1f)
-                    )
+
+                    IconButton(
+                        onClick = {
+                            editingEvent = null
+                            showAddEditDialog = true
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("admin_events_add_button")
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add Event",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            // Quick Stats Cards Row (YouTube Studio Style Horizontal Scroll)
+            item {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        EventStatCard(
+                            title = "कुल सभाएं",
+                            value = "${events.size}",
+                            icon = Icons.Default.Event,
+                            bgColor = Color(0xFF2563EB),
+                            modifier = Modifier.widthIn(min = 120.dp)
+                        )
+                    }
+                    item {
+                        EventStatCard(
+                            title = "ऑनलाइन सभाएं",
+                            value = "$onlineCount",
+                            icon = Icons.Default.Videocam,
+                            bgColor = Color(0xFF7C3AED),
+                            modifier = Modifier.widthIn(min = 120.dp)
+                        )
+                    }
+                    item {
+                        EventStatCard(
+                            title = "कुल RSVPs",
+                            value = "$totalRsvps",
+                            icon = Icons.Default.Group,
+                            bgColor = Color(0xFF059669),
+                            modifier = Modifier.widthIn(min = 120.dp)
+                        )
+                    }
                 }
             }
 

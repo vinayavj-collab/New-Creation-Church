@@ -143,7 +143,7 @@ fun BibleNoteEditorDialog(
                 ) {
                     SelectionContainer {
                         Text(
-                            text = "\"${verse.text}\"",
+                            text = "\"${com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(verse.text)}\"",
                             style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
                             modifier = Modifier.padding(10.dp),
                             maxLines = if (isFullScreen) 4 else 2

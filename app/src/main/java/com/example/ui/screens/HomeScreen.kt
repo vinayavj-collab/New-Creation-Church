@@ -121,6 +121,8 @@ fun HomeScreen(
     val liveStreamInfo by viewModel.liveStreamInfo.collectAsStateWithLifecycle()
     val featuredBanners by viewModel.featuredBanners.collectAsStateWithLifecycle()
     val dailyAudioDevotional by viewModel.dailyAudioDevotional.collectAsStateWithLifecycle()
+    val audioMessageConfig by viewModel.audioMessageConfig.collectAsStateWithLifecycle()
+    val dailyDevotions by viewModel.dailyDevotions.collectAsStateWithLifecycle()
     val prayerRequests by viewModel.prayerRequests.collectAsStateWithLifecycle()
     val quickAccessConfig by viewModel.quickAccessConfig.collectAsStateWithLifecycle()
 
@@ -172,9 +174,16 @@ fun HomeScreen(
         }
     }
 
+    val currentAdmin by viewModel.currentAdmin.collectAsStateWithLifecycle()
+    val isPastorOrAbove = remember(currentAdmin) { com.example.data.model.AdminHierarchy.isPastorOrAbove(currentAdmin) }
+
     // Active Urgent Prayer Alert & Automatic Window Trigger
-    val activeUrgentPrayer = remember(prayerRequests) {
-        prayerRequests.firstOrNull { it.isUrgent && !it.isAnswered }
+    val activeUrgentPrayer = remember(prayerRequests, isPastorOrAbove) {
+        prayerRequests.firstOrNull { item ->
+            if (!item.isUrgent || item.isAnswered) return@firstOrNull false
+            if (!item.isPrivate) return@firstOrNull true
+            isPastorOrAbove || com.example.util.UserDeviceHelper.isMyRequest(context, item.id, item.senderDeviceId)
+        }
     }
     var urgentPrayerDismissedId by rememberSaveable { mutableStateOf("") }
     var showUrgentPrayerWindow by remember { mutableStateOf(false) }
@@ -220,7 +229,6 @@ fun HomeScreen(
     }
 
     val homeSectionsConfig by viewModel.homeSectionsConfig.collectAsStateWithLifecycle()
-    val currentAdmin by viewModel.currentAdmin.collectAsStateWithLifecycle()
     var showHomeLayoutDialog by remember { mutableStateOf(false) }
 
     val isMasterAdmin = currentAdmin?.isMasterAdmin() == true ||
@@ -981,10 +989,15 @@ fun HomeScreen(
             }
 
             // Daily Audio Devotional Card
-            if (homeSectionsConfig.isSectionVisible("HOME_DAILY_AUDIO_DEVOTIONAL") && dailyAudioDevotional != null && dailyAudioDevotional!!.audioUrl.isNotBlank()) {
+            if (homeSectionsConfig.isSectionVisible("HOME_DAILY_AUDIO_DEVOTIONAL") && audioMessageConfig.isServiceActive) {
                 item(key = "HOME_DAILY_AUDIO_DEVOTIONAL") {
                     DailyAudioDevotionalCard(
-                        devotional = dailyAudioDevotional!!,
+                        devotional = dailyAudioDevotional,
+                        dailyDevotions = dailyDevotions,
+                        config = audioMessageConfig,
+                        onListenStarted = { devotionId ->
+                            viewModel.incrementDevotionListens(devotionId)
+                        },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }

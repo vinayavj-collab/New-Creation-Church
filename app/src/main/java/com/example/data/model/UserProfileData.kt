@@ -40,6 +40,13 @@ data class UserProfileData(
     val yearsInFaith: Int = 0,
     val distanceToChurchKm: Double = 0.0,
     val maritalStatus: String = "",
+    val anniversaryDate: String = "", // e.g., "2018-05-20" (Used for Pastoral Care wedding anniversary triggers)
+    val familyId: String = "", // e.g., "fam_NCC_01" (1-Tap Family Pass linkage)
+    val isFamilyHead: Boolean = false, // Toggle for Family Pass QR Badge
+    val familyRole: String = "member", // "head" | "member" | "spouse"
+    val membershipStatus: String = "active", // "active" | "transferred_internal" | "married_out" | "transferred_external"
+    val homeBranchId: String = "branch_ncc_01", // Current active church branch
+    val transferHistory: List<MemberTransferHistoryItem> = emptyList(),
     val cityPincode: String = "",
     
     // Administrative Extensions
@@ -91,6 +98,20 @@ enum class UserActivityType(val titleHindi: String, val titleEnglish: String) {
     STUDY_NOTE("स्टडी नोट्स", "Study Notes"),
     SAVED_BOOKMARK("बुकमार्क्स", "Saved Bookmarks")
 }
+
+@Keep
+data class MemberTransferHistoryItem(
+    val date: String = "",
+    val type: String = "", // "MARRIAGE_FAMILY_CHANGE", "BRANCH_TRANSFER", "EXTERNAL_RELOCATION"
+    val fromFamilyId: String = "",
+    val toFamilyId: String = "",
+    val fromBranchId: String = "",
+    val toBranchId: String = "",
+    val authorizedBy: String = "",
+    val authorizedByName: String = "",
+    val remarks: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
 
 data class UserActivityItem(
     val id: String,

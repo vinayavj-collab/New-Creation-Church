@@ -23,20 +23,39 @@ class BibleLocalDataSource(
         private val BASE64_PATTERN = Regex("^[A-Za-z0-9+/=]{20,}$")
         private val SUPERSCRIPT_PATTERN = Regex("<sup.*?>.*?</sup>", RegexOption.IGNORE_CASE)
         private val STRONGS_PATTERN = Regex("<s.*?>.*?</s>", RegexOption.IGNORE_CASE)
-        private val FOOTNOTE_PATTERN = Regex("<\b(?:f|fe|x|xref)\b.*?>.*?</(?:f|fe|x|xref)>", RegexOption.IGNORE_CASE)
-        private val BRACKET_MARKER_PATTERN = Regex("\\[(?:xref|footnote|note|\\d+|[a-zA-Z])[^\\]]*\\]", RegexOption.IGNORE_CASE)
+        private val FOOTNOTE_TAGS_BLOCK_PATTERN = Regex("<(?:f|fe|fn|footnote|note|x|xref|crossref|annotation|commentary|rf|fr|fb|fe)[^>]*>.*?</(?:f|fe|fn|footnote|note|x|xref|crossref|annotation|commentary|rf|fr|fb|fe)>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        private val USFM_FOOTNOTE_PATTERN = Regex("\\\\[fx](?:\\s+|\\*).*?\\\\[fx]\\*", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        private val MANUSCRIPT_VARIANT_BRACKET_PATTERN = Regex("\\[\\s*(?:Greek|Hebrew|Aramaic|Latin|Septuagint|LXX|Vulgate|Masoretic|MT|TR|NU|WH|Codex|MSS|MS|Variant|Alt|Or|Lit|Literal|Literally|Meaning|Some manuscripts|Early manuscripts|Other authorities|Many authorities|Reading|v\\.r\\.|cf\\.|see)[^\\]]*\\]", RegexOption.IGNORE_CASE)
+        private val MANUSCRIPT_VARIANT_PAREN_PATTERN = Regex("\\(\\s*(?:Greek|Hebrew|Aramaic|Latin|Septuagint|LXX|Vulgate|Masoretic|MT|TR|NU|WH|Codex|MSS|MS|Variant|Alt|Or|Lit|Literal|Literally|Meaning|Some manuscripts|Early manuscripts|Other authorities|Many authorities|Reading|v\\.r\\.|cf\\.|see)[^\\)]*\\)", RegexOption.IGNORE_CASE)
+        private val BRACKET_MARKER_PATTERN = Regex("\\[(?:xref|footnote|fn|note|\\d+|[a-zA-Z])[^\\]]*\\]", RegexOption.IGNORE_CASE)
         private val MYBIBLE_TITLE_PATTERN = Regex("<TS>.*?<Ts>", RegexOption.IGNORE_CASE)
         private val MYBIBLE_TAGS_PATTERN = Regex("</?(?:TS|Ts|CM|Cm|FI|Fi|RF|Rf|FR|Fr|FB|Fb|FE|Fe)[^>]*>", RegexOption.IGNORE_CASE)
+        
+        // Accidental language metadata injection glued directly to preceding words (e.g. "JesusGreek", "JesusGreek he", "JesusGreek: he", "LordHebrew")
+        private val GLUED_VARIANT_METADATA_PATTERN = Regex("(?<=[A-Za-z\\u0900-\\u097F])(?:Greek|Hebrew|Aramaic|Latin|LXX|Septuagint|NU-Text|TR)(?:\\s*:\\s*[A-Za-z0-9\\s\"’'“\\-]+|\\s+(?:he|she|it|they|the|a|an|[a-z]+))?", RegexOption.IGNORE_CASE)
+        private val STANDALONE_VARIANT_COLON_PATTERN = Regex("\\b(?:Greek|Hebrew|Aramaic|Latin|Lit\\.|Or)\\s*:\\s*(?:he|she|it|they|the|a|an|[a-zA-Z0-9\\s\"’'“\\-]+?)(?=[,\\.;!\\?]|$)", RegexOption.IGNORE_CASE)
+        private val STRONGS_NUMBERS_PATTERN = Regex("\\{[GH]\\d+\\}|<[GH]\\d+>|\\b[GH]\\d{3,5}\\b")
+
+        /**
+         * Cleans and sanitizes Bible verse text by stripping all editorial footnotes,
+         * manuscript variant notes (e.g. [Greek: he]), Strong's concordance tags,
+         * USFM markers, and accidental concatenations.
+         */
+        fun cleanVerseText(rawText: String): String {
+            return decodeAndSanitizeVerseText(rawText)
+        }
 
         /**
          * Robustly sanitizes and decodes Bible verse texts:
          * 1. Detects Base64 encoded Hindi or other strings (such as strings starting with 4KS...)
          * 2. Decodes Base64 to valid UTF-8 string
-         * 3. Strips footnote superscripts (<sup>...</sup>), Strong's concordance tags (<S>...</S>), cross-references
-         * 4. Strips bracketed technical markers ([xref-1], [a], [1], etc.)
-         * 5. Strips MyBible specific markers (<TS>...<Ts>, <CM>, etc.)
-         * 6. Strips remaining HTML tags and decodes HTML entities
-         * 7. Normalizes whitespace for printed book typography
+         * 3. Strips XML/HTML footnote blocks (<f>...</f>, <note>...</note>, <sup>...</sup>), Strong's tags (<S>...</S>)
+         * 4. Strips USFM footnote blocks (\f ... \f*, \x ... \x*)
+         * 5. Strips manuscript variant tags like [Greek: he], (Hebrew: ...), [NU-Text: ...]
+         * 6. Strips accidental glued metadata ("JesusGreek", "JesusGreek he", "JesusGreek: he")
+         * 7. Strips MyBible specific markers (<TS>...<Ts>, <CM>, etc.)
+         * 8. Strips remaining HTML tags and decodes HTML entities
+         * 9. Normalizes quotes and whitespace for clean typography
          */
         fun decodeAndSanitizeVerseText(raw: String): String {
             var text = raw.trim()
@@ -59,20 +78,35 @@ class BibleLocalDataSource(
             text = text.replace(MYBIBLE_TITLE_PATTERN, "")
             text = text.replace(MYBIBLE_TAGS_PATTERN, "")
 
-            // Strip footnote / cross-reference / Strong's markers
+            // Strip XML/HTML footnote blocks and Strong's markers
             text = text.replace(SUPERSCRIPT_PATTERN, "")
             text = text.replace(STRONGS_PATTERN, "")
-            text = text.replace(FOOTNOTE_PATTERN, "")
+            text = text.replace(FOOTNOTE_TAGS_BLOCK_PATTERN, "")
+            text = text.replace(USFM_FOOTNOTE_PATTERN, "")
+
+            // Strip manuscript variant notes in brackets or parens like [Greek: he] or (Hebrew: ...)
+            text = text.replace(MANUSCRIPT_VARIANT_BRACKET_PATTERN, "")
+            text = text.replace(MANUSCRIPT_VARIANT_PAREN_PATTERN, "")
             text = text.replace(BRACKET_MARKER_PATTERN, "")
+
+            // Strip glued metadata injections like "JesusGreek", "JesusGreek: he", "JesusGreek he"
+            text = text.replace(GLUED_VARIANT_METADATA_PATTERN, "")
+            text = text.replace(STANDALONE_VARIANT_COLON_PATTERN, "")
+            text = text.replace(STRONGS_NUMBERS_PATTERN, "")
 
             // Clean HTML tags and decode entities
             text = android.text.Html.fromHtml(text, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
 
             // Remove any residual brackets with single letters/numbers left over
-            text = text.replace(Regex("\\[[0-9a-zA-Z]+\\]"), "")
+            text = text.replace(Regex("\\[[0-9a-zA-Z\\s,;:\\.\\-\\+*#†‡]+\\]"), "")
+
+            // Clean dangling quotes and punctuation spacing
+            text = com.example.ui.bible.components.UsfmTextParserEngine.sanitizeDanglingQuotes(text)
 
             // Normalize whitespace
-            return text.replace(Regex("\\s+"), " ").trim()
+            return text.replace(Regex("\\s+"), " ")
+                .replace(Regex("""\s+([”"’'»,;\.।!\?])"""), "$1")
+                .trim()
         }
     }
 

@@ -20,6 +20,15 @@ object VideoPlaybackTracker {
     private val _currentDuration = MutableStateFlow(0f)
     val currentDuration = _currentDuration.asStateFlow()
 
+    private val _currentQuality = MutableStateFlow("auto")
+    val currentQuality = _currentQuality.asStateFlow()
+
+    fun setQuality(videoId: String, quality: String) {
+        if (quality.isNotBlank()) {
+            _currentQuality.value = quality
+        }
+    }
+
     fun setPosition(videoId: String, seconds: Float) {
         if (videoId.isNotBlank() && seconds >= 0f) {
             playbackPositions[videoId] = seconds

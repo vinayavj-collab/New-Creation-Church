@@ -72,72 +72,6 @@ fun AdminAccountsScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "कलीसिया दशमांश व वित्तीय लेखा",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${transactions.size} प्रविष्टियां दर्ज",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("accounts_back_button")
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            val uri = com.example.util.CsvExportHelper.exportAccountsToCsv(context, transactions)
-                            if (uri != null) {
-                                com.example.util.CsvExportHelper.shareCsvFile(
-                                    context,
-                                    uri,
-                                    "कलीसिया वित्तीय विवरण (दशमांश व लेखा) CSV रिपोर्ट"
-                                )
-                            } else {
-                                Toast.makeText(context, "CSV फ़ाइल बनाने में त्रुटि हुई", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.testTag("export_accounts_csv_button")
-                    ) {
-                        Icon(
-                            Icons.Default.FileDownload,
-                            contentDescription = "CSV डाउनलोड (Export CSV)",
-                            tint = com.example.ui.theme.GoldWarm
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            val report = onExportReport()
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, "Church Financial Statement")
-                                putExtra(Intent.EXTRA_TEXT, report)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "लेखा विवरण साझा करें"))
-                        },
-                        modifier = Modifier.testTag("export_accounts_button")
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Export Text")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddDialog = true },
@@ -153,65 +87,162 @@ fun AdminAccountsScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            // Financial Summary Card
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                ),
+            // Action & Metrics Header Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "वित्तीय सारांश व दशमांश",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            val uri = com.example.util.CsvExportHelper.exportAccountsToCsv(context, transactions)
+                            if (uri != null) {
+                                com.example.util.CsvExportHelper.shareCsvFile(
+                                    context,
+                                    uri,
+                                    "कलीसिया वित्तीय विवरण (दशमांश व लेखा) CSV रिपोर्ट"
+                                )
+                            } else {
+                                Toast.makeText(context, "CSV फ़ाइल बनाने में त्रुटि हुई", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("export_accounts_csv_button")
+                    ) {
+                        Icon(
+                            Icons.Default.FileDownload,
+                            contentDescription = "CSV डाउनलोड",
+                            tint = com.example.ui.theme.GoldWarm,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            val report = onExportReport()
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, "Church Financial Statement")
+                                putExtra(Intent.EXTRA_TEXT, report)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "लेखा विवरण साझा करें"))
+                        },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("export_accounts_button")
+                    ) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Export Text",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            // Horizontal Scroll Metrics (YouTube Studio Style - Prevents Squishing on Mobile)
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 135.dp)
                     ) {
-                        Text("वर्तमान शेष (Balance):", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Text(
-                            text = "₹${formatAmount(netBalance)}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (netBalance >= 0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
-                        )
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "₹${formatAmount(netBalance)}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (netBalance >= 0) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+                            )
+                            Text(text = "वर्तमान शेष (Balance)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Divider()
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 135.dp)
                     ) {
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("कुल आय (Income)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text(
                                 text = "₹${formatAmount(totalIncome)}",
-                                fontSize = 16.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF2E7D32)
                             )
+                            Text(text = "कुल आय (Income)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                    }
+                }
 
-                        Column(horizontalAlignment = Alignment.End) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("कुल व्यय (Expense)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 135.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text(
                                 text = "₹${formatAmount(totalExpense)}",
-                                fontSize = 16.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFD32F2F)
                             )
+                            Text(text = "कुल व्यय (Expense)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 120.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "${transactions.size}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(text = "कुल प्रविष्टियां", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

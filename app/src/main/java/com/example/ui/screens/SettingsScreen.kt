@@ -2,6 +2,8 @@ package com.example.ui.screens
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.widget.Toast
@@ -34,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.util.ProfileManager
 import com.example.ui.components.FavoriteCategoriesDialog
+import com.example.ui.components.MasterAdminDirectLoginDialog
 import com.example.ui.viewmodel.MainViewModel
 import com.example.widget.BibleVerseWidgetProvider
 
@@ -45,6 +48,7 @@ fun SettingsScreen(
     onCustomizeHomeClick: () -> Unit,
     onSyncCenterClick: () -> Unit = {},
     onBackupRestoreClick: () -> Unit = {},
+    onOpenOnboarding: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     scrollToUpdateSection: Boolean = false,
     modifier: Modifier = Modifier
@@ -68,6 +72,34 @@ fun SettingsScreen(
     var vlogPasswordInput by remember { mutableStateOf("") }
     var vlogPasswordVisible by remember { mutableStateOf(false) }
     var vlogPasswordError by remember { mutableStateOf<String?>(null) }
+
+    var showMasterAdminOverrideDialog by remember { mutableStateOf(false) }
+    var showMasterAdminP2OtpDialog by remember { mutableStateOf(false) }
+    var masterAdminGeneratedOtp by remember { mutableStateOf<String?>(null) }
+    var churchHeaderTapCount by remember { mutableIntStateOf(0) }
+    var lastChurchHeaderTapTime by remember { mutableLongStateOf(0L) }
+    var isGeneratingMasterOtp by remember { mutableStateOf(false) }
+    var masterOtpErrorMessage by remember { mutableStateOf<String?>(null) }
+    var lockIconTapCount by remember { mutableIntStateOf(0) }
+    var lastLockIconTapTime by remember { mutableLongStateOf(0L) }
+
+    fun onLockIconTripleTap() {
+        val now = System.currentTimeMillis()
+        if (now - lastLockIconTapTime <= 900L) {
+            lockIconTapCount++
+        } else {
+            lockIconTapCount = 1
+        }
+        lastLockIconTapTime = now
+
+        if (lockIconTapCount >= 3) {
+            lockIconTapCount = 0
+            showPasswordDialogForProfileB = false
+            showVlogPasswordDialog = false
+            showMasterAdminOverrideDialog = true
+            Toast.makeText(context, "👑 मास्टर एडमिन विशेष विंडो सक्रिय (Master Admin Override)", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     var showFavCategoriesDialog by remember { mutableStateOf(false) }
     var showWelcomeCustomizationDialog by remember { mutableStateOf(false) }
@@ -169,7 +201,31 @@ fun SettingsScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastChurchHeaderTapTime <= 1500L) {
+                                        churchHeaderTapCount++
+                                    } else {
+                                        churchHeaderTapCount = 1
+                                    }
+                                    lastChurchHeaderTapTime = now
+
+                                    if (churchHeaderTapCount in 3..6) {
+                                        Toast.makeText(context, "👑 P2 OTP: ${7 - churchHeaderTapCount} और टैप करें...", Toast.LENGTH_SHORT).show()
+                                    }
+
+                                    if (churchHeaderTapCount >= 7) {
+                                        churchHeaderTapCount = 0
+                                        isGeneratingMasterOtp = false
+                                        masterOtpErrorMessage = null
+                                        val newOtp = viewModel.generateMasterAdminP2Otp()
+                                        masterAdminGeneratedOtp = newOtp
+                                        showMasterAdminP2OtpDialog = true
+                                        Toast.makeText(context, "👑 मास्टर एडमिन P2 OTP: $newOtp", Toast.LENGTH_LONG).show()
+                                    }
+                                }
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
@@ -188,7 +244,9 @@ fun SettingsScreen(
 
                             Spacer(modifier = Modifier.width(14.dp))
 
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = currentProfile.displayNameEnglish,
@@ -213,57 +271,6 @@ fun SettingsScreen(
                                     text = currentProfile.displayNameHindi,
                                     style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        if (currentProfile == AppProfile.CHURCH) {
-                            Button(
-                                onClick = {
-                                    val now = System.currentTimeMillis()
-                                    if (now - lastProfileTapTime <= 800L) {
-                                        profileTapCount++
-                                    } else {
-                                        profileTapCount = 1
-                                    }
-                                    lastProfileTapTime = now
-
-                                    if (profileTapCount >= 3) {
-                                        profileTapCount = 0
-                                        showPasswordDialogForProfileB = true
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Switch to Vinay Kumar Avj")
-                            }
-                        } else {
-                            Button(
-                                onClick = {
-                                    ProfileManager.setActiveProfile(context, AppProfile.CHURCH)
-                                    Toast.makeText(context, "प्रोफ़ाइल 'New Creation Church' सक्रिय किया गया", Toast.LENGTH_SHORT).show()
-                                    (context as? android.app.Activity)?.let {
-                                        ProfileManager.restartApp(it)
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary
-                                )
-                            ) {
-                                Icon(Icons.Default.Church, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Switch to New Creation Church (डिफ़ॉल्ट)")
                             }
                         }
                     }
@@ -1463,10 +1470,22 @@ fun SettingsScreen(
                                 label = { Text("Worship") },
                                 modifier = Modifier.weight(1f)
                             )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             FilterChip(
                                 selected = settings.youtubeDefaultTab == YouTubeDefaultTab.VINAY_KUMAR_AVJ,
                                 onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.VINAY_KUMAR_AVJ) },
                                 label = { Text("Vinay Kumar AVJ") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = settings.youtubeDefaultTab == YouTubeDefaultTab.NEW_CREATION_CHURCH,
+                                onClick = { viewModel.updateYouTubeDefaultTab(YouTubeDefaultTab.NEW_CREATION_CHURCH) },
+                                label = { Text("New Creation Church") },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -1873,6 +1892,15 @@ fun SettingsScreen(
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
 
                         SettingsClickableRow(
+                            title = "ऐप गाइड और ऑनबोर्डिंग टूर (App Tour)",
+                            subtitle = "ऐप के मुख्य फीचर्स, संगति कार्यक्रम व कस्टमाइज़ेशन गाइड देखें",
+                            icon = Icons.Default.Explore,
+                            onClick = onOpenOnboarding
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
+
+                        SettingsClickableRow(
                             title = strings.aboutVinay,
                             subtitle = strings.aboutVinaySub,
                             icon = Icons.Default.Info,
@@ -1898,6 +1926,139 @@ fun SettingsScreen(
         }
     }
 
+    if (showMasterAdminP2OtpDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showMasterAdminP2OtpDialog = false
+                masterAdminGeneratedOtp = null
+                masterOtpErrorMessage = null
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Key,
+                    contentDescription = "Master Admin P2 OTP",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "👑 मास्टर एडमिन P2 OTP",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "यह वन-टाइम सुरक्षा पिन (P2 OTP) केवल मास्टर एडमिन के प्रमाणीकरण हेतु जनरेट किया गया है:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (isGeneratingMasterOtp) {
+                        CircularProgressIndicator(modifier = Modifier.size(36.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("P2 OTP तैयार किया जा रहा है...", style = MaterialTheme.typography.bodySmall)
+                    } else if (masterOtpErrorMessage != null) {
+                        Text(
+                            text = masterOtpErrorMessage ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else if (masterAdminGeneratedOtp != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                    val clip = android.content.ClipData.newPlainText("Master Admin P2 OTP", masterAdminGeneratedOtp)
+                                    clipboard?.setPrimaryClip(clip)
+                                    Toast.makeText(context, "OTP कॉपी किया गया: ${masterAdminGeneratedOtp}", Toast.LENGTH_SHORT).show()
+                                }
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = masterAdminGeneratedOtp ?: "",
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 4.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "कॉपी करने के लिए टैप करें",
+                                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (masterAdminGeneratedOtp != null) {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            val clip = android.content.ClipData.newPlainText("Master Admin P2 OTP", masterAdminGeneratedOtp)
+                            clipboard?.setPrimaryClip(clip)
+                            Toast.makeText(context, "OTP कॉपी किया गया!", Toast.LENGTH_SHORT).show()
+                        }
+                        showMasterAdminP2OtpDialog = false
+                    }
+                ) {
+                    Text("ठीक है (कॉपी करें)")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showMasterAdminP2OtpDialog = false
+                        masterAdminGeneratedOtp = null
+                        masterOtpErrorMessage = null
+                    }
+                ) {
+                    Text("बंद करें")
+                }
+            }
+        )
+    }
+
+    if (showMasterAdminOverrideDialog) {
+        MasterAdminDirectLoginDialog(
+            viewModel = viewModel,
+            onDismiss = { showMasterAdminOverrideDialog = false },
+            onSuccess = {
+                showMasterAdminOverrideDialog = false
+                ProfileManager.setActiveProfile(context, AppProfile.VINAY)
+                Toast.makeText(context, "मास्टर एडमिन प्रोफ़ाइल सक्रिय की गई! 👑", Toast.LENGTH_SHORT).show()
+                (context as? android.app.Activity)?.let {
+                    ProfileManager.restartApp(it)
+                }
+            }
+        )
+    }
+
     if (showPasswordDialogForProfileB) {
         AlertDialog(
             onDismissRequest = {
@@ -1906,9 +2067,11 @@ fun SettingsScreen(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = null,
+                    contentDescription = "Lock Icon - Triple tap for Master Admin",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable { onLockIconTripleTap() }
                 )
             },
             title = {
@@ -1953,9 +2116,10 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (ProfileManager.verifyPasswordForPrivateProfile(profilePasswordInput)) {
+                        val isMasterAdminPin = settings.masterAdminPin
+                        if (ProfileManager.verifyPasswordForPrivateProfile(profilePasswordInput, isMasterAdminPin)) {
                             ProfileManager.setActiveProfile(context, AppProfile.VINAY)
-                            Toast.makeText(context, "प्रोफ़ाइल 'Vinay Kumar Avj' सक्रिय किया गया", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "प्रोफ़ाइल 'Vinay Kumar Avj' सक्रिय किया गया 👑", Toast.LENGTH_SHORT).show()
                             showPasswordDialogForProfileB = false
                             profilePasswordInput = ""
                             profilePasswordError = null
@@ -1963,7 +2127,7 @@ fun SettingsScreen(
                                 ProfileManager.restartApp(it)
                             }
                         } else {
-                            profilePasswordError = "अनुमति नहीं है।"
+                            profilePasswordError = "अनुमति नहीं है। कृपया सही पासवर्ड दर्ज करें।"
                             Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -1992,7 +2156,14 @@ fun SettingsScreen(
                 pendingVlogMode = null
             },
             icon = {
-                Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Lock Icon - Triple tap for Master Admin",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable { onLockIconTripleTap() }
+                )
             },
             title = {
                 Text(

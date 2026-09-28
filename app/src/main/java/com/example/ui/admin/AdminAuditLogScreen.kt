@@ -162,35 +162,41 @@ fun AdminAuditLogScreen(
         items
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = if (currentTabMode == AuditTabMode.QR_AUDIT_TRAIL) "QR व OTP ऑडिट ट्रेल" else "प्रशासन ऑडिट लॉग्स",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp
-                        )
-                        Text(
-                            text = if (currentTabMode == AuditTabMode.QR_AUDIT_TRAIL) "QR कोड जनरेशन, सीरियल ID व OTP स्थिति लॉग्स" else "समस्त प्रशासनिक कार्यवाहियों का अपरिवर्तनीय इतिहास",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
+    val activatedBadgesCount = remember(qrAuditLogs) { qrAuditLogs.count { it.isActivated() } }
+
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Action & Section Title Header Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (currentTabMode == AuditTabMode.QR_AUDIT_TRAIL) "QR व OTP ऑडिट ट्रेल" else "प्रशासन ऑडिट लॉग्स",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     if (currentTabMode == AuditTabMode.SYSTEM_LOGS) {
-                        IconButton(onClick = { showAnalyticsChart = !showAnalyticsChart }) {
+                        IconButton(
+                            onClick = { showAnalyticsChart = !showAnalyticsChart },
+                            modifier = Modifier.size(32.dp)
+                        ) {
                             Icon(
                                 if (showAnalyticsChart) Icons.Default.List else Icons.Default.BarChart,
                                 contentDescription = "Toggle Analytics",
-                                tint = if (showAnalyticsChart) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = if (showAnalyticsChart) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -215,12 +221,15 @@ fun AdminAuditLogScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.testTag("audit_logs_export_csv_button")
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("audit_logs_export_csv_button")
                     ) {
                         Icon(
                             Icons.Default.FileDownload,
-                            contentDescription = "CSV डाउनलोड (Export CSV)",
-                            tint = GoldWarm
+                            contentDescription = "CSV डाउनलोड",
+                            tint = GoldWarm,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
 
@@ -257,22 +266,82 @@ fun AdminAuditLogScreen(
                                 context.startActivity(Intent.createChooser(intent, "ऑडिट लॉग साझा करें"))
                             }
                         },
-                        modifier = Modifier.testTag("audit_logs_share_button")
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("audit_logs_share_button")
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share Logs")
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Share Logs",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+                }
+            }
+
+            // Horizontal Scroll Metrics (YouTube Studio Style - Prevents Squishing on Mobile)
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp)
+            ) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 120.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "${auditLogs.size}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(text = "कुल सिस्मट लॉग्स", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 120.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "${qrAuditLogs.size}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7C3AED))
+                            Text(text = "QR/OTP रिकॉर्ड्स", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.widthIn(min = 120.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "$activatedBadgesCount", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF059669))
+                            Text(text = "सक्रिय सदस्य QR", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
             // Top Tab Row Switcher (QR Audit Trail vs System Logs)
             Surface(
                 modifier = Modifier.fillMaxWidth(),

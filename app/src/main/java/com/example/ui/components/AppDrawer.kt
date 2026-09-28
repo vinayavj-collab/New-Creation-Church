@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.app.Activity
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,34 +11,38 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.data.model.AdminHierarchy
 import com.example.data.model.AdminUser
+import com.example.data.model.AppProfile
 import com.example.data.model.LocalAppProfile
 import com.example.data.model.ThemeMode
 import com.example.data.model.UserProfileData
 import com.example.data.model.UserSettings
 import com.example.ui.theme.GoldWarm
+import com.example.util.ProfileManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +55,7 @@ fun SidebarContent(
     onCheckUpdate: () -> Unit,
     onToggleSidebarPosition: () -> Unit = {},
     onOpenFeedback: () -> Unit = {},
+    onOpenOnboarding: () -> Unit = {},
     isUpdateAvailable: Boolean = false,
     drawerPosition: String = "left",
     userProfile: UserProfileData? = null,
@@ -90,9 +97,16 @@ fun SidebarContent(
                 )
                 .verticalScroll(rememberScrollState())
         ) {
+            val context = LocalContext.current
             val activeProfile = LocalAppProfile.current
+            var showProfileBDialog by remember { mutableStateOf(false) }
+            var profileBPasswordInput by remember { mutableStateOf("") }
+            var profileBPasswordVisible by remember { mutableStateOf(false) }
+            var profileBPasswordError by remember { mutableStateOf<String?>(null) }
+            var logoTapCount by remember { mutableIntStateOf(0) }
+            var lastLogoTapTime by remember { mutableLongStateOf(0L) }
 
-            // 1. Top Header Logo (Transparent background, height: 46dp, anti-squash)
+            // 1. Top Header Logo (Transparent background, height: 46dp, anti-squash) - Triple Tap to switch profile
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -107,6 +121,124 @@ fun SidebarContent(
                         .height(46.dp)
                         .wrapContentWidth()
                         .wrapContentHeight()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            val now = System.currentTimeMillis()
+                            if (now - lastLogoTapTime <= 800L) {
+                                logoTapCount++
+                            } else {
+                                logoTapCount = 1
+                            }
+                            lastLogoTapTime = now
+
+                            if (logoTapCount >= 3) {
+                                logoTapCount = 0
+                                if (ProfileManager.isVinayProfile()) {
+                                    // Already in Vinay Profile, switch back to Church
+                                    ProfileManager.setActiveProfile(context, AppProfile.CHURCH)
+                                    Toast.makeText(context, "प्रोफ़ाइल 'New Creation Church' सक्रिय किया गया", Toast.LENGTH_SHORT).show()
+                                    (context as? Activity)?.let {
+                                        ProfileManager.restartApp(it)
+                                    }
+                                } else {
+                                    // Open password prompt to switch to Profile B
+                                    showProfileBDialog = true
+                                    profileBPasswordInput = ""
+                                    profileBPasswordError = null
+                                }
+                            }
+                        }
+                )
+            }
+
+            if (showProfileBDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showProfileBDialog = false
+                        profileBPasswordInput = ""
+                        profileBPasswordError = null
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Profile B Lock",
+                            tint = GoldWarm,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    },
+                    title = {
+                        Text(
+                            text = "प्रोफ़ाइल B अनलॉक करें (Switch Profile)",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    text = {
+                        Column {
+                            Text(
+                                text = "'Vinay Kumar Avj' प्रोफ़ाइल में स्विच करने के लिए पासवर्ड दर्ज करें:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            OutlinedTextField(
+                                value = profileBPasswordInput,
+                                onValueChange = {
+                                    profileBPasswordInput = it
+                                    profileBPasswordError = null
+                                },
+                                label = { Text("पासवर्ड / मास्टर P1 पिन") },
+                                singleLine = true,
+                                isError = profileBPasswordError != null,
+                                supportingText = profileBPasswordError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+                                visualTransformation = if (profileBPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                trailingIcon = {
+                                    IconButton(onClick = { profileBPasswordVisible = !profileBPasswordVisible }) {
+                                        Icon(
+                                            imageVector = if (profileBPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            contentDescription = if (profileBPasswordVisible) "Hide password" else "Show password"
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                val isMasterAdminPin = settings.masterAdminPin
+                                if (ProfileManager.verifyPasswordForPrivateProfile(profileBPasswordInput, isMasterAdminPin)) {
+                                    ProfileManager.setActiveProfile(context, AppProfile.VINAY)
+                                    Toast.makeText(context, "प्रोफ़ाइल 'Vinay Kumar Avj' सक्रिय किया गया 👑", Toast.LENGTH_SHORT).show()
+                                    showProfileBDialog = false
+                                    profileBPasswordInput = ""
+                                    profileBPasswordError = null
+                                    (context as? Activity)?.let {
+                                        ProfileManager.restartApp(it)
+                                    }
+                                } else {
+                                    profileBPasswordError = "अनुमति नहीं है। कृपया सही पासवर्ड अथवा मास्टर P1 पिन दर्ज करें।"
+                                    Toast.makeText(context, "अनुमति नहीं है।", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = GoldWarm)
+                        ) {
+                            Text("अनलॉक एवं स्विच करें 👑", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            showProfileBDialog = false
+                            profileBPasswordInput = ""
+                            profileBPasswordError = null
+                        }) {
+                            Text("रद्द करें")
+                        }
+                    }
                 )
             }
 
@@ -243,11 +375,7 @@ fun SidebarContent(
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp, vertical = 4.dp)
                     .clickable {
-                        if (isAdminLoggedIn) {
-                            onNavigate("ADMIN_PANEL")
-                        } else {
-                            onNavigate("USER_PROFILE")
-                        }
+                        onNavigate("ADMIN_LOGIN")
                         onCloseSidebar()
                     },
                 shape = RoundedCornerShape(16.dp),
@@ -566,6 +694,17 @@ fun SidebarContent(
                 selected = currentRouteName == "ABOUT",
                 onClick = {
                     onNavigate("ABOUT")
+                    onCloseSidebar()
+                }
+            )
+
+            SidebarNavItem(
+                label = "ऐप टूर गाइड (App Tour Guide)",
+                subtitle = "ऐप की मुख्य विशेषताएं और उपयोग सीखें",
+                icon = Icons.Default.Explore,
+                selected = false,
+                onClick = {
+                    onOpenOnboarding()
                     onCloseSidebar()
                 }
             )

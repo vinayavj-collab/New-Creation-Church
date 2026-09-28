@@ -38,7 +38,7 @@ enum class AppProfile(
     );
 
     companion object {
-        const val PROFILE_B_PASSWORD = "Vin@122333"
+        const val PROFILE_B_PASSWORD = "Vin@22914125"
         val DEFAULT = CHURCH
 
         fun fromId(id: String?): AppProfile {

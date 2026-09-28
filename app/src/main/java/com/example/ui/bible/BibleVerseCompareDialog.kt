@@ -41,8 +41,8 @@ fun BibleVerseCompareDialog(
 ) {
     val context = LocalContext.current
 
-    val hindiFullText = selectedVerses.joinToString(" ") { it.text }
-    val englishFullText = selectedVerses.joinToString(" ") { it.secondaryText ?: "" }.trim()
+    val hindiFullText = selectedVerses.joinToString(" ") { com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(it.text) }
+    val englishFullText = selectedVerses.joinToString(" ") { com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(it.secondaryText ?: "") }.trim()
 
     val compareItems = mutableListOf<VersionCompareItem>()
     compareItems.add(

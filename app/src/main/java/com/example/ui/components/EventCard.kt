@@ -295,17 +295,21 @@ fun EventCard(
                         OutlinedButton(
                             onClick = {
                                 onScheduleReminder?.invoke(offset)
-                                val success = ReminderScheduler.scheduleReminder(
+                                val minutes = (offset.millisBefore / (60 * 1000L)).toInt()
+                                val success = com.example.util.EventReminderScheduler.scheduleWorkReminder(
                                     context = context,
-                                    postId = event.post.id,
-                                    eventTitle = event.title,
-                                    eventDate = event.dateString,
-                                    eventTimestamp = event.startTimestamp,
-                                    offset = offset
+                                    eventId = event.post.id.ifBlank { event.title },
+                                    title = event.title,
+                                    dateStr = event.dateString,
+                                    timeStr = event.timeString ?: "",
+                                    locationStr = event.locationString ?: "",
+                                    startTimestamp = event.startTimestamp,
+                                    minutesBefore = minutes,
+                                    postUrl = event.post.url
                                 )
                                 showReminderDialog = false
                                 if (success) {
-                                    Toast.makeText(context, "Reminder set for ${offset.label}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Reminder set for ${offset.label} (WorkManager Alert)", Toast.LENGTH_SHORT).show()
                                 } else {
                                     Toast.makeText(context, "Event is too soon or already passed", Toast.LENGTH_SHORT).show()
                                 }
