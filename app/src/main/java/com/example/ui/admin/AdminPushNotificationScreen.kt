@@ -57,79 +57,29 @@ fun AdminPushNotificationScreen(
         "आपातकालीन प्रार्थना (Urgent Prayer)"
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "पुश नोटिफिकेशन व संदेश प्रसारण",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "विश्वासियों तक तुरंत सूचना पहुंचाएं",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("push_back_button")
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            val uri = com.example.util.CsvExportHelper.exportPushNotificationsToCsv(context, notifications)
-                            if (uri != null) {
-                                com.example.util.CsvExportHelper.shareCsvFile(
-                                    context,
-                                    uri,
-                                    "पुश नोटिफिकेशन इतिहास CSV रिपोर्ट"
-                                )
-                            } else {
-                                Toast.makeText(context, "CSV फ़ाइल बनाने में त्रुटि हुई", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.testTag("export_push_csv_button")
-                    ) {
-                        Icon(
-                            Icons.Default.FileDownload,
-                            contentDescription = "CSV डाउनलोड (Export CSV)",
-                            tint = com.example.ui.theme.GoldWarm
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(vertical = 12.dp)
-        ) {
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
+    ) {
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Campaign, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -140,6 +90,28 @@ fun AdminPushNotificationScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                        IconButton(
+                            onClick = {
+                                val uri = com.example.util.CsvExportHelper.exportPushNotificationsToCsv(context, notifications)
+                                if (uri != null) {
+                                    com.example.util.CsvExportHelper.shareCsvFile(
+                                        context,
+                                        uri,
+                                        "पुश नोटिफिकेशन इतिहास CSV रिपोर्ट"
+                                    )
+                                } else {
+                                    Toast.makeText(context, "CSV फ़ाइल बनाने में त्रुटि हुई", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.testTag("export_push_csv_button")
+                        ) {
+                            Icon(
+                                Icons.Default.FileDownload,
+                                contentDescription = "CSV डाउनलोड (Export CSV)",
+                                tint = com.example.ui.theme.GoldWarm
+                            )
+                        }
+                    }
 
                         // Target Audience selector
                         Text("लक्षित वर्ग (Target Audience):", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
@@ -293,7 +265,6 @@ fun AdminPushNotificationScreen(
                 }
             }
         }
-    }
 }
 
 @Composable

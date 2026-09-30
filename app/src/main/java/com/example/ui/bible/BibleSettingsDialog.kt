@@ -209,17 +209,7 @@ fun BibleSettingsDialog(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "• Hindi IRV: Licensed under Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0). Courtesy: Bridge Connectivity Solutions & Free Bibles India.",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "• English KJV: King James Version is in the Public Domain.",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "• English WEB & BBE: Public Domain English Bibles.",
+                                text = "• Hindi HIOV (Hindi Old Version): Hindi Bible Translation.",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -274,10 +264,9 @@ fun BibleSettingsDialog(
                     }
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // SECTION 1: TRANSLATION & DUAL BIBLE
-                    SettingsSectionHeader("अनुवाद एवं द्विभाषी (Translation & Dual Bible)")
+                    // SECTION 1: TRANSLATION
+                    SettingsSectionHeader("अनुवाद (Bible Translation)")
 
-                    // Translation selector
                     Text(
                         text = "अनुवाद चुनें (Select Translation)",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
@@ -285,8 +274,8 @@ fun BibleSettingsDialog(
                     Spacer(modifier = Modifier.height(6.dp))
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         BibleTranslation.ALL.forEach { translation ->
                             val isSelected = selectedTranslation.id == translation.id
@@ -298,40 +287,20 @@ fun BibleSettingsDialog(
                                         when (translation.id) {
                                             BibleTranslation.HIOV.id -> "हिन्दी (HIOV)"
                                             BibleTranslation.ENGLISH_NKJV.id -> "English (NKJV)"
-                                            BibleTranslation.PARALLEL_HI_EN.id -> "द्विभाषी (HIOV + NKJV)"
                                             else -> translation.nameHindi
                                         },
-                                        fontSize = 11.sp
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                 },
                                 leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                                 } else null
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "अनुवाद बटन टैप मोड (Translation Toggle Mode)",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        TranslationToggleBehavior.entries.forEach { behavior ->
-                            val isSelected = settings.translationToggleBehavior == behavior
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { onTranslationToggleBehaviorChange(behavior) },
-                                label = { Text(behavior.titleHindi, fontSize = 11.sp) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "वचन चयन / करंट वर्स हाइलाइट मोड (Verse Tap Target):",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
@@ -378,87 +347,6 @@ fun BibleSettingsDialog(
                             },
                             label = { Text("सूची (Step-by-Step List)", fontSize = 11.sp) }
                         )
-                    }
-
-                    // Dual Bible Customization Card
-                    val isDual = selectedTranslation.id == BibleTranslation.PARALLEL_HI_EN.id || settings.isDualBibleEnabled
-                    if (isDual) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = "द्विभाषी बाइबल चयन (Choose Hindi + English Versions)",
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // Hindi Version Choice
-                                Text("हिन्दी संस्करण चुनें (Select Hindi):", style = MaterialTheme.typography.labelSmall)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    BibleTranslation.HINDI_TRANSLATIONS.forEach { hTrans ->
-                                        val isHSelected = settings.dualHindiVersionId == hTrans.id
-                                        FilterChip(
-                                            selected = isHSelected,
-                                            onClick = {
-                                                onDualBibleConfigChange(true, hTrans.id, settings.dualEnglishVersionId, settings.dualViewMode)
-                                            },
-                                            label = { Text(hTrans.nameHindi.substringBefore(" ("), fontSize = 11.sp) }
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // English Version Choice
-                                Text("अंग्रेज़ी संस्करण चुनें (Select English):", style = MaterialTheme.typography.labelSmall)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    BibleTranslation.ENGLISH_TRANSLATIONS.forEach { eTrans ->
-                                        val isESelected = settings.dualEnglishVersionId == eTrans.id
-                                        FilterChip(
-                                            selected = isESelected,
-                                            onClick = {
-                                                onDualBibleConfigChange(true, settings.dualHindiVersionId, eTrans.id, settings.dualViewMode)
-                                            },
-                                            label = { Text(eTrans.nameEnglish.substringBefore(" ("), fontSize = 11.sp) }
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // View Mode Choice: Interleaved vs Side by Side
-                                Text("प्रदर्शन प्रारूप (Display Mode):", style = MaterialTheme.typography.labelSmall)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    DualViewMode.entries.forEach { mode ->
-                                        val isModeSelected = settings.dualViewMode == mode
-                                        FilterChip(
-                                            selected = isModeSelected,
-                                            onClick = {
-                                                onDualBibleConfigChange(true, settings.dualHindiVersionId, settings.dualEnglishVersionId, mode)
-                                            },
-                                            label = { Text(mode.titleHindi, fontSize = 11.sp) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))

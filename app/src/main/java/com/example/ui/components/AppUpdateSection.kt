@@ -53,8 +53,8 @@ fun AppUpdateSection(
                         )
                         Text(
                             text = when {
-                                updateState.latestVersionCode > 0 -> "v${updateState.latestVersionName} (Build ${updateState.latestVersionCode})"
-                                updateState.latestVersionName.isNotBlank() -> "v${updateState.latestVersionName}"
+                                updateState.isUpdateAvailable && updateState.latestVersionCode > 0 -> "v${updateState.latestVersionName} (Build ${updateState.latestVersionCode})"
+                                updateState.isUpdateAvailable && updateState.latestVersionName.isNotBlank() -> "v${updateState.latestVersionName}"
                                 else -> "v${updateState.currentVersionName} (अप-टू-डेट)"
                             },
                             style = MaterialTheme.typography.bodyMedium.copy(

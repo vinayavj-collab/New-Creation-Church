@@ -10,9 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = java.net.URI("https://jitpack.io") }
     }
 }
-rootProject.name = "NewCreation"
+
+rootProject.name = "NewCreationChurch"
 include(":app")
-project(":app").projectDir = file("/app/applet/app")

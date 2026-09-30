@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.bible.model.BibleBook
 import com.example.data.bible.model.BibleBookDefinitions
+import com.example.data.bible.model.BibleTranslation
 import com.example.data.bible.model.Testament
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,15 +125,10 @@ fun BibleHomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AssistChip(
-                    onClick = {
-                        val all = com.example.data.bible.model.BibleTranslation.ALL
-                        val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
-                        val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
-                        viewModel.selectTranslation(all[nextIndex])
-                    },
+                    onClick = {},
                     label = {
                         Text(
-                            text = "📖 ${selectedTranslation.nameHindi}",
+                            text = "📖 हिन्दी (HIOV)",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     },

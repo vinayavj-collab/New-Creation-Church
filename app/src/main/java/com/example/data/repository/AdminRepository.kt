@@ -11,6 +11,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -5438,6 +5439,236 @@ class AdminRepository(private val context: Context) {
                 .addOnFailureListener { onLogged?.invoke(false) }
         } catch (_: Exception) {
             onLogged?.invoke(false)
+        }
+    }
+
+    /**
+     * Complete Member Onboarding with Atomic Sequential SN & Dynamic Family Binding.
+     */
+    fun createNewMemberWithAtomicSN(
+        prefix: String = "NCC",
+        fullName: String,
+        phone: String = "",
+        baptismStatus: String = "baptized",
+        address: String = "",
+        isNewFamilyHead: Boolean = true,
+        headSerialNumber: String? = null,
+        familyRole: String = "head",
+        homeBranchId: String = "branch_ncc_01",
+        callerAdmin: AdminUser,
+        onComplete: (Boolean, String?, UserProfileData?) -> Unit
+    ) {
+        val cleanPrefix = prefix.trim().uppercase().ifBlank { "NCC" }
+        coroutineScope.launch {
+            try {
+                // 1. Mint atomic sequential SN
+                val mintResult = mintSequentialMemberSerialNumber(
+                    prefixId = cleanPrefix,
+                    callerUid = callerAdmin.id,
+                    roleTier = "believer",
+                    designationTitle = "विश्वासी (Believer)"
+                )
+                if (mintResult.isFailure) {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false, mintResult.exceptionOrNull()?.message ?: "सीरियल नंबर जनरेट करने में त्रुटि", null)
+                    }
+                    return@launch
+                }
+
+                val (sn, newUserId) = mintResult.getOrThrow()
+                val isBaptized = (baptismStatus.lowercase() == "baptized" || baptismStatus.contains("बपतिस्मा प्राप्त"))
+
+                // Derive Family ID
+                val assignedFamilyId = if (isNewFamilyHead || headSerialNumber.isNullOrBlank()) {
+                    "$sn-F"
+                } else {
+                    val cleanHeadSn = headSerialNumber.trim()
+                    if (cleanHeadSn.endsWith("-F")) cleanHeadSn else "$cleanHeadSn-F"
+                }
+
+                val finalRole = if (isNewFamilyHead) "head" else familyRole
+
+                val newMemberProfile = UserProfileData(
+                    userId = newUserId,
+                    fullName = fullName.trim(),
+                    displayName = fullName.trim(),
+                    phoneNumber = phone.trim(),
+                    phone = phone.trim(),
+                    serialNumber = sn,
+                    familyId = assignedFamilyId,
+                    familyRole = finalRole,
+                    isFamilyHead = (finalRole == "head"),
+                    isBaptized = isBaptized,
+                    baptismStatus = isBaptized,
+                    faithStatus = if (isBaptized) "Regular Believer" else "Seeking Baptism",
+                    city = address.trim(),
+                    location = address.trim(),
+                    homeBranchId = homeBranchId,
+                    membershipStatus = "active",
+                    status = "active",
+                    isVerified = true,
+                    isVerifiedVishwasi = true,
+                    role = "विश्वासी (Believer)",
+                    roleTier = "believer",
+                    assignedAuthorityId = callerAdmin.id,
+                    assignedAuthorityName = callerAdmin.name,
+                    lastUpdated = System.currentTimeMillis()
+                )
+
+                // Save to Firestore
+                firestore.collection("users").document(newUserId).set(newMemberProfile, SetOptions.merge()).await()
+
+                // Update local StateFlow
+                val updatedProfiles = _appUserProfiles.value.toMutableList().apply { add(newMemberProfile) }
+                _appUserProfiles.value = updatedProfiles
+
+                // Invalidate/refresh family cache
+                try {
+                    AttendanceGovernanceRepository.getInstance(context).refreshFamilyUnitsFromProfiles(updatedProfiles)
+                } catch (_: Exception) {}
+
+                // Audit log
+                logActivity(
+                    actionType = "MEMBER_ONBOARDING",
+                    description = "नया सदस्य पंजीकृत: $sn ($fullName), परिवार ID: $assignedFamilyId, पद: $finalRole",
+                    targetId = sn,
+                    targetUserId = newUserId,
+                    performedByAdminId = callerAdmin.id
+                )
+
+                withContext(Dispatchers.Main) {
+                    onComplete(true, null, newMemberProfile)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, e.message ?: "सदस्य जोड़ने में त्रुटि हुई", null)
+                }
+            }
+        }
+    }
+
+    /**
+     * Family Split & Member Migration Engine:
+     * Promotes a non-head member to head of a new family (e.g., NCC14 -> NCC14-F)
+     * and migrates selected members (e.g. spouse, children) with new roles.
+     */
+    fun promoteToHeadAndMigrateFamily(
+        promotedMemberSerialOrId: String,
+        migratingMembersMap: Map<String, String>,
+        callerAdmin: AdminUser,
+        onComplete: (Boolean, String?) -> Unit
+    ) {
+        val profileList = _appUserProfiles.value.toMutableList()
+        val targetIdx = profileList.indexOfFirst {
+            it.userId == promotedMemberSerialOrId || it.serialNumber.equals(promotedMemberSerialOrId, ignoreCase = true)
+        }
+        if (targetIdx < 0) {
+            onComplete(false, "लक्षित सदस्य नहीं मिला।")
+            return
+        }
+
+        val promotedTarget = profileList[targetIdx]
+        if (promotedTarget.familyRole == "head" && promotedTarget.isFamilyHead) {
+            onComplete(false, "यह सदस्य पहले से ही अपने परिवार का मुखिया है।")
+            return
+        }
+
+        val oldFamilyId = promotedTarget.familyId.ifBlank { "${promotedTarget.serialNumber}-F" }
+        val newFamilyId = "${promotedTarget.serialNumber}-F"
+        val migratedSerials = mutableListOf<String>()
+
+        coroutineScope.launch {
+            try {
+                val batch = firestore.batch()
+
+                // 1. Update promoted member
+                val updatedPromoted = promotedTarget.copy(
+                    familyId = newFamilyId,
+                    familyRole = "head",
+                    isFamilyHead = true,
+                    lastUpdated = System.currentTimeMillis()
+                )
+                profileList[targetIdx] = updatedPromoted
+                batch.update(
+                    firestore.collection("users").document(promotedTarget.userId),
+                    mapOf(
+                        "familyId" to newFamilyId,
+                        "familyRole" to "head",
+                        "isFamilyHead" to true,
+                        "lastUpdated" to System.currentTimeMillis()
+                    )
+                )
+
+                // 2. Update each migrating member
+                for ((memberSerialOrId, newRole) in migratingMembersMap) {
+                    val mIdx = profileList.indexOfFirst {
+                        it.userId == memberSerialOrId || it.serialNumber.equals(memberSerialOrId, ignoreCase = true)
+                    }
+                    if (mIdx >= 0) {
+                        val member = profileList[mIdx]
+                        val updatedMember = member.copy(
+                            familyId = newFamilyId,
+                            familyRole = newRole,
+                            isFamilyHead = false,
+                            lastUpdated = System.currentTimeMillis()
+                        )
+                        profileList[mIdx] = updatedMember
+                        migratedSerials.add(member.serialNumber.ifBlank { member.userId })
+                        batch.update(
+                            firestore.collection("users").document(member.userId),
+                            mapOf(
+                                "familyId" to newFamilyId,
+                                "familyRole" to newRole,
+                                "isFamilyHead" to false,
+                                "lastUpdated" to System.currentTimeMillis()
+                            )
+                        )
+                    }
+                }
+
+                // 3. Append immutable family split audit log
+                val auditId = "split_log_${System.currentTimeMillis()}"
+                val auditLogData = mapOf(
+                    "id" to auditId,
+                    "action" to "FAMILY_SPLIT_AND_MIGRATION",
+                    "newHeadSN" to promotedTarget.serialNumber,
+                    "newHeadName" to promotedTarget.fullName,
+                    "oldFamilyId" to oldFamilyId,
+                    "newFamilyId" to newFamilyId,
+                    "migratedSNs" to migratedSerials,
+                    "performedBy" to callerAdmin.id,
+                    "performedByName" to callerAdmin.name,
+                    "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                )
+                batch.set(firestore.collection("family_audit_logs").document(auditId), auditLogData)
+
+                batch.commit().await()
+
+                // Update in-memory state
+                _appUserProfiles.value = profileList
+
+                // Invalidate local family cache & re-index Family Units
+                try {
+                    AttendanceGovernanceRepository.getInstance(context).refreshFamilyUnitsFromProfiles(profileList)
+                } catch (_: Exception) {}
+
+                // Activity log
+                logActivity(
+                    actionType = "FAMILY_SPLIT",
+                    description = "परिवार विभाजन व मुखिया प्रमोट: ${promotedTarget.serialNumber} (${promotedTarget.fullName}) नया मुखिया बना (नया परिवार: $newFamilyId, सदस्य संख्या: ${migratedSerials.size + 1})",
+                    targetId = promotedTarget.serialNumber,
+                    targetUserId = promotedTarget.userId,
+                    performedByAdminId = callerAdmin.id
+                )
+
+                withContext(Dispatchers.Main) {
+                    onComplete(true, null)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, e.message ?: "परिवार विभाजन में त्रुटि हुई")
+                }
+            }
         }
     }
 }

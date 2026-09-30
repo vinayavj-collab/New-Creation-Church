@@ -294,12 +294,7 @@ fun VersePopupDialog(
                             label = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = when (trans.id) {
-                                            BibleTranslation.HIOV.id -> "हिन्दी (HIOV)"
-                                            BibleTranslation.ENGLISH_NKJV.id -> "English (NKJV)"
-                                            BibleTranslation.PARALLEL_HI_EN.id -> "हिन्दी + NKJV"
-                                            else -> trans.nameHindi
-                                        },
+                                        text = if (trans.id == BibleTranslation.HIOV.id) "हिन्दी (HIOV)" else trans.nameHindi,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         fontSize = 11.sp
                                     )

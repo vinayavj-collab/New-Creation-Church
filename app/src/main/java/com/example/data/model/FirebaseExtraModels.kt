@@ -210,4 +210,32 @@ data class DailyDevotion(
     val listensCount: Long = 0L
 )
 
+@Keep
+data class MediaGovernanceConfig(
+    val allowPastorsLongMessages: Boolean = true,
+    val compressionBitrate: String = "48k", // "32k" | "48k" | "64k" | "128k"
+    val audioCodec: String = "aac",
+    val maxOriginalFileSizeMB: Int = 250,
+    val updatedBy: String = "",
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Keep
+data class SermonItem(
+    val sermonId: String = "",
+    val title: String = "",
+    val preacherName: String = "Rev. Vinay Kumar",
+    val scriptureReferences: List<String> = emptyList(),
+    val audioUrl: String = "",
+    val originalSizeBytes: Long = 0L,
+    val compressedSizeBytes: Long = 0L,
+    val compressionRatio: String = "0%",
+    val bitrate: String = "48k",
+    val durationMinutes: Int = 0,
+    val branchId: String = "branch_ncc_main",
+    val uploadedBy: String = "",
+    val category: String = "संडे आराधना", // "संडे आराधना", "बाइबल स्टडी", "उपवास प्रार्थना"
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 

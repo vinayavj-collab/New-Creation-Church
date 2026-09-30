@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.bible.model.BibleBookDefinitions
+import com.example.data.bible.model.BibleTranslation
 import com.example.data.bible.model.BibleVerse
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -301,7 +302,7 @@ fun BibleSavedScreen(
                                                 bookName = item.bookName,
                                                 chapter = item.chapter,
                                                 verseNumber = item.verse,
-                                                translationId = "hi_irv",
+                                                translationId = BibleTranslation.HIOV.id,
                                                 text = "",
                                                 note = item.noteText
                                             )
@@ -357,7 +358,7 @@ fun BibleSavedScreen(
                                                         bookName = item.bookName,
                                                         chapter = item.chapter,
                                                         verseNumber = item.verse,
-                                                        translationId = "hi_irv",
+                                                        translationId = BibleTranslation.HIOV.id,
                                                         text = "",
                                                         note = item.noteText
                                                     )

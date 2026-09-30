@@ -198,8 +198,7 @@ fun QuoteScriptureDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     listOf(
-                        "HIOV" to "हिन्दी (HIOV)",
-                        "NKJV" to "English (NKJV)"
+                        "HIOV" to "हिन्दी (HIOV)"
                     ).forEach { (id, label) ->
                         FilterChip(
                             selected = selectedTranslationId == id,

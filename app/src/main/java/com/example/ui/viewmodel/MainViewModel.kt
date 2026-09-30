@@ -1381,6 +1381,89 @@ class MainViewModel(
         firebaseDataRepository.runSmartFifoCleanup(targetFreeMb, onComplete)
     }
 
+    val mediaGovernanceConfig: StateFlow<com.example.data.model.MediaGovernanceConfig> = firebaseDataRepository.mediaGovernanceConfig
+    val sermons: StateFlow<List<com.example.data.model.SermonItem>> = firebaseDataRepository.sermons
+
+    fun updateMediaGovernanceConfig(config: com.example.data.model.MediaGovernanceConfig, onComplete: ((Boolean) -> Unit)? = null) {
+        firebaseDataRepository.updateMediaGovernanceConfig(config, onComplete)
+    }
+
+    fun saveSermon(sermon: com.example.data.model.SermonItem, onComplete: ((Boolean, String?) -> Unit)? = null) {
+        firebaseDataRepository.saveSermon(sermon, onComplete)
+    }
+
+    fun deleteSermon(sermon: com.example.data.model.SermonItem, onComplete: ((Boolean) -> Unit)? = null) {
+        firebaseDataRepository.deleteSermon(sermon, onComplete)
+    }
+
+    fun compressAndUploadSermon(
+        context: android.content.Context,
+        inputUri: android.net.Uri,
+        title: String,
+        preacherName: String,
+        scriptureReferences: List<String>,
+        category: String,
+        branchId: String,
+        uploadedBy: String,
+        onCompressionProgress: (Float) -> Unit,
+        onUploadProgress: (Float) -> Unit,
+        onComplete: (Boolean, String?, com.example.data.model.SermonItem?) -> Unit
+    ) {
+        viewModelScope.launch {
+            val activeBitrate = mediaGovernanceConfig.value.compressionBitrate
+            val compResult = com.example.util.AudioCompressionService.compressAudio(
+                context = context,
+                inputUri = inputUri,
+                bitrateKey = activeBitrate,
+                onProgress = onCompressionProgress
+            )
+
+            if (compResult.isFailure) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, compResult.exceptionOrNull()?.message ?: "ऑडियो कंप्रेस करने में त्रुटि", null)
+                }
+                return@launch
+            }
+
+            val result = compResult.getOrThrow()
+            val sermonId = "SERMON_" + java.text.SimpleDateFormat("yyyy_MM_dd_HHmmss", java.util.Locale.US).format(java.util.Date())
+            val storagePath = "sermons/$branchId/${sermonId}.m4a"
+
+            firebaseDataRepository.uploadAudioFileToStorage(
+                file = result.compressedFile,
+                storagePath = storagePath,
+                onProgress = onUploadProgress
+            ) { success, audioUrl, errorMsg ->
+                if (success && audioUrl != null) {
+                    val sermonItem = com.example.data.model.SermonItem(
+                        sermonId = sermonId,
+                        title = title,
+                        preacherName = preacherName,
+                        scriptureReferences = scriptureReferences,
+                        audioUrl = audioUrl,
+                        originalSizeBytes = result.originalSizeBytes,
+                        compressedSizeBytes = result.compressedSizeBytes,
+                        compressionRatio = result.compressionRatio,
+                        bitrate = result.bitrate,
+                        durationMinutes = result.durationMinutes,
+                        branchId = branchId,
+                        uploadedBy = uploadedBy,
+                        category = category,
+                        createdAt = System.currentTimeMillis()
+                    )
+
+                    saveSermon(sermonItem) { saveSuccess, saveErr ->
+                        try { result.compressedFile.delete() } catch (_: Exception) {}
+                        onComplete(saveSuccess, saveErr, if (saveSuccess) sermonItem else null)
+                    }
+                } else {
+                    try { result.compressedFile.delete() } catch (_: Exception) {}
+                    onComplete(false, errorMsg ?: "स्टोरेज में अपलोड विफल हुआ", null)
+                }
+            }
+        }
+    }
+
     // Dual-Layer Vlog evaluation: Condition A (Local) && Condition B (Server DB & RemoteConfig)
     // EXCEPTION: In "Vinay Kumar Avj" profile, all content is always allowed even if Firebase has set the switch to OFF.
     val isPersonalVlogAllowed: StateFlow<Boolean> = combine(
@@ -2145,6 +2228,14 @@ class MainViewModel(
         firebaseDataRepository.deleteYouTubePlaylist(playlistId, onComplete)
     }
 
+    fun addVideoUrlToPlaylist(playlistId: String, videoUrl: String, onComplete: ((Boolean) -> Unit)? = null) {
+        firebaseDataRepository.addVideoUrlToPlaylist(playlistId, videoUrl, onComplete)
+    }
+
+    fun removeVideoUrlFromPlaylist(playlistId: String, videoUrl: String, onComplete: ((Boolean) -> Unit)? = null) {
+        firebaseDataRepository.removeVideoUrlFromPlaylist(playlistId, videoUrl, onComplete)
+    }
+
     fun addOrUpdateCustomVideo(video: com.example.data.model.YouTubeVideo, onComplete: ((Boolean) -> Unit)? = null) {
         firebaseDataRepository.addOrUpdateCustomVideo(video, onComplete)
     }
@@ -2198,6 +2289,48 @@ class MainViewModel(
 
     fun updateBibleReadingStyle(style: BibleReadingStyle) {
         preferencesManager.updateBibleReadingStyle(style)
+    }
+
+    fun createNewMemberWithAtomicSN(
+        prefix: String = "NCC",
+        fullName: String,
+        phone: String = "",
+        baptismStatus: String = "baptized",
+        address: String = "",
+        isNewFamilyHead: Boolean = true,
+        headSerialNumber: String? = null,
+        familyRole: String = "head",
+        homeBranchId: String = "branch_ncc_01",
+        onComplete: (Boolean, String?, UserProfileData?) -> Unit
+    ) {
+        val admin = currentAdmin.value ?: return onComplete(false, "प्रशासक लॉगिन आवश्यक है।", null)
+        adminRepository.createNewMemberWithAtomicSN(
+            prefix = prefix,
+            fullName = fullName,
+            phone = phone,
+            baptismStatus = baptismStatus,
+            address = address,
+            isNewFamilyHead = isNewFamilyHead,
+            headSerialNumber = headSerialNumber,
+            familyRole = familyRole,
+            homeBranchId = homeBranchId,
+            callerAdmin = admin,
+            onComplete = onComplete
+        )
+    }
+
+    fun promoteToHeadAndMigrateFamily(
+        promotedMemberSerialOrId: String,
+        migratingMembersMap: Map<String, String>,
+        onComplete: (Boolean, String?) -> Unit
+    ) {
+        val admin = currentAdmin.value ?: return onComplete(false, "प्रशासक लॉगिन आवश्यक है।")
+        adminRepository.promoteToHeadAndMigrateFamily(
+            promotedMemberSerialOrId = promotedMemberSerialOrId,
+            migratingMembersMap = migratingMembersMap,
+            callerAdmin = admin,
+            onComplete = onComplete
+        )
     }
 
     fun updateYouTubeDefaultTab(tab: YouTubeDefaultTab) {
@@ -2364,6 +2497,11 @@ class MainViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             bloggerRepository.clearCache()
             youtubeRepository.clearCache()
+            try {
+                bibleRepository.reseedBibleDatabase()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             refreshAll()
         }
     }

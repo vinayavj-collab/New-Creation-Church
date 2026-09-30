@@ -217,10 +217,11 @@ object UsfmTextParserEngine {
             .replace(Regex("\\[\\s*(?:Greek|Hebrew|Aramaic|Latin|Septuagint|LXX|Vulgate|Masoretic|MT|TR|NU|WH|Codex|MSS|MS|Variant|Alt|Or|Lit|Literal|Literally|Meaning|Some manuscripts|Early manuscripts|Other authorities|Many authorities|Reading|v\\.r\\.|cf\\.|see)[^\\]]*\\]", RegexOption.IGNORE_CASE), "")
             .replace(Regex("\\(\\s*(?:Greek|Hebrew|Aramaic|Latin|Septuagint|LXX|Vulgate|Masoretic|MT|TR|NU|WH|Codex|MSS|MS|Variant|Alt|Or|Lit|Literal|Literally|Meaning|Some manuscripts|Early manuscripts|Other authorities|Many authorities|Reading|v\\.r\\.|cf\\.|see)[^\\)]*\\)", RegexOption.IGNORE_CASE), "")
             .replace(Regex("\\[(?:xref|footnote|fn|note|\\d+|[a-zA-Z])[^\\]]*\\]", RegexOption.IGNORE_CASE), "")
-            // 4. Strip accidental glued language metadata (e.g. "JesusGreek", "JesusGreek he", "JesusGreek: he", "LordHebrew")
-            .replace(Regex("(?<=[A-Za-z\\u0900-\\u097F])(?:Greek|Hebrew|Aramaic|Latin|LXX|Septuagint|NU-Text|TR)(?:\\s*:\\s*[A-Za-z0-9\\s\"’'“\\-]+|\\s+(?:he|she|it|they|the|a|an|[a-z]+))?", RegexOption.IGNORE_CASE), "")
+            // 4. Strip accidental glued language metadata (e.g. "JesusGreek: he", "LordHebrew: Yahweh")
+            // Must NOT use IGNORE_CASE or optional suffix, otherwise "TR" strips "tr" from "strong" -> "song", "destroy" -> "desoy"!
+            .replace(Regex("(?<=[A-Za-z\\u0900-\\u097F])(?:Greek|Hebrew|Aramaic|Latin|Septuagint|LXX|NU-Text|TR)(?:\\s*:\\s*[A-Za-z0-9\\s\"’'“\\-]+|\\s+(?:he|she|it|they|the|a|an)\\b)"), "")
             .replace(Regex("\\b(?:Greek|Hebrew|Aramaic|Latin|Lit\\.|Or)\\s*:\\s*(?:he|she|it|they|the|a|an|[a-zA-Z0-9\\s\"’'“\\-]+?)(?=[,\\.;!\\?]|$)", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("\\{[GH]\\d+\\}|<[GH]\\d+>|\\b[GH]\\d{3,5}\\b"), "")
+            .replace(Regex("\\{[GH]\\d{1,5}\\}|<[GH]\\d{1,5}>|\\b[GH]\\d{4,5}\\b"), "")
             // 5. Strip USFM markers & HTML tags
             .replace(Regex("\\\\\\+?[a-zA-Z0-9]+\\*?"), "")
             .replace(Regex("\\*"), "")

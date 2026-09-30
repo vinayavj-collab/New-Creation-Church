@@ -39,6 +39,8 @@ data class AppUpdateState(
     val apkSizeBytes: Long = 0L,
     val lastCheckedTimestamp: Long = 0L,
     val isUpdateAvailable: Boolean = false,
+    val isForceUpdate: Boolean = false,
+    val updateSource: String = "Cloud Firestore",
     val statusMessage: String = "जांच की जा रही है...",
     val isChecking: Boolean = false,
     val isDownloading: Boolean = false,
@@ -107,12 +109,22 @@ class AppUpdateManager private constructor(private val context: Context) {
         val pubAt = prefs.getString("published_at", "") ?: ""
         val apkUrl = prefs.getString("apk_url", null)
         val apkName = prefs.getString("apk_name", null)
+        val isForceUpdate = prefs.getBoolean("is_force_update", false)
+        val updateSource = prefs.getString("update_source", "Cloud Firestore") ?: "Cloud Firestore"
+
         val isUpdateAvailable = isVersionNewer(
             currentCode = BuildConfig.VERSION_CODE,
             currentName = BuildConfig.VERSION_NAME,
             latestCode = latestCode,
             latestName = latestName
         )
+
+        if (!isUpdateAvailable && (latestCode <= BuildConfig.VERSION_CODE)) {
+            prefs.edit().remove("latest_name").remove("latest_code").apply()
+        }
+
+        val cleanLatestCode = if (isUpdateAvailable) latestCode else BuildConfig.VERSION_CODE
+        val cleanLatestName = if (isUpdateAvailable && latestName.isNotBlank()) latestName else BuildConfig.VERSION_NAME
 
         val initialStatus = when {
             lastChecked == 0L -> "अभी तक जांच नहीं की गई है"
@@ -125,8 +137,8 @@ class AppUpdateManager private constructor(private val context: Context) {
             apiUrl = apiUrl,
             currentVersionCode = BuildConfig.VERSION_CODE,
             currentVersionName = BuildConfig.VERSION_NAME,
-            latestVersionCode = latestCode,
-            latestVersionName = latestName,
+            latestVersionCode = cleanLatestCode,
+            latestVersionName = cleanLatestName,
             releaseTitle = title,
             releaseNotes = notes,
             publishedAt = pubAt,
@@ -134,6 +146,8 @@ class AppUpdateManager private constructor(private val context: Context) {
             apkFileName = apkName,
             lastCheckedTimestamp = lastChecked,
             isUpdateAvailable = isUpdateAvailable,
+            isForceUpdate = isForceUpdate,
+            updateSource = updateSource,
             statusMessage = initialStatus
         )
     }
@@ -178,7 +192,54 @@ class AppUpdateManager private constructor(private val context: Context) {
             return@withContext offlineState
         }
 
-        _updateState.value = current.copy(isChecking = true, errorMessage = null, statusMessage = "GitHub से जांच हो रही है...")
+        _updateState.value = current.copy(isChecking = true, errorMessage = null, statusMessage = "अपडेट की जांच हो रही है...")
+
+        // 1. Check Cloud Firestore Master Admin release first
+        try {
+            val firestoreRelease = com.example.data.repository.AppReleaseRepository.getInstance().getLatestActiveRelease()
+            if (firestoreRelease != null && firestoreRelease.versionCode > current.currentVersionCode) {
+                val now = System.currentTimeMillis()
+                val isUpdateAvailable = true
+                val statusMsg = if (firestoreRelease.isForceUpdate) "🚨 अनिवार्य App Update उपलब्ध है" else "🆕 नया App Update उपलब्ध है"
+                val pubAt = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date(firestoreRelease.timestamp))
+
+                prefs.edit().apply {
+                    putLong("last_checked", now)
+                    putInt("latest_code", firestoreRelease.versionCode)
+                    putString("latest_name", firestoreRelease.versionName)
+                    putString("release_title", "New Creation Church v${firestoreRelease.versionName}")
+                    putString("release_notes", firestoreRelease.releaseNotes)
+                    putString("published_at", pubAt)
+                    putString("apk_url", firestoreRelease.downloadUrl)
+                    putString("apk_name", firestoreRelease.apkFileName)
+                    putBoolean("is_force_update", firestoreRelease.isForceUpdate)
+                    putString("update_source", "Cloud Firestore (Master Admin)")
+                    apply()
+                }
+
+                val newState = current.copy(
+                    isChecking = false,
+                    latestVersionCode = firestoreRelease.versionCode,
+                    latestVersionName = firestoreRelease.versionName,
+                    releaseTitle = "New Creation Church v${firestoreRelease.versionName}",
+                    releaseNotes = firestoreRelease.releaseNotes,
+                    publishedAt = pubAt,
+                    apkDownloadUrl = firestoreRelease.downloadUrl,
+                    apkFileName = firestoreRelease.apkFileName,
+                    apkSizeBytes = firestoreRelease.fileSizeBytes,
+                    lastCheckedTimestamp = now,
+                    isUpdateAvailable = isUpdateAvailable,
+                    isForceUpdate = firestoreRelease.isForceUpdate,
+                    updateSource = "Cloud Firestore (Master Admin)",
+                    statusMessage = statusMsg,
+                    errorMessage = null
+                )
+                _updateState.value = newState
+                return@withContext newState
+            }
+        } catch (e: Exception) {
+            Log.w("AppUpdateManager", "Firestore check error: ${e.message}")
+        }
 
         try {
             val url = URL(current.apiUrl)

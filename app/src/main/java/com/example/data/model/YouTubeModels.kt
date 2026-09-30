@@ -42,12 +42,17 @@ fun defaultVideoQuickAccessItems(): List<VideoQuickAccessItem> = listOf(
 )
 
 data class YouTubePlaylist(
-    val id: String,
-    val title: String,
-    val channelTitle: String,
-    val playlistUrl: String,
+    val id: String = "",
+    val title: String = "",
+    val channelTitle: String = "Vinay Kumar AVJ",
+    val playlistUrl: String = "",
     val videoCountEstimate: Int? = null,
-    val thumbnailUrl: String? = null
+    val thumbnailUrl: String? = null,
+    val description: String = "",
+    val videoUrls: List<String> = emptyList(),
+    val videoIds: List<String> = emptyList(),
+    val isCustom: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 data class YouTubeChannelInfo(

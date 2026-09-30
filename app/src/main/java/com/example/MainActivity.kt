@@ -3,28 +3,41 @@ package com.example
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ui.bible.BibleReaderScreen
+import com.example.ui.bible.BibleViewModel
+import com.example.ui.screens.HomeScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
+            MaterialTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    Text(text = "Welcome to New Creation Church")
+                    val bibleViewModel: BibleViewModel = viewModel()
+                    var currentScreen by remember { mutableStateOf("home") }
+
+                    when (currentScreen) {
+                        "home" -> {
+                            HomeScreen(
+                                onOpenBible = { currentScreen = "bible" }
+                            )
+                        }
+                        "bible" -> {
+                            BibleReaderScreen(
+                                viewModel = bibleViewModel,
+                                onBack = { currentScreen = "home" }
+                            )
+                        }
+                    }
                 }
             }
         }

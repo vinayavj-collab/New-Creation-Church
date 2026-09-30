@@ -116,131 +116,27 @@ fun AdminOtpManagerScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(top = 12.dp, bottom = 48.dp)
     ) {
-        // 1. Hero Card: OTP Rules & Authority Context
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("admin_otp_manager_hero_card"),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isVinayKumar) GoldWarm.copy(alpha = 0.16f)
-                    else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                ),
-                border = BorderStroke(
-                    1.5.dp,
-                    if (isVinayKumar) GoldWarm else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(if (isVinayKumar) GoldWarm else MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.LockClock,
-                                contentDescription = null,
-                                tint = if (isVinayKumar) Color(0xFF1E1B4B) else MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-
-                        Spacer(Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "10-मिनट अस्थायी OTP जनरेटर",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 16.sp,
-                                color = if (isVinayKumar) GoldWarm else MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "दूसरा पासवर्ड (Password 2) ऑथोरिटी कंसोल",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                        ) {
-                            Text(
-                                text = "लेवल $creatorRank",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    // Explanation Notice Box
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.Top) {
-                                Icon(
-                                    Icons.Default.Security,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .size(18.dp)
-                                        .padding(top = 1.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        text = "दोहरे पासवर्ड (Dual-Security) का नियम:",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        text = "• पासवर्ड 1: व्यक्ति का स्थायी व्यक्तिगत पासवर्ड।\n" +
-                                                "• पासवर्ड 2 (OTP): हाइयर ऑथोरिटी द्वारा जनरेट किया गया 6-अंकों का डायनामिक कोड। यह जनरेट होने के ठीक 10 मिनट तक ही वैध रहता है, जिसके बाद स्वतः समाप्त (Expire) हो जाता है।",
-                                        fontSize = 11.sp,
-                                        lineHeight = 15.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (creatorRank <= AdminHierarchy.RANK_PURANIYA) {
-                        Spacer(Modifier.height(10.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "ℹ️ पुरनिया (Puraniya) के पास कोई अधीनस्थ श्रेणी नहीं है। आपका दूसरा पासवर्ड (OTP) आपके पास्टर/बिशप/मास्टर एडमिन द्वारा जारी किया जाता है।",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.padding(10.dp)
-                            )
-                        }
-
+        // If current admin has no subordinates (e.g. Puraniya), show personal OTP status
+        if (creatorRank <= AdminHierarchy.RANK_PURANIYA) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("admin_otp_personal_card"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "ℹ️ आपका दूसरा पासवर्ड (OTP) आपके पास्टर/बिशप/मास्टर एडमिन द्वारा जारी किया जाता है।",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                         if (currentAdmin != null && currentAdmin.secondaryPin.isNotBlank()) {
-                            Spacer(Modifier.height(10.dp))
+                            Spacer(Modifier.height(8.dp))
                             Text(
                                 text = "आपका वर्तमान पासवर्ड 2 (OTP):",
                                 fontSize = 12.sp,

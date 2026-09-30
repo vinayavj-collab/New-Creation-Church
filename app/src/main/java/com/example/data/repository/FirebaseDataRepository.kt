@@ -175,6 +175,12 @@ class FirebaseDataRepository private constructor() {
     private val _homeSectionsConfig = MutableStateFlow(com.example.data.model.HomeSectionsConfig())
     val homeSectionsConfig: StateFlow<com.example.data.model.HomeSectionsConfig> = _homeSectionsConfig.asStateFlow()
 
+    private val _mediaGovernanceConfig = MutableStateFlow(com.example.data.model.MediaGovernanceConfig())
+    val mediaGovernanceConfig: StateFlow<com.example.data.model.MediaGovernanceConfig> = _mediaGovernanceConfig.asStateFlow()
+
+    private val _sermons = MutableStateFlow<List<com.example.data.model.SermonItem>>(emptyList())
+    val sermons: StateFlow<List<com.example.data.model.SermonItem>> = _sermons.asStateFlow()
+
     init {
         initFirebaseListeners()
     }
@@ -1017,6 +1023,36 @@ class FirebaseDataRepository private constructor() {
                             }
                         }
                     }
+
+                // Global Media Governance settings listener
+                firestore.collection("system_settings").document("media_governance")
+                    .addSnapshotListener { snapshot, _ ->
+                        if (snapshot != null && snapshot.exists()) {
+                            try {
+                                val config = snapshot.toObject(com.example.data.model.MediaGovernanceConfig::class.java)
+                                if (config != null) {
+                                    _mediaGovernanceConfig.value = config
+                                }
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Error parsing media_governance config: ${e.message}")
+                            }
+                        }
+                    }
+
+                // Sermons listener
+                firestore.collection("sermons")
+                    .addSnapshotListener { snapshots, _ ->
+                        if (snapshots != null && !snapshots.isEmpty) {
+                            val list = snapshots.documents.mapNotNull { doc ->
+                                try {
+                                    doc.toObject(com.example.data.model.SermonItem::class.java)
+                                } catch (e: Exception) { null }
+                            }
+                            if (list.isNotEmpty()) {
+                                _sermons.value = list.sortedByDescending { it.createdAt }
+                            }
+                        }
+                    }
             } catch (e: Exception) {
                 Log.w(TAG, "Firestore audio message listener init error: ${e.message}")
             }
@@ -1186,6 +1222,27 @@ class FirebaseDataRepository private constructor() {
                     ?: "https://youtube.com/playlist?list=$id"
                 val count = child.child("videoCountEstimate").getValue(Int::class.java)
                 val thumb = child.child("thumbnailUrl").getValue(String::class.java)
+                val desc = child.child("description").getValue(String::class.java).orEmpty()
+                val isCustom = child.child("isCustom").getValue(Boolean::class.java) ?: false
+                val createdAt = child.child("createdAt").getValue(Long::class.java) ?: System.currentTimeMillis()
+
+                val videoUrlsList = mutableListOf<String>()
+                val videoUrlsSnap = child.child("videoUrls")
+                if (videoUrlsSnap.exists()) {
+                    for (vChild in videoUrlsSnap.children) {
+                        val vUrl = vChild.getValue(String::class.java)
+                        if (!vUrl.isNullOrBlank()) videoUrlsList.add(vUrl)
+                    }
+                }
+
+                val videoIdsList = mutableListOf<String>()
+                val videoIdsSnap = child.child("videoIds")
+                if (videoIdsSnap.exists()) {
+                    for (vChild in videoIdsSnap.children) {
+                        val vId = vChild.getValue(String::class.java)
+                        if (!vId.isNullOrBlank()) videoIdsList.add(vId)
+                    }
+                }
 
                 list.add(
                     YouTubePlaylist(
@@ -1193,8 +1250,13 @@ class FirebaseDataRepository private constructor() {
                         title = title,
                         channelTitle = channelTitle,
                         playlistUrl = playlistUrl,
-                        videoCountEstimate = count,
-                        thumbnailUrl = thumb
+                        videoCountEstimate = if (videoUrlsList.isNotEmpty()) videoUrlsList.size else count,
+                        thumbnailUrl = thumb,
+                        description = desc,
+                        videoUrls = videoUrlsList,
+                        videoIds = videoIdsList,
+                        isCustom = isCustom || videoUrlsList.isNotEmpty(),
+                        createdAt = createdAt
                     )
                 )
             } catch (e: Exception) {
@@ -1905,19 +1967,40 @@ class FirebaseDataRepository private constructor() {
             var playlistId = playlist.id.trim()
             if (playlistId.isBlank() || playlistId.startsWith("http")) {
                 val uri = android.net.Uri.parse(playlist.playlistUrl)
-                playlistId = uri.getQueryParameter("list") ?: System.currentTimeMillis().toString()
+                playlistId = uri.getQueryParameter("list") ?: ("pl_" + System.currentTimeMillis())
             }
-            val finalPlaylist = playlist.copy(id = playlistId)
+            val finalPlaylist = playlist.copy(
+                id = playlistId,
+                videoCountEstimate = if (playlist.videoUrls.isNotEmpty()) playlist.videoUrls.size else (playlist.videoCountEstimate ?: 0)
+            )
             
-            database.getReference("playlists").child(playlistId).setValue(mapOf(
+            val playlistDataMap = mapOf(
                 "id" to finalPlaylist.id,
                 "title" to finalPlaylist.title,
                 "channelTitle" to finalPlaylist.channelTitle,
                 "playlistUrl" to finalPlaylist.playlistUrl,
                 "thumbnailUrl" to (finalPlaylist.thumbnailUrl ?: ""),
-                "videoCountEstimate" to (finalPlaylist.videoCountEstimate ?: 0)
-            )).addOnSuccessListener { onComplete?.invoke(true) }
-              .addOnFailureListener { onComplete?.invoke(false) }
+                "description" to finalPlaylist.description,
+                "videoCountEstimate" to (finalPlaylist.videoCountEstimate ?: 0),
+                "videoUrls" to finalPlaylist.videoUrls,
+                "videoIds" to finalPlaylist.videoIds,
+                "isCustom" to finalPlaylist.isCustom,
+                "createdAt" to finalPlaylist.createdAt
+            )
+
+            // 1. Sync to Firebase Realtime Database
+            database.getReference("playlists").child(playlistId).setValue(playlistDataMap)
+                .addOnSuccessListener {
+                    // 2. Also mirror to Cloud Firestore for cross-platform robustness
+                    try {
+                        FirebaseFirestore.getInstance().collection("custom_playlists").document(playlistId).set(playlistDataMap)
+                        FirebaseFirestore.getInstance().collection("playlists").document(playlistId).set(playlistDataMap)
+                    } catch (fe: Exception) {
+                        Log.w(TAG, "Firestore playlist sync note: ${fe.message}")
+                    }
+                    onComplete?.invoke(true)
+                }
+                .addOnFailureListener { onComplete?.invoke(false) }
         } catch (e: Exception) {
             onComplete?.invoke(false)
         }
@@ -1927,9 +2010,52 @@ class FirebaseDataRepository private constructor() {
         try {
             val database = FirebaseDatabase.getInstance()
             database.getReference("playlists").child(playlistId).removeValue()
-                .addOnSuccessListener { onComplete?.invoke(true) }
+                .addOnSuccessListener {
+                    try {
+                        FirebaseFirestore.getInstance().collection("custom_playlists").document(playlistId).delete()
+                        FirebaseFirestore.getInstance().collection("playlists").document(playlistId).delete()
+                    } catch (_: Exception) {}
+                    onComplete?.invoke(true)
+                }
                 .addOnFailureListener { onComplete?.invoke(false) }
         } catch (e: Exception) {
+            onComplete?.invoke(false)
+        }
+    }
+
+    fun addVideoUrlToPlaylist(playlistId: String, videoUrl: String, onComplete: ((Boolean) -> Unit)? = null) {
+        val current = _playlists.value.find { it.id == playlistId }
+        if (current != null) {
+            val updatedUrls = (current.videoUrls + videoUrl).distinct()
+            val parsed = com.example.util.VideoUrlParser.parse(videoUrl)
+            val updatedIds = if (parsed.videoId.isNotBlank()) (current.videoIds + parsed.videoId).distinct() else current.videoIds
+            val updatedThumb = if (current.thumbnailUrl.isNullOrBlank() && parsed.thumbnailUrl.isNotBlank()) parsed.thumbnailUrl else current.thumbnailUrl
+            val updatedPl = current.copy(
+                videoUrls = updatedUrls,
+                videoIds = updatedIds,
+                thumbnailUrl = updatedThumb,
+                videoCountEstimate = updatedUrls.size,
+                isCustom = true
+            )
+            addOrUpdateYouTubePlaylist(updatedPl, onComplete)
+        } else {
+            onComplete?.invoke(false)
+        }
+    }
+
+    fun removeVideoUrlFromPlaylist(playlistId: String, videoUrl: String, onComplete: ((Boolean) -> Unit)? = null) {
+        val current = _playlists.value.find { it.id == playlistId }
+        if (current != null) {
+            val updatedUrls = current.videoUrls.filter { it != videoUrl }
+            val parsed = com.example.util.VideoUrlParser.parse(videoUrl)
+            val updatedIds = if (parsed.videoId.isNotBlank()) current.videoIds.filter { it != parsed.videoId } else current.videoIds
+            val updatedPl = current.copy(
+                videoUrls = updatedUrls,
+                videoIds = updatedIds,
+                videoCountEstimate = updatedUrls.size
+            )
+            addOrUpdateYouTubePlaylist(updatedPl, onComplete)
+        } else {
             onComplete?.invoke(false)
         }
     }
@@ -2197,6 +2323,81 @@ class FirebaseDataRepository private constructor() {
         } catch (e: Exception) {
             Log.e(TAG, "Smart FIFO cleanup failed: ${e.message}", e)
             onComplete?.invoke(false, 0, 0L)
+        }
+    }
+
+    // =========================================================================
+    // SERMON MANAGEMENT & GLOBAL MEDIA GOVERNANCE
+    // =========================================================================
+
+    fun updateMediaGovernanceConfig(config: com.example.data.model.MediaGovernanceConfig, onComplete: ((Boolean) -> Unit)? = null) {
+        try {
+            _mediaGovernanceConfig.value = config
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("system_settings").document("media_governance").set(config)
+                .addOnCompleteListener { task ->
+                    onComplete?.invoke(task.isSuccessful)
+                }
+
+            val database = FirebaseDatabase.getInstance()
+            database.getReference("media_governance").setValue(config)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating MediaGovernanceConfig: ${e.message}", e)
+            onComplete?.invoke(false)
+        }
+    }
+
+    fun saveSermon(sermon: com.example.data.model.SermonItem, onComplete: ((Boolean, String?) -> Unit)? = null) {
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            val branchId = sermon.branchId.ifBlank { "branch_ncc_main" }
+            val sermonId = sermon.sermonId.ifBlank { "SERMON_" + System.currentTimeMillis() }
+            val finalSermon = sermon.copy(sermonId = sermonId, branchId = branchId)
+
+            // Save to global sermons collection
+            firestore.collection("sermons").document(sermonId).set(finalSermon)
+                .addOnSuccessListener {
+                    // Also mirror to branches/{branchId}/sermons/{sermonId}
+                    try {
+                        firestore.collection("branches").document(branchId)
+                            .collection("sermons").document(sermonId).set(finalSermon)
+                    } catch (_: Exception) {}
+
+                    val updatedList = (_sermons.value.filter { it.sermonId != sermonId } + finalSermon).sortedByDescending { it.createdAt }
+                    _sermons.value = updatedList
+
+                    onComplete?.invoke(true, null)
+                }
+                .addOnFailureListener { e ->
+                    onComplete?.invoke(false, e.message)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving Sermon: ${e.message}", e)
+            onComplete?.invoke(false, e.message)
+        }
+    }
+
+    fun deleteSermon(sermon: com.example.data.model.SermonItem, onComplete: ((Boolean) -> Unit)? = null) {
+        try {
+            val firestore = FirebaseFirestore.getInstance()
+            val branchId = sermon.branchId.ifBlank { "branch_ncc_main" }
+            val sermonId = sermon.sermonId
+
+            firestore.collection("sermons").document(sermonId).delete()
+                .addOnCompleteListener { task ->
+                    try {
+                        firestore.collection("branches").document(branchId)
+                            .collection("sermons").document(sermonId).delete()
+                    } catch (_: Exception) {}
+
+                    val updatedList = _sermons.value.filter { it.sermonId != sermonId }
+                    _sermons.value = updatedList
+
+                    onComplete?.invoke(task.isSuccessful)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting Sermon: ${e.message}", e)
+            onComplete?.invoke(false)
         }
     }
 }

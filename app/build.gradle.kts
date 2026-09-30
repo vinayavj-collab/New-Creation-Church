@@ -8,17 +8,17 @@ val versionProps = Properties().apply {
   if (versionPropsFile.exists()) {
     FileInputStream(versionPropsFile).use { load(it) }
   } else {
-    setProperty("VERSION_CODE", "85")
-    setProperty("VERSION_MAJOR", "70")
-    setProperty("VERSION_MINOR", "5")
+    setProperty("VERSION_CODE", "97")
+    setProperty("VERSION_MAJOR", "71")
+    setProperty("VERSION_MINOR", "6")
     setProperty("VERSION_PATCH", "0")
     FileOutputStream(versionPropsFile).use { store(it, "Version Properties") }
   }
 }
 
-val currentVersionCode = (versionProps.getProperty("VERSION_CODE") ?: "85").toInt()
-val currentMajor = versionProps.getProperty("VERSION_MAJOR") ?: "70"
-val currentMinor = versionProps.getProperty("VERSION_MINOR") ?: "5"
+val currentVersionCode = (versionProps.getProperty("VERSION_CODE") ?: "97").toInt()
+val currentMajor = versionProps.getProperty("VERSION_MAJOR") ?: "71"
+val currentMinor = versionProps.getProperty("VERSION_MINOR") ?: "6"
 val currentPatch = versionProps.getProperty("VERSION_PATCH") ?: "0"
 val currentVersionName = if (currentPatch == "0") "$currentMajor.$currentMinor" else "$currentMajor.$currentMinor.$currentPatch"
 
@@ -49,16 +49,28 @@ android {
   signingConfigs {
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      val kFile = file(keystorePath)
+      if (kFile.exists() && System.getenv("STORE_PASSWORD") != null) {
+        storeFile = kFile
+        storePassword = System.getenv("STORE_PASSWORD")
+        keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
+        keyPassword = System.getenv("KEY_PASSWORD") ?: System.getenv("STORE_PASSWORD")
+      } else {
+        storeFile = file("${rootDir}/debug.keystore")
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+        enableV1Signing = true
+        enableV2Signing = true
+      }
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
       storePassword = "android"
       keyAlias = "androiddebugkey"
       keyPassword = "android"
+      enableV1Signing = true
+      enableV2Signing = true
     }
   }
 
@@ -66,7 +78,7 @@ android {
     abi {
       isEnable = true
       reset()
-      include("arm64-v8a", "armeabi-v7a")
+      include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
       isUniversalApk = true
     }
   }
@@ -220,5 +232,28 @@ tasks.register("incrementVersionCodeOnly") {
     props.setProperty("VERSION_CODE", newCode.toString())
     FileOutputStream(versionPropsFile).use { props.store(it, "Auto-incremented version code") }
     logger.lifecycle("Version code incremented to: $newCode")
+  }
+}
+
+
+tasks.register("forceVersionSyncAndRebuild") {
+  description = "Reloads version.properties, cleans generated BuildConfig, and prepares fresh build"
+  group = "versioning"
+  doLast {
+    val props = Properties()
+    if (versionPropsFile.exists()) {
+      FileInputStream(versionPropsFile).use { props.load(it) }
+    }
+    val code = props.getProperty("VERSION_CODE") ?: "96"
+    val major = props.getProperty("VERSION_MAJOR") ?: "71"
+    val minor = props.getProperty("VERSION_MINOR") ?: "5"
+    val patch = props.getProperty("VERSION_PATCH") ?: "0"
+    val name = if (patch == "0") "$major.$minor" else "$major.$minor.$patch"
+    logger.lifecycle("Forced Version Sync from version.properties: Code=$code, Name=$name")
+    val buildConfigDir = layout.buildDirectory.dir("generated/source/buildConfig").get().asFile
+    if (buildConfigDir.exists()) {
+      buildConfigDir.deleteRecursively()
+      logger.lifecycle("Cleaned old generated BuildConfig directory to force regeneration.")
+    }
   }
 }

@@ -31,10 +31,11 @@ class BibleLocalDataSource(
         private val MYBIBLE_TITLE_PATTERN = Regex("<TS>.*?<Ts>", RegexOption.IGNORE_CASE)
         private val MYBIBLE_TAGS_PATTERN = Regex("</?(?:TS|Ts|CM|Cm|FI|Fi|RF|Rf|FR|Fr|FB|Fb|FE|Fe)[^>]*>", RegexOption.IGNORE_CASE)
         
-        // Accidental language metadata injection glued directly to preceding words (e.g. "JesusGreek", "JesusGreek he", "JesusGreek: he", "LordHebrew")
-        private val GLUED_VARIANT_METADATA_PATTERN = Regex("(?<=[A-Za-z\\u0900-\\u097F])(?:Greek|Hebrew|Aramaic|Latin|LXX|Septuagint|NU-Text|TR)(?:\\s*:\\s*[A-Za-z0-9\\s\"’'“\\-]+|\\s+(?:he|she|it|they|the|a|an|[a-z]+))?", RegexOption.IGNORE_CASE)
+        // Accidental language metadata injection glued directly to preceding words (e.g. "JesusGreek: he", "LordHebrew: Yahweh")
+        // Note: Do NOT use IGNORE_CASE or optional suffix, as "TR" matches "tr" in words like "strong" -> "song", "destroy" -> "desoy"!
+        private val GLUED_VARIANT_METADATA_PATTERN = Regex("(?<=[A-Za-z\\u0900-\\u097F])(?:Greek|Hebrew|Aramaic|Latin|Septuagint|LXX|NU-Text|TR)(?:\\s*:\\s*[A-Za-z0-9\\s\"’'“\\-]+|\\s+(?:he|she|it|they|the|a|an)\\b)")
         private val STANDALONE_VARIANT_COLON_PATTERN = Regex("\\b(?:Greek|Hebrew|Aramaic|Latin|Lit\\.|Or)\\s*:\\s*(?:he|she|it|they|the|a|an|[a-zA-Z0-9\\s\"’'“\\-]+?)(?=[,\\.;!\\?]|$)", RegexOption.IGNORE_CASE)
-        private val STRONGS_NUMBERS_PATTERN = Regex("\\{[GH]\\d+\\}|<[GH]\\d+>|\\b[GH]\\d{3,5}\\b")
+        private val STRONGS_NUMBERS_PATTERN = Regex("\\{[GH]\\d{1,5}\\}|<[GH]\\d{1,5}>|\\b[GH]\\d{4,5}\\b")
 
         /**
          * Cleans and sanitizes Bible verse text by stripping all editorial footnotes,
@@ -112,6 +113,21 @@ class BibleLocalDataSource(
 
     suspend fun ensureSeeded() = withContext(Dispatchers.IO) {
         try {
+            // Clean up unneeded legacy translations (retain HIOV and NKJV)
+            try {
+                bibleDao.deleteVersesByTranslation("KJ21")
+                bibleDao.deleteVersesByTranslation("ESV")
+                bibleDao.deleteVersesByTranslation("KJV")
+                bibleDao.deleteVersesByTranslation("ENG")
+                bibleDao.deleteVersesByTranslation("PARALLEL_HI_EN")
+                bibleDao.deleteHeadingsByTranslation("KJ21")
+                bibleDao.deleteHeadingsByTranslation("ESV")
+                bibleDao.deleteHeadingsByTranslation("KJV")
+                bibleDao.deleteCommentariesByTranslation("KJ21")
+                bibleDao.deleteCommentariesByTranslation("ESV")
+                bibleDao.deleteCommentariesByTranslation("KJV")
+            } catch (_: Exception) {}
+
             // Auto check if user uploaded custom SQLite3 .db files in assets/bible/
             val assetManager = context.assets
             val sqliteFiles = mutableListOf<String>()
@@ -141,6 +157,14 @@ class BibleLocalDataSource(
 
             val prefs = context.getSharedPreferences("bible_prefs", Context.MODE_PRIVATE)
             val isNormalizedV44 = prefs.getBoolean("bible_seed_v44_esv_headings", false)
+            val isKj21Seeded = prefs.getBoolean("bible_seed_v71_0_strong_clean", false)
+
+            if (!isKj21Seeded) {
+                try {
+                    bibleDao.deleteVersesByTranslation("NKJV")
+                    bibleDao.deleteVersesByTranslation("HIOV")
+                } catch (_: Exception) {}
+            }
 
             if (zipFiles.isNotEmpty()) {
                 for (zipPath in zipFiles) {
@@ -163,7 +187,7 @@ class BibleLocalDataSource(
                         else -> rawName.substringBeforeLast(".")
                     }
                     val count = bibleDao.getVerseCount(transId)
-                    if (count == 0 || !isNormalizedV44 || transId.contains("commentar", ignoreCase = true)) {
+                    if (count == 0 || !isNormalizedV44 || !isKj21Seeded || transId.contains("commentar", ignoreCase = true)) {
                         try {
                             val tempFile = File(context.cacheDir, "asset_temp_$transId.db")
                             assetManager.open(assetPath).use { input ->
@@ -186,7 +210,57 @@ class BibleLocalDataSource(
                     }
                 }
             }
-            prefs.edit().putBoolean("bible_seed_v44_esv_headings", true).apply()
+            prefs.edit()
+                .putBoolean("bible_seed_v44_esv_headings", true)
+                .putBoolean("bible_seed_v71_0_strong_clean", true)
+                .apply()
+
+            // Also check project directories and storage for uploaded Bible files
+            try {
+                val candidateDirs = listOf(
+                    File("/app/applet"),
+                    File("/app/applet/app"),
+                    File("/app/applet/app/src/main/assets/bible"),
+                    File(context.filesDir, "bible"),
+                    File(context.cacheDir, "bible")
+                )
+                for (dir in candidateDirs) {
+                    if (dir.exists() && dir.isDirectory) {
+                        dir.listFiles()?.forEach { file ->
+                            val fName = file.name
+                            if (fName.endsWith(".zip", ignoreCase = true) && (fName.contains("HIOV", ignoreCase = true) || fName.contains("hindi", ignoreCase = true))) {
+                                try {
+                                    file.inputStream().use { inStream ->
+                                        Sqlite3BibleImporter.importZipBibleFile(context, appDb, inStream)
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            } else if ((fName.endsWith(".sqlite3", ignoreCase = true) || fName.endsWith(".db", ignoreCase = true) || fName.endsWith(".mybible", ignoreCase = true)) && !fName.contains("NKJV", ignoreCase = true) && !fName.contains("ESV", ignoreCase = true) && !fName.contains("KJ21", ignoreCase = true)) {
+                                val tId = when {
+                                    fName.contains(".bbl.mybible", ignoreCase = true) -> fName.substring(0, fName.indexOf(".bbl.mybible", ignoreCase = true))
+                                    fName.contains(".mybible", ignoreCase = true) -> fName.substring(0, fName.indexOf(".mybible", ignoreCase = true))
+                                    else -> fName.substringBeforeLast(".")
+                                }
+                                val c = bibleDao.getVerseCount(tId)
+                                if (c == 0 || tId.contains("commentar", ignoreCase = true)) {
+                                    try {
+                                        Sqlite3BibleImporter.importSqliteBibleFile(
+                                            context = context,
+                                            appDb = appDb,
+                                            sourceUri = Uri.fromFile(file),
+                                            targetTranslationId = tId,
+                                            replaceExisting = true
+                                        )
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
 
             val bibleAssetList = try { assetManager.list("bible")?.toSet() ?: emptySet() } catch (e: Exception) { emptySet() }
 
@@ -241,38 +315,16 @@ class BibleLocalDataSource(
                 Log.e("BibleLocalDataSource", "Error verifying Matthew 3:4", e)
             }
 
-            // Seed English Verses if needed
-            val engCount = bibleDao.getVerseCount(BibleTranslation.ENGLISH_ESV.id)
-            if (engCount < 400 && bibleAssetList.contains("offline_english_verses.json")) {
-                try {
-                    val engJsonString = context.assets.open("bible/offline_english_verses.json")
-                        .bufferedReader()
-                        .use { it.readText() }
-
-                    val engArray = JSONArray(engJsonString)
-                    val engEntities = mutableListOf<BibleVerseEntity>()
-
-                    for (i in 0 until engArray.length()) {
-                        val obj = engArray.getJSONObject(i)
-                        val rawText = obj.optString("text", "")
-                        val cleanText = decodeAndSanitizeVerseText(rawText)
-                        engEntities.add(
-                            BibleVerseEntity(
-                                translationId = BibleTranslation.ENGLISH_ESV.id,
-                                bookId = obj.optInt("b", 1),
-                                chapter = obj.optInt("c", 1),
-                                verse = obj.optInt("v", 1),
-                                text = cleanText
-                            )
-                        )
-                    }
-
-                    if (engEntities.isNotEmpty()) {
-                        bibleDao.insertVerses(engEntities)
-                    }
-                } catch (e: Exception) {
-                    // Ignore if missing
-                }
+            // Clean up unneeded legacy translations (retain HIOV and NKJV)
+            try {
+                bibleDao.deleteVersesByTranslation("ESV")
+                bibleDao.deleteHeadingsByTranslation("ESV")
+                bibleDao.deleteVersesByTranslation("KJ21")
+                bibleDao.deleteHeadingsByTranslation("KJ21")
+                bibleDao.deleteVersesByTranslation("KJV")
+                bibleDao.deleteHeadingsByTranslation("KJV")
+            } catch (e: Exception) {
+                // Ignore
             }
 
             // Seed Section Headings (ensure all 2,435+ verified headings across all 66 books are inserted)
@@ -304,39 +356,6 @@ class BibleLocalDataSource(
                     }
                 } catch (e: Exception) {
                     Log.e("BibleLocalDataSource", "Error seeding offline Hindi headings", e)
-                }
-            }
-
-            // Seed English Headings
-            val englishHeadingCount = bibleDao.getHeadingCount(BibleTranslation.ENGLISH_ESV.id)
-            if (englishHeadingCount < 2500 || !isNormalizedV44) {
-                try {
-                    val enHeadingsJson = context.assets.open("bible/offline_headings_en.json")
-                        .bufferedReader()
-                        .use { it.readText() }
-
-                    val enArray = JSONArray(enHeadingsJson)
-                    val enHeadingEntities = mutableListOf<BibleHeadingEntity>()
-
-                    for (i in 0 until enArray.length()) {
-                        val obj = enArray.getJSONObject(i)
-                        enHeadingEntities.add(
-                            BibleHeadingEntity(
-                                translationId = BibleTranslation.ENGLISH_ESV.id,
-                                bookId = obj.optInt("b", 1),
-                                chapter = obj.optInt("c", 1),
-                                beforeVerse = obj.optInt("v", 1),
-                                headingText = decodeAndSanitizeVerseText(obj.optString("h", ""))
-                            )
-                        )
-                    }
-
-                    if (enHeadingEntities.isNotEmpty()) {
-                        bibleDao.deleteHeadingsByTranslation(BibleTranslation.ENGLISH_ESV.id)
-                        bibleDao.insertHeadings(enHeadingEntities)
-                    }
-                } catch (e: Exception) {
-                    Log.e("BibleLocalDataSource", "Error seeding offline English headings", e)
                 }
             }
         } catch (e: Exception) {
@@ -665,6 +684,12 @@ class BibleLocalDataSource(
             }
         }
         blocksList
+    }
+
+    suspend fun reseedBibleDatabase() = withContext(Dispatchers.IO) {
+        val prefs = context.getSharedPreferences("bible_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("bible_seed_v70_6_nkjv_clean", false).apply()
+        ensureSeeded()
     }
 
     fun getCommentariesForChapter(translationId: String, bookId: Int, chapter: Int) =

@@ -24,7 +24,7 @@ object BibleBookDefinitions {
         BibleBook(19, "भजन संहिता", "Psalms", "भजन", "Psa", Testament.OLD, 150, "काव्य"),
         BibleBook(20, "नीतिवचन", "Proverbs", "नीति", "Prov", Testament.OLD, 31, "काव्य"),
         BibleBook(21, "सभोपदेशक", "Ecclesiastes", "सभो", "Eccl", Testament.OLD, 12, "काव्य"),
-        BibleBook(22, "श्रेष्ठगीत", "Song of Solomon", "श्रेष्ठ", "Song", Testament.OLD, 8, "काव्य"),
+        BibleBook(22, "श्रेष्ठगीत", "Song of Solomon", "श्रेष्ठ", "Song of Sol", Testament.OLD, 8, "काव्य"),
         BibleBook(23, "यशायाह", "Isaiah", "यशा", "Isa", Testament.OLD, 66, "भविष्यद्वाणी"),
         BibleBook(24, "यिर्मयाह", "Jeremiah", "यिर्म", "Jer", Testament.OLD, 52, "भविष्यद्वाणी"),
         BibleBook(25, "विलापगीत", "Lamentations", "विला", "Lam", Testament.OLD, 5, "भविष्यद्वाणी"),

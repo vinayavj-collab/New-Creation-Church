@@ -58,126 +58,130 @@ fun AdminAudioMessageScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("📅 प्रसारण अनुसूची (Schedule)", "🎙️ नया संदेश (Record/Add)", "⚙️ ग्लोबल सेटिंग्स (Config)")
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("दैनिक आत्मिक संदेश प्रबंधन", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(
-                            text = if (config.isServiceActive) "सेवा सक्रिय • ${config.dailyPublishTime} प्रसारण" else "सेवा बंद (Disabled)",
-                            fontSize = 12.sp,
-                            color = if (config.isServiceActive) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Switch(
-                        checked = config.isServiceActive,
-                        onCheckedChange = { isActive ->
-                            viewModel.updateAudioMessageConfig(config.copy(isServiceActive = isActive)) { success ->
-                                Toast.makeText(
-                                    context,
-                                    if (isActive) "ऑडियो संदेश सेवा चालू की गई" else "ऑडियो संदेश सेवा बंद की गई",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        },
-                        modifier = Modifier.padding(end = 8.dp)
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Service active status toggle strip
+        Surface(
+            color = if (config.isServiceActive) Color(0xFF4CAF50).copy(alpha = 0.12f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(if (config.isServiceActive) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error)
                     )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (config.isServiceActive) "ऑडियो संदेश सेवा सक्रिय • ${config.dailyPublishTime} प्रसारण" else "ऑडियो संदेश सेवा बंद (Disabled)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (config.isServiceActive) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+                    )
+                }
+                Switch(
+                    checked = config.isServiceActive,
+                    onCheckedChange = { isActive ->
+                        viewModel.updateAudioMessageConfig(config.copy(isServiceActive = isActive)) { success ->
+                            Toast.makeText(
+                                context,
+                                if (isActive) "ऑडियो संदेश सेवा चालू की गई" else "ऑडियो संदेश सेवा बंद की गई",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier.height(28.dp)
+                )
+            }
+        }
+
+        // Tabs Bar
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        ) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(title, fontSize = 12.sp, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal) }
+                )
+            }
+        }
+
+        when (selectedTab) {
+            0 -> AudioMessageScheduleTab(
+                devotions = allDevotions,
+                config = config,
+                currentAdmin = currentAdmin,
+                onApprove = { dev ->
+                    viewModel.updateDevotionStatus(dev.devotionId, "scheduled", currentAdmin.name) { success ->
+                        if (success) Toast.makeText(context, "संदेश स्वीकृत किया गया", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onReject = { dev ->
+                    viewModel.updateDevotionStatus(dev.devotionId, "rejected", currentAdmin.name) { success ->
+                        if (success) Toast.makeText(context, "संदेश अस्वीकृत किया गया", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onPin = { dev, isPinned, reason ->
+                    viewModel.pinDailyDevotion(dev.devotionId, isPinned, reason) { success ->
+                        if (success) Toast.makeText(context, if (isPinned) "पिन किया गया" else "अनपिन किया गया", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onDelete = { dev ->
+                    viewModel.deleteDailyDevotion(dev.devotionId) { success ->
+                        if (success) Toast.makeText(context, "संदेश हटाया गया", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onRunFifoCleanup = {
+                    viewModel.runSmartFifoCleanup { success, count, bytesFreed ->
+                        if (success) {
+                            val freedMb = String.format(Locale.getDefault(), "%.2f", bytesFreed / (1024.0 * 1024.0))
+                            Toast.makeText(context, "FIFO क्लीनअप संपन्न: $count पुराने संदेश हटाए गए ($freedMb MB मुक्त)", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "FIFO क्लीनअप विफल रहा", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Tabs Bar
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-            ) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(title, fontSize = 12.sp, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal) }
-                    )
+            1 -> AudioMessageRecorderTab(
+                viewModel = viewModel,
+                config = config,
+                currentAdmin = currentAdmin,
+                allDevotions = allDevotions,
+                onUploaded = {
+                    selectedTab = 0
                 }
-            }
-
-            when (selectedTab) {
-                0 -> AudioMessageScheduleTab(
-                    devotions = allDevotions,
-                    config = config,
-                    currentAdmin = currentAdmin,
-                    onApprove = { dev ->
-                        viewModel.updateDevotionStatus(dev.devotionId, "scheduled", currentAdmin.name) { success ->
-                            if (success) Toast.makeText(context, "संदेश स्वीकृत किया गया", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onReject = { dev ->
-                        viewModel.updateDevotionStatus(dev.devotionId, "rejected", currentAdmin.name) { success ->
-                            if (success) Toast.makeText(context, "संदेश अस्वीकृत किया गया", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onPin = { dev, isPinned, reason ->
-                        viewModel.pinDailyDevotion(dev.devotionId, isPinned, reason) { success ->
-                            if (success) Toast.makeText(context, if (isPinned) "पिन किया गया" else "अनपिन किया गया", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onDelete = { dev ->
-                        viewModel.deleteDailyDevotion(dev.devotionId) { success ->
-                            if (success) Toast.makeText(context, "संदेश हटाया गया", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onRunFifoCleanup = {
-                        viewModel.runSmartFifoCleanup { success, count, bytesFreed ->
-                            if (success) {
-                                val freedMb = String.format(Locale.getDefault(), "%.2f", bytesFreed / (1024.0 * 1024.0))
-                                Toast.makeText(context, "FIFO क्लीनअप संपन्न: $count पुराने संदेश हटाए गए ($freedMb MB मुक्त)", Toast.LENGTH_LONG).show()
-                            } else {
-                                Toast.makeText(context, "FIFO क्लीनअप विफल रहा", Toast.LENGTH_SHORT).show()
-                            }
+            )
+            2 -> AudioMessageConfigTab(
+                config = config,
+                devotions = allDevotions,
+                onRunFifoCleanup = {
+                    viewModel.runSmartFifoCleanup { success, count, bytesFreed ->
+                        if (success) {
+                            val freedMb = String.format(Locale.getDefault(), "%.2f", bytesFreed / (1024.0 * 1024.0))
+                            Toast.makeText(context, "FIFO क्लीनअप संपन्न: $count पुराने संदेश हटाए गए ($freedMb MB मुक्त)", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "FIFO क्लीनअप संपन्न: कोई संदेश हटाने की आवश्यकता नहीं", Toast.LENGTH_SHORT).show()
                         }
                     }
-                )
-                1 -> AudioMessageRecorderTab(
-                    viewModel = viewModel,
-                    config = config,
-                    currentAdmin = currentAdmin,
-                    allDevotions = allDevotions,
-                    onUploaded = {
-                        selectedTab = 0
+                },
+                onSaveConfig = { updatedConfig ->
+                    viewModel.updateAudioMessageConfig(updatedConfig) { success ->
+                        if (success) Toast.makeText(context, "ग्लोबल सेटिंग्स सहेजी गईं", Toast.LENGTH_SHORT).show()
                     }
-                )
-                2 -> AudioMessageConfigTab(
-                    config = config,
-                    devotions = allDevotions,
-                    onRunFifoCleanup = {
-                        viewModel.runSmartFifoCleanup { success, count, bytesFreed ->
-                            if (success) {
-                                val freedMb = String.format(Locale.getDefault(), "%.2f", bytesFreed / (1024.0 * 1024.0))
-                                Toast.makeText(context, "FIFO क्लीनअप संपन्न: $count पुराने संदेश हटाए गए ($freedMb MB मुक्त)", Toast.LENGTH_LONG).show()
-                            } else {
-                                Toast.makeText(context, "FIFO क्लीनअप संपन्न: कोई संदेश हटाने की आवश्यकता नहीं", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    },
-                    onSaveConfig = { updatedConfig ->
-                        viewModel.updateAudioMessageConfig(updatedConfig) { success ->
-                            if (success) Toast.makeText(context, "ग्लोबल सेटिंग्स सहेजी गईं", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                )
-            }
+                }
+            )
         }
     }
 }

@@ -8,18 +8,12 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [
         BibleVerseEntity::class,
-        BibleCommentaryEntity::class,
-        BibleHeadingEntity::class,
         BibleBookmarkEntity::class,
-        BibleFavoriteVerseEntity::class,
+        BibleFavoriteEntity::class,
         BibleHighlightEntity::class,
-        BibleNoteEntity::class,
-        ReadingPositionEntity::class,
-        ReadingPlanProgressEntity::class,
-        StudyNoteEntity::class,
-        ChristianSongEntity::class
+        BibleNoteEntity::class
     ],
-    version = 10,
+    version = 1,
     exportSchema = false
 )
 abstract class BibleDatabase : RoomDatabase() {
@@ -29,13 +23,15 @@ abstract class BibleDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: BibleDatabase? = null
 
-        fun getInstance(context: Context): BibleDatabase {
+        fun getDatabase(context: Context): BibleDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     BibleDatabase::class.java,
-                    "vinay_kumar_avj_bible.db"
-                ).fallbackToDestructiveMigration().build()
+                    "bible_database"
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

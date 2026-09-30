@@ -218,6 +218,58 @@ class YouTubeRepository(
         if (!forceRefresh && playlistCache.containsKey(playlist.id)) {
             return@withContext playlistCache[playlist.id].orEmpty()
         }
+
+        // If this is a custom playlist with explicit videoUrls or videoIds
+        if (playlist.videoUrls.isNotEmpty() || playlist.videoIds.isNotEmpty() || playlist.isCustom) {
+            val customVideosList = mutableListOf<YouTubeVideo>()
+            val allLocal = PredefinedData.hardcodedVideos + dao.getAllVideosList().map { it.toDomain() }
+            
+            // Map video URLs
+            playlist.videoUrls.forEachIndexed { idx, url ->
+                val parsed = com.example.util.VideoUrlParser.parse(url)
+                val vidId = if (parsed.videoId.isNotBlank()) parsed.videoId else "vid_${playlist.id}_$idx"
+                val existing = allLocal.find { it.id == vidId || it.videoUrl == url }
+                val video = existing ?: YouTubeVideo(
+                    id = vidId,
+                    title = "${playlist.title} - Video #${idx + 1}",
+                    channelId = "custom_channel",
+                    channelTitle = playlist.channelTitle,
+                    thumbnailUrl = if (parsed.thumbnailUrl.isNotBlank()) parsed.thumbnailUrl else "https://img.youtube.com/vi/$vidId/hqdefault.jpg",
+                    publishedAt = "",
+                    publishedTimestamp = System.currentTimeMillis() - (idx * 60000L),
+                    description = playlist.description,
+                    videoUrl = url,
+                    isRemote = true
+                )
+                customVideosList.add(video)
+            }
+
+            // Map video IDs
+            playlist.videoIds.forEachIndexed { idx, id ->
+                if (customVideosList.none { it.id == id }) {
+                    val existing = allLocal.find { it.id == id }
+                    val video = existing ?: YouTubeVideo(
+                        id = id,
+                        title = "${playlist.title} - Part ${idx + 1}",
+                        channelId = "custom_channel",
+                        channelTitle = playlist.channelTitle,
+                        thumbnailUrl = "https://img.youtube.com/vi/$id/hqdefault.jpg",
+                        publishedAt = "",
+                        publishedTimestamp = System.currentTimeMillis() - (idx * 60000L),
+                        description = playlist.description,
+                        videoUrl = "https://www.youtube.com/watch?v=$id",
+                        isRemote = true
+                    )
+                    customVideosList.add(video)
+                }
+            }
+
+            if (customVideosList.isNotEmpty()) {
+                playlistCache[playlist.id] = customVideosList
+                return@withContext customVideosList
+            }
+        }
+
         val rawVideos = feedService.fetchPlaylistVideos(playlist.id, playlist.channelTitle)
         val videos = rawVideos.filter {
             !PredefinedPlaylists.isBlockedYouTubeChannel(it.channelTitle, it.channelId)

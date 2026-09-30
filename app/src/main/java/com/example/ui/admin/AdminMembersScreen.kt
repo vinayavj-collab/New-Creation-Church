@@ -29,12 +29,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.ChurchMember
+import com.example.ui.theme.GoldWarm
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminMembersScreen(
     members: List<ChurchMember>,
     userProfiles: List<com.example.data.model.UserProfileData> = emptyList(),
+    viewModel: com.example.ui.viewmodel.MainViewModel? = null,
     onSaveMember: (ChurchMember) -> Unit,
     onDeleteMember: (String) -> Unit,
     onExportReport: () -> String,
@@ -49,10 +51,12 @@ fun AdminMembersScreen(
     val focusRequester = remember { FocusRequester() }
     var selectedFilter by remember { mutableStateOf("ALL") }
 
+    var showAddMemberBottomSheet by remember { mutableStateOf(false) }
     var showAddEditDialog by remember { mutableStateOf(false) }
     var editingMember by remember { mutableStateOf<ChurchMember?>(null) }
     var memberToDelete by remember { mutableStateOf<ChurchMember?>(null) }
     var activeLifecycleMember by remember { mutableStateOf<com.example.data.model.UserProfileData?>(null) }
+    var memberForFamilySplit by remember { mutableStateOf<com.example.data.model.UserProfileData?>(null) }
 
     val filterOptions = listOf(
         "ALL" to "सभी (${members.size})",
@@ -88,8 +92,12 @@ fun AdminMembersScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    editingMember = null
-                    showAddEditDialog = true
+                    if (viewModel != null) {
+                        showAddMemberBottomSheet = true
+                    } else {
+                        editingMember = null
+                        showAddEditDialog = true
+                    }
                 },
                 icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
                 text = { Text("नया सदस्य जोड़ें") },
@@ -413,12 +421,53 @@ fun AdminMembersScreen(
                                     membershipStatus = if (member.status.contains("Active", ignoreCase = true) || member.status.contains("सक्रिय", ignoreCase = true)) "active" else "transferred_external"
                                 )
                                 activeLifecycleMember = matchedProfile
+                            },
+                            onOpenFamilySplit = {
+                                val matchedProfile = userProfiles.find {
+                                    it.userId == member.id ||
+                                    it.serialNumber.equals(member.id, ignoreCase = true) ||
+                                    it.phoneNumber == member.phone ||
+                                    it.fullName.equals(member.name, ignoreCase = true) ||
+                                    it.displayName.equals(member.name, ignoreCase = true)
+                                } ?: com.example.data.model.UserProfileData(
+                                    userId = member.id,
+                                    serialNumber = if (member.id.startsWith("NCC") || member.id.startsWith("mem_")) member.id.replace("mem_", "NCC") else "NCC${(10..99).random()}",
+                                    fullName = member.name,
+                                    displayName = member.name,
+                                    phoneNumber = member.phone,
+                                    phone = member.phone,
+                                    familyId = member.familyName.ifBlank { "${member.id}-F" },
+                                    familyRole = if (member.familyRole.contains("Head", ignoreCase = true) || member.familyRole.contains("मुखिया", ignoreCase = true)) "head" else "member",
+                                    isFamilyHead = member.familyRole.contains("Head", ignoreCase = true) || member.familyRole.contains("मुखिया", ignoreCase = true)
+                                )
+                                memberForFamilySplit = matchedProfile
                             }
                         )
                     }
                 }
             }
         }
+    }
+
+    if (showAddMemberBottomSheet && viewModel != null) {
+        AddMemberBottomSheet(
+            viewModel = viewModel,
+            onDismiss = { showAddMemberBottomSheet = false },
+            onSuccess = {
+                showAddMemberBottomSheet = false
+            }
+        )
+    }
+
+    if (memberForFamilySplit != null && viewModel != null) {
+        FamilySplitBottomSheet(
+            viewModel = viewModel,
+            targetMember = memberForFamilySplit!!,
+            onDismiss = { memberForFamilySplit = null },
+            onSuccess = {
+                memberForFamilySplit = null
+            }
+        )
     }
 
     if (showAddEditDialog) {
@@ -488,7 +537,8 @@ fun MemberCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onCall: (String) -> Unit,
-    onOpenLifecycle: (() -> Unit)? = null
+    onOpenLifecycle: (() -> Unit)? = null,
+    onOpenFamilySplit: (() -> Unit)? = null
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -613,30 +663,63 @@ fun MemberCard(
                 }
             }
 
-            if (onOpenLifecycle != null) {
+            if (onOpenLifecycle != null || onOpenFamilySplit != null) {
                 Spacer(modifier = Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = onOpenLifecycle,
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("btn_member_lifecycle_${member.id}")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        Icons.Default.SyncAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "🔄 परिवार लिंकेज / शाखा स्थानांतरण (TC)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    if (onOpenLifecycle != null) {
+                        OutlinedButton(
+                            onClick = onOpenLifecycle,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("btn_member_lifecycle_${member.id}")
+                        ) {
+                            Icon(
+                                Icons.Default.SyncAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "🔄 लिंकेज / TC",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    if (onOpenFamilySplit != null && !member.familyRole.contains("Head", ignoreCase = true) && !member.familyRole.contains("मुखिया", ignoreCase = true)) {
+                        OutlinedButton(
+                            onClick = onOpenFamilySplit,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            border = BorderStroke(1.dp, GoldWarm.copy(alpha = 0.7f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("btn_family_split_${member.id}")
+                        ) {
+                            Icon(
+                                Icons.Default.CallSplit,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = GoldWarm
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "👑 परिवार विभाजन",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = GoldWarm
+                            )
+                        }
+                    }
                 }
             }
         }

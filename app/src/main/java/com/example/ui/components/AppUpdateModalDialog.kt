@@ -29,7 +29,7 @@ fun AppUpdateModalDialog(
 
     AlertDialog(
         onDismissRequest = {
-            if (!updateState.isDownloading) {
+            if (!updateState.isDownloading && !updateState.isForceUpdate) {
                 onDismissRequest()
             }
         },
@@ -281,7 +281,7 @@ fun AppUpdateModalDialog(
             }
         },
         dismissButton = {
-            if (!updateState.isDownloading) {
+            if (!updateState.isDownloading && !updateState.isForceUpdate) {
                 OutlinedButton(
                     onClick = onDismissRequest,
                     shape = RoundedCornerShape(12.dp)

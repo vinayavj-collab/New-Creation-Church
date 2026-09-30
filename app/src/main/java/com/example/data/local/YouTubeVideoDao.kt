@@ -11,6 +11,9 @@ interface YouTubeVideoDao {
     @Query("SELECT * FROM youtube_videos ORDER BY publishedTimestamp DESC")
     fun getAllVideos(): Flow<List<YouTubeVideoEntity>>
 
+    @Query("SELECT * FROM youtube_videos ORDER BY publishedTimestamp DESC")
+    suspend fun getAllVideosList(): List<YouTubeVideoEntity>
+
     @Query("SELECT * FROM youtube_videos WHERE channelId = :channelId ORDER BY publishedTimestamp DESC")
     fun getVideosByChannel(channelId: String): Flow<List<YouTubeVideoEntity>>
 

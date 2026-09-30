@@ -453,6 +453,10 @@ fun AdminPanelScreen(
                 selectedStudioTab = StudioBottomTab.SYSTEM
                 selectedSystemSubTab = "OTP प्रबंधन (OTP Manager)"
             }
+            tabName.contains("Update", ignoreCase = true) || tabName.contains("अपडेट", ignoreCase = true) || tabName.contains("APK", ignoreCase = true) -> {
+                selectedStudioTab = StudioBottomTab.SYSTEM
+                selectedSystemSubTab = "🚀 ऐप अपडेट व APK (App Updates)"
+            }
             tabName.contains("Security", ignoreCase = true) || tabName.contains("सुरक्षा", ignoreCase = true) -> {
                 selectedStudioTab = StudioBottomTab.SYSTEM
                 selectedSystemSubTab = "सुरक्षा व Test Mode (Security)"
@@ -1281,6 +1285,8 @@ fun AdminPanelScreen(
                     StudioBottomTab.CONTENT -> {
                         // YouTube Studio Style Content Tab with Submodules Bar
                         val contentSubTabs = listOf(
+                            "वीडियो व प्लेलिस्ट (Videos & Playlists)",
+                            "मीडिया व उपदेश नियंत्रण (Media & Sermons)",
                             "दैनिक आत्मिक संदेश (Audio Message)",
                             "घोषणा व प्रसारण (Broadcast)",
                             "पुश प्रसारण (Push)",
@@ -1316,6 +1322,20 @@ fun AdminPanelScreen(
 
                             Box(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 4.dp)) {
                                 when (selectedContentSubTab) {
+                                    "वीडियो व प्लेलिस्ट (Videos & Playlists)" -> {
+                                        AdminVideoPlaylistManagerScreen(
+                                            viewModel = viewModel,
+                                            currentAdmin = admin,
+                                            onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
+                                        )
+                                    }
+                                    "मीडिया व उपदेश नियंत्रण (Media & Sermons)" -> {
+                                        AdminMediaGovernanceScreen(
+                                            viewModel = viewModel,
+                                            currentAdmin = admin,
+                                            onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
+                                        )
+                                    }
                                     "दैनिक आत्मिक संदेश (Audio Message)" -> {
                                         AdminAudioMessageScreen(
                                             viewModel = viewModel,
@@ -1584,6 +1604,7 @@ fun AdminPanelScreen(
                                         AdminMembersScreen(
                                             members = churchMembers,
                                             userProfiles = appUserProfiles,
+                                            viewModel = viewModel,
                                             onSaveMember = { member ->
                                                 viewModel.addOrUpdateChurchMember(member) { success, err ->
                                                     if (success) {
@@ -1760,14 +1781,15 @@ fun AdminPanelScreen(
                     StudioBottomTab.SYSTEM -> {
                         // YouTube Studio Style System & Tools Tab with Submodules Bar
                         val systemSubTabs = listOf(
+                            "🚀 ऐप अपडेट व APK (App Updates)",
                             "OTP प्रबंधन (OTP Manager)",
+                            "📖 बाइबल अनुवाद (Translations)",
                             "सुरक्षा व Test Mode (Security)",
                             "🔥 स्टोरेज व कोटा (Storage & Quotas)",
                             "नेविगेशन टैब (Nav Config)",
                             "गतिविधि इतिहास (History)",
                             "ऑडिट लॉग्स (Audit)"
                         )
-
                         Column(modifier = Modifier.fillMaxSize()) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1795,6 +1817,13 @@ fun AdminPanelScreen(
 
                             Box(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 4.dp)) {
                                 when (selectedSystemSubTab) {
+                                    "🚀 ऐप अपडेट व APK (App Updates)" -> {
+                                        AdminAppVersionManagerScreen(
+                                            viewModel = viewModel,
+                                            currentAdmin = admin,
+                                            onNavigateBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
+                                        )
+                                    }
                                     "OTP प्रबंधन (OTP Manager)" -> {
                                         AdminOtpManagerScreen(
                                             viewModel = viewModel,
@@ -1804,6 +1833,11 @@ fun AdminPanelScreen(
                                                 selectedStudioTab = StudioBottomTab.COMMUNITY
                                                 selectedCommunitySubTab = "रोल व एडमिन प्रबंधन (Role & Admins)"
                                             }
+                                        )
+                                    }
+                                    "📖 बाइबल अनुवाद (Translations)" -> {
+                                        AdminTranslationManagerScreen(
+                                            onNavigateBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
                                         )
                                     }
                                     "सुरक्षा व Test Mode (Security)" -> {

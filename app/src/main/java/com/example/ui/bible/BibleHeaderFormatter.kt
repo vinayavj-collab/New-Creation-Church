@@ -68,7 +68,7 @@ object BibleHeaderFormatter {
         "Colossians" to "Col",
         "Galatians" to "Gal",
         "Ephesians" to "Eph",
-        "Song of Solomon" to "Song",
+        "Song of Solomon" to "Song of Sol",
         "1 Samuel" to "1 Sam",
         "2 Samuel" to "2 Sam",
         "1 Kings" to "1 Kings",
