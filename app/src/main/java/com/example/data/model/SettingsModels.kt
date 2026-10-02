@@ -80,6 +80,7 @@ enum class DailyPrayerSlot(val titleHindi: String, val titleEnglish: String, val
 }
 
 data class UserSettings(
+    val activeProfileId: String = "ncck",
     val themeMode: ThemeMode = ThemeMode.DYNAMIC,
     val showFellowshipEvents: Boolean = true,
     val personalVlogMode: PersonalVlogMode = PersonalVlogMode.HIDDEN, // CRITICAL: HIDDEN by default

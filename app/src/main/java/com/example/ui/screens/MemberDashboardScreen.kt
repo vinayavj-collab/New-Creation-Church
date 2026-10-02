@@ -146,8 +146,15 @@ fun MemberDashboardContent(
 
     val activeWindow = viewModel?.activeServiceWindow?.collectAsState()?.value
     val allAttendanceRecords by (viewModel?.allSmartAttendanceRecords?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
-    val serialNumber = userProfile.serialNumber.ifBlank { "NCC01" }
-    val memberRole = if (currentAdmin != null) currentAdmin.designation else if (userProfile.role.isNotBlank()) userProfile.role else "सक्रिय सदस्य (Member)"
+    val isUnregisteredOrGuest = currentAdmin == null && (
+        userProfile.userId.isBlank() ||
+        userProfile.serialNumber.isBlank() ||
+        userProfile.status == "pending_activation" ||
+        (!userProfile.isVerifiedVishwasi && userProfile.phoneNumber.isBlank() && userProfile.phone.isBlank())
+    )
+
+    val serialNumber = if (isUnregisteredOrGuest) "" else userProfile.serialNumber.ifBlank { "NCC01" }
+    val memberRole = if (currentAdmin != null) currentAdmin.designation else if (userProfile.role.isNotBlank()) userProfile.role else if (isUnregisteredOrGuest) "अतिथि (Guest)" else "सक्रिय सदस्य (Member)"
 
     var userAttendanceHistory by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
     var isLoadingHistory by remember { mutableStateOf(false) }
@@ -167,11 +174,11 @@ fun MemberDashboardContent(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 40.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp)
     ) {
         // -------------------------------------------------------------
-        // SECTION 1: MY PROFILE SUMMARY CARD
+        // SECTION 1: MY PROFILE SECONDARY DETAILS CARD
         // -------------------------------------------------------------
         item {
             Card(
@@ -183,102 +190,7 @@ fun MemberDashboardContent(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Avatar
-                        Box(contentAlignment = Alignment.BottomEnd) {
-                            if (userProfile.photoUriOrPath.isNotBlank()) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(userProfile.photoUriOrPath),
-                                    contentDescription = "Profile Photo",
-                                    modifier = Modifier
-                                        .size(64.dp)
-                                        .clip(CircleShape)
-                                        .border(2.dp, GoldWarm, CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Surface(
-                                    modifier = Modifier.size(64.dp),
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    border = BorderStroke(2.dp, GoldWarm)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = userProfile.displayName.take(1).uppercase().ifBlank { "M" },
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 26.sp,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
-                                }
-                            }
-                            Icon(
-                                Icons.Default.Verified,
-                                contentDescription = "Verified",
-                                tint = GoldWarm,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .background(Color.White, CircleShape)
-                            )
-                        }
-
-                        Spacer(Modifier.width(14.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = userProfile.displayName.ifBlank { "सदस्य प्रोफ़ाइल" },
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = GoldWarm.copy(alpha = 0.15f)
-                                ) {
-                                    Text(
-                                        text = serialNumber,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        color = GoldWarm,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(Modifier.height(2.dp))
-
-                            Text(
-                                text = "$memberRole • ${userProfile.churchName.ifBlank { "न्यू क्रिएशन चर्च" }}",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            if (userProfile.city.isNotBlank() || userProfile.phoneNumber.isNotBlank()) {
-                                Text(
-                                    text = listOfNotNull(
-                                        userProfile.city.takeIf { it.isNotBlank() },
-                                        userProfile.phoneNumber.takeIf { it.isNotBlank() }
-                                    ).joinToString(" • "),
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    // Secondary Info Badges Row
+                    // Secondary Info Badges Row (बपतिस्मा + विश्वास में वर्ष)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -363,233 +275,344 @@ fun MemberDashboardContent(
                 border = BorderStroke(1.5.dp, GoldWarm)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Header Bar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Badge, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "डिजिटल सदस्यता पास (Digital Badge)",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color.White
-                            )
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFF10B981).copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, Color(0xFF10B981))
+                    if (isUnregisteredOrGuest) {
+                        // -------------------------------------------------------------
+                        // UNREGISTERED / GUEST USER PASS PLACEHOLDER
+                        // -------------------------------------------------------------
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "● VERIFIED MEMBER",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF34D399),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    // Digital Badge Family Pass Switch Toggle
-                    var selectedBadgeMode by remember { mutableStateOf(if (userProfile.isFamilyHead) "FAMILY" else "INDIVIDUAL") }
-
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0F172A),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(4.dp)) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (selectedBadgeMode == "INDIVIDUAL") GoldWarm else Color.Transparent,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { selectedBadgeMode = "INDIVIDUAL" }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "👤 व्यक्तिगत पास",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        color = if (selectedBadgeMode == "INDIVIDUAL") Color.Black else Color.White
-                                    )
-                                }
-                            }
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (selectedBadgeMode == "FAMILY") GoldWarm else Color.Transparent,
-                                modifier = Modifier
-                                    .weight(1.2f)
-                                    .clickable { selectedBadgeMode = "FAMILY" }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "👨‍👩‍👧‍👦 पारिवारिक पास",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        color = if (selectedBadgeMode == "FAMILY") Color.Black else Color.White
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Left: Member Details
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (selectedBadgeMode == "FAMILY") "👨‍👩‍👧‍👦 1-टैप फैमिली पास" else "कलीसिया प्रबंधन पोर्टल",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = GoldWarm
-                            )
-                            Text(
-                                text = if (selectedBadgeMode == "FAMILY") "${userProfile.displayName.ifBlank { "डेविड" }} परिवार" else userProfile.displayName.ifBlank { "सदस्य" },
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(Modifier.height(4.dp))
-
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("सीरियल नंबर: ", fontSize = 11.sp, color = Color.LightGray)
+                                Icon(Icons.Default.Badge, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = serialNumber,
-                                    fontFamily = FontFamily.Monospace,
+                                    text = "डिजिटल सदस्यता पास (Digital Pass)",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
+                                    fontSize = 14.sp,
+                                    color = Color.White
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFF59E0B).copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, Color(0xFFF59E0B))
+                            ) {
+                                Text(
+                                    text = "● अनलॉक आवश्यक",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFBBF24),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // Elegant "Unlock Member Pass" Card
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFF0F172A),
+                            border = BorderStroke(1.dp, GoldWarm.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = GoldWarm.copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, GoldWarm.copy(alpha = 0.5f)),
+                                    modifier = Modifier.size(54.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.Lock,
+                                            contentDescription = null,
+                                            tint = GoldWarm,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(10.dp))
+
+                                Text(
+                                    text = "सदस्यता पास अनलॉक करें",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = GoldWarm,
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(Modifier.height(6.dp))
+
+                                Text(
+                                    text = "डिजिटल सदस्यता पास प्राप्त करने और सभा हाजिरी (Smart Check-in) के लिए पंजीकरण पूरा करें।",
+                                    fontSize = 12.sp,
+                                    color = Color.LightGray,
+                                    textAlign = TextAlign.Center,
+                                    lineHeight = 17.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+
+                                Spacer(Modifier.height(16.dp))
+
+                                Button(
+                                    onClick = onEditProfileClick,
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = GoldWarm, contentColor = Color.Black),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(44.dp)
+                                ) {
+                                    Icon(Icons.Default.AppRegistration, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "कलीसिया सदस्यता फॉर्म भरें / रजिस्टर करें",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.5.sp
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // -------------------------------------------------------------
+                        // REGISTERED MEMBER DIGITAL PASS (FULL VERIFIED CARD & QR CODE)
+                        // -------------------------------------------------------------
+                        // Header Bar
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Badge, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "डिजिटल सदस्यता पास (Digital Badge)",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = Color.White
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, Color(0xFF10B981))
+                            ) {
+                                Text(
+                                    text = "● VERIFIED MEMBER",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF34D399),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        // Digital Badge Family Pass Switch Toggle
+                        var selectedBadgeMode by remember { mutableStateOf(if (userProfile.isFamilyHead) "FAMILY" else "INDIVIDUAL") }
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF0F172A),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(modifier = Modifier.padding(4.dp)) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selectedBadgeMode == "INDIVIDUAL") GoldWarm else Color.Transparent,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { selectedBadgeMode = "INDIVIDUAL" }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "👤 व्यक्तिगत पास",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            color = if (selectedBadgeMode == "INDIVIDUAL") Color.Black else Color.White
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selectedBadgeMode == "FAMILY") GoldWarm else Color.Transparent,
+                                    modifier = Modifier
+                                        .weight(1.2f)
+                                        .clickable { selectedBadgeMode = "FAMILY" }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "👨‍👩‍👧‍👦 पारिवारिक पास",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            color = if (selectedBadgeMode == "FAMILY") Color.Black else Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Left: Member Details
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (selectedBadgeMode == "FAMILY") "👨‍👩‍👧‍👦 1-टैप फैमिली पास" else "कलीसिया प्रबंधन पोर्टल",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = GoldWarm
                                 )
-                            }
-
-                            Text(
-                                text = if (selectedBadgeMode == "FAMILY") "बैच क्यूआर: 3 सदस्य जुड़े हैं" else "पदनाम: $memberRole",
-                                fontSize = 11.sp,
-                                color = Color.LightGray
-                            )
-                        }
-
-                        Spacer(Modifier.width(10.dp))
-
-                        // Right: Interactive QR Code
-                        val qrPayload = remember(serialNumber, selectedBadgeMode) {
-                            if (selectedBadgeMode == "FAMILY") {
-                                AttendanceSecurityHelper.generateFamilyPassPayload(
-                                    familyId = userProfile.familyId.ifBlank { "fam_${serialNumber}" },
-                                    headSerial = serialNumber
+                                Text(
+                                    text = if (selectedBadgeMode == "FAMILY") "${userProfile.displayName.ifBlank { "डेविड" }} परिवार" else userProfile.displayName.ifBlank { "सदस्य" },
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                            } else {
-                                QrCodeHelper.createActivationPayload(serialNumber, role = memberRole)
-                            }
-                        }
-                        val qrBitmap = remember(qrPayload) {
-                            QrCodeHelper.generateQrBitmap(qrPayload, sizePx = 250)
-                        }
+                                Spacer(Modifier.height(4.dp))
 
-                        if (qrBitmap != null) {
-                            Box(
-                                modifier = Modifier
-                                    .size(90.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color.White)
-                                    .padding(6.dp)
-                                    .clickable { showQrModal = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    bitmap = qrBitmap.asImageBitmap(),
-                                    contentDescription = "Digital Member QR Code",
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    // Badge Action Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { showQrModal = true },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = GoldWarm, contentColor = Color.Black),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("QR कोड ज़ूम करें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val message = "जय मसीह की! कलीसिया ऐप में मेरी डिजिटल सदस्यता आईडी [ $serialNumber ] है। नाम: ${userProfile.displayName}"
-                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(android.content.Intent.EXTRA_TEXT, message)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("सीरियल नंबर: ", fontSize = 11.sp, color = Color.LightGray)
+                                    Text(
+                                        text = serialNumber,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = GoldWarm
+                                    )
                                 }
-                                context.startActivity(android.content.Intent.createChooser(intent, "डिजिटल आईडी शेयर करें"))
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
-                        ) {
-                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("शेयर ID", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
 
-                    // Self Check-In Button (Prominently displayed when service window is open)
-                    if (viewModel != null) {
-                        Spacer(Modifier.height(10.dp))
-                        Button(
-                            onClick = { showSelfCheckInDialog = true },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (activeWindow?.isWindowActive == true) Color(0xFF10B981) else MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = if (activeWindow?.isWindowActive == true) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("btn_member_self_checkin")
+                                Text(
+                                    text = if (selectedBadgeMode == "FAMILY") "बैच क्यूआर: 3 सदस्य जुड़े हैं" else "पदनाम: $memberRole",
+                                    fontSize = 11.sp,
+                                    color = Color.LightGray
+                                )
+                            }
+
+                            Spacer(Modifier.width(10.dp))
+
+                            // Right: Interactive QR Code
+                            val qrPayload = remember(serialNumber, selectedBadgeMode) {
+                                if (selectedBadgeMode == "FAMILY") {
+                                    AttendanceSecurityHelper.generateFamilyPassPayload(
+                                        familyId = userProfile.familyId.ifBlank { "fam_${serialNumber}" },
+                                        headSerial = serialNumber
+                                    )
+                                } else {
+                                    QrCodeHelper.createActivationPayload(serialNumber, role = memberRole)
+                                }
+                            }
+                            val qrBitmap = remember(qrPayload) {
+                                QrCodeHelper.generateQrBitmap(qrPayload, sizePx = 250)
+                            }
+
+                            if (qrBitmap != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(90.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White)
+                                        .padding(6.dp)
+                                        .clickable { showQrModal = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        bitmap = qrBitmap.asImageBitmap(),
+                                        contentDescription = "Digital Member QR Code",
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // Badge Action Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = if (activeWindow?.isWindowActive == true) Icons.Default.CheckCircle else Icons.Default.QrCodeScanner,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = if (activeWindow?.isWindowActive == true) "हाजिरी दर्ज करें (Self Check-in खुला है)" else "कलीसिया सभा हाजिरी (Smart Check-in)",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
+                            Button(
+                                onClick = { showQrModal = true },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = GoldWarm, contentColor = Color.Black),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("QR कोड ज़ूम करें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    val message = "जय मसीह की! कलीसिया ऐप में मेरी डिजिटल सदस्यता आईडी [ $serialNumber ] है। नाम: ${userProfile.displayName}"
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(android.content.Intent.EXTRA_TEXT, message)
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(intent, "डिजिटल आईडी शेयर करें"))
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("शेयर ID", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        // Self Check-In Button (Prominently displayed when service window is open)
+                        if (viewModel != null) {
+                            Spacer(Modifier.height(10.dp))
+                            Button(
+                                onClick = { showSelfCheckInDialog = true },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (activeWindow?.isWindowActive == true) Color(0xFF10B981) else MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = if (activeWindow?.isWindowActive == true) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("btn_member_self_checkin")
+                            ) {
+                                Icon(
+                                    imageVector = if (activeWindow?.isWindowActive == true) Icons.Default.CheckCircle else Icons.Default.QrCodeScanner,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = if (activeWindow?.isWindowActive == true) "हाजिरी दर्ज करें (Self Check-in खुला है)" else "कलीसिया सभा हाजिरी (Smart Check-in)",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     }
                 }

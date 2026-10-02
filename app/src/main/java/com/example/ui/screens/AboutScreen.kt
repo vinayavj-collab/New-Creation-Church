@@ -150,12 +150,12 @@ fun AboutScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "✨ What's New in Version 1.4:",
+                            text = "✨ What's New in Version 70.5:",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = NavyPrimary)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "• 📝 Rich Notes Editor: Bold, Italic, Underline, Strikethrough, Lists, Alignment & Verse Linking with dedicated Notes Window.\n• ⭐ Favorites & Bookmarks: Save, star, and organize inspiring verses.\n• 📸 Photo Verse Creator: Generate shareable picture quotes with scenic backgrounds.\n• 🔴 Words of Jesus in Red: Highlight Christ's words with custom color options.\n• ⏱️ Screen Timeout: Configurable keep-screen-on and auto screen-off timers.\n• ⚙️ Full Reading Customization: Subheadings, verse numbers, paragraph indents & text justification toggles.",
+                            text = "• 📖 Holy Bible V70.5: Hindi Old Version (HIOV) & NKJV with chapter grid/list navigation, commentary & verse bookmarks.\n• 🎵 Songs & Worship Book: Interactive chord scales, audio links, categories & personal study notes.\n• 📝 Rich Notes Editor: Bold, Italic, Underline, Strikethrough, Lists, Alignment & Verse Linking.\n• ⭐ Favorites & Bookmarks: Save, star, and organize inspiring verses.\n• 📸 Photo Verse Creator: Generate shareable picture quotes with scenic backgrounds.\n• 🔴 Words of Jesus in Red: Highlight Christ's words with custom color options.\n• ⚙️ Classic 5-Tab Navigation: Home, Bible, Songs, Videos, and More.",
                             style = MaterialTheme.typography.bodySmall,
                             lineHeight = 18.sp
                         )

@@ -100,29 +100,19 @@ fun BlogsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f, fill = false)) {
-                            Text(
-                                text = strings.blogsTitle,
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
-                            val currentSubtitle = when (selectedTab) {
-                                BlogTab.FELLOWSHIP -> strings.fellowshipEventsSub
-                                BlogTab.PERSONAL -> if (settings.appLanguage == com.example.data.model.AppLanguage.HINDI) "पर्सनल लाइफ़ ब्लॉग्स एवं संस्मरण" else "Personal Life stories & reflections"
-                                BlogTab.ALL -> if (settings.appLanguage == com.example.data.model.AppLanguage.HINDI) "समस्त फेलोशिप एवं पर्सनल ब्लॉग्स" else "All fellowship & personal posts"
-                            }
-                            Text(
-                                text = currentSubtitle,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-                        }
+                        Text(
+                            text = strings.blogsTitle,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
                         val isSearchEnabled by viewModel.isSearchEnabled.collectAsStateWithLifecycle()
                         if (isSearchEnabled) {
                             IconButton(onClick = onSearchClick) {
@@ -173,7 +163,7 @@ fun BlogsScreen(
             // Category Chips if any available
             if (activeCategories.isNotEmpty()) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
@@ -213,7 +203,7 @@ fun BlogsScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
+                    contentPadding = PaddingValues(top = 2.dp, bottom = 80.dp)
                 ) {
                     items(displayedPosts, key = { it.id }) { post ->
                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {

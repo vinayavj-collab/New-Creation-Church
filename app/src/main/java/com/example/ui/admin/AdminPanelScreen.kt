@@ -149,7 +149,7 @@ fun AdminPanelScreen(
     var selectedContentSubTab by remember { mutableStateOf("घोषणा व प्रसारण (Broadcast)") }
     var selectedAnalyticsSubTab by remember { mutableStateOf("Overview (अवलोकन)") }
     var selectedCommunitySubTab by remember { mutableStateOf("सदस्य डायरेक्टरी (Members)") }
-    var selectedSystemSubTab by remember { mutableStateOf("OTP प्रबंधन (OTP Manager)") }
+    var selectedSystemSubTab by remember { mutableStateOf("🚀 ऐप अपडेट व APK (App Updates)") }
 
     var showAddAdminDialog by remember { mutableStateOf(false) }
     var showChangePinDialog by remember { mutableStateOf<AdminUser?>(null) }

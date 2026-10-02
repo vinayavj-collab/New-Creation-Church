@@ -123,7 +123,7 @@ fun BibleBookChapterVerseSelectorModal(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 6.dp),
+                    .padding(bottom = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -284,7 +284,7 @@ fun Bible3ColumnGridNavigatorContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 6.dp),
+                .padding(bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
@@ -350,7 +350,7 @@ fun Bible3ColumnGridNavigatorContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             // Col 1 Title: Books
@@ -413,7 +413,7 @@ fun Bible3ColumnGridNavigatorContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(vertical = 4.dp),
+                .padding(top = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             // COLUMN 1: Books (Scrollable vertical list)
@@ -611,48 +611,6 @@ fun Bible3ColumnGridNavigatorContent(
                         }
                     }
                 }
-            }
-        }
-
-        // Live Reference Status Indicator Footer
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.MenuBook,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "चयनित: ${if (isHindi) selectedBook.nameHindi else selectedBook.nameEnglish} $selectedChapter",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                }
-                Text(
-                    text = "पद पर टैप करते ही सीधे खुल जाएगा ⚡",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
             }
         }
     }

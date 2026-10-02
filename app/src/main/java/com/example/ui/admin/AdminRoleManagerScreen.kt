@@ -887,12 +887,15 @@ fun AdminRoleManagerScreen(
     // Quick Access Bar Customization Dialog
     if (showQuickAccessDialog) {
         var selectedMode by remember { mutableStateOf(quickAccessConfig.prayerCountMode) }
+        var customCountText by remember { mutableStateOf(quickAccessConfig.customPrayerCount.toString()) }
         var customLabel by remember { mutableStateOf(quickAccessConfig.prayerChipLabel) }
         var showPrayer by remember { mutableStateOf(quickAccessConfig.showPrayerChip) }
         var showEvent by remember { mutableStateOf(quickAccessConfig.showEventChip) }
         var showSongbook by remember { mutableStateOf(quickAccessConfig.showSongbookChip) }
         var showDailyPrayer by remember { mutableStateOf(quickAccessConfig.showDailyPrayerChip) }
-        var showSaved by remember { mutableStateOf(quickAccessConfig.showSavedChip) }
+        var showCustomize by remember { mutableStateOf(quickAccessConfig.showCustomizeChip) }
+        var eventCountMode by remember { mutableStateOf(quickAccessConfig.eventCountMode) }
+        var customEventCountText by remember { mutableStateOf(quickAccessConfig.customEventCount.toString()) }
 
         AlertDialog(
             onDismissRequest = { showQuickAccessDialog = false },
@@ -910,7 +913,8 @@ fun AdminRoleManagerScreen(
                         "TOTAL" to "📊 कुल निवेदन (Total Requests)",
                         "TODAY" to "🌅 आज का निवेदन (Today's Requests)",
                         "TESTIMONY" to "🕊️ गवाही काउंट (Testimonies)",
-                        "ACTIVE" to "⚡ सक्रिय निवेदन (Active Requests)"
+                        "ACTIVE" to "⚡ सक्रिय निवेदन (Active Requests)",
+                        "CUSTOM" to "✏️ कस्टम संख्या (Custom Number)"
                     )
 
                     modes.forEach { (modeKey, label) ->
@@ -930,6 +934,17 @@ fun AdminRoleManagerScreen(
                         }
                     }
 
+                    if (selectedMode.uppercase() == "CUSTOM") {
+                        OutlinedTextField(
+                            value = customCountText,
+                            onValueChange = { customCountText = it.filter { ch -> ch.isDigit() } },
+                            singleLine = true,
+                            label = { Text("कस्टम निवेदन संख्या") },
+                            placeholder = { Text("उदा. 25") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                     Text("2. निवेदन चिप का कस्टम नाम / लेबल:", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
@@ -938,13 +953,46 @@ fun AdminRoleManagerScreen(
                         onValueChange = { customLabel = it },
                         singleLine = true,
                         label = { Text("चिप लेबल") },
-                        placeholder = { Text("🙏 निवेदन") },
+                        placeholder = { Text("निवेदन") },
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-                    Text("3. होम स्क्रीन पर कौन से चिप्स दिखाएं?", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("3. इवेंट्स चिप काउंट मोड:", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (eventCountMode.uppercase() == "AUTO"),
+                            onClick = { eventCountMode = "AUTO" }
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("ऑटो (लाइव इवेंट्स)", fontSize = 12.sp)
+                        Spacer(Modifier.width(12.dp))
+                        RadioButton(
+                            selected = (eventCountMode.uppercase() == "CUSTOM"),
+                            onClick = { eventCountMode = "CUSTOM" }
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("कस्टम", fontSize = 12.sp)
+                    }
+
+                    if (eventCountMode.uppercase() == "CUSTOM") {
+                        OutlinedTextField(
+                            value = customEventCountText,
+                            onValueChange = { customEventCountText = it.filter { ch -> ch.isDigit() } },
+                            singleLine = true,
+                            label = { Text("कस्टम इवेंट संख्या") },
+                            placeholder = { Text("उदा. 5") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    Text("4. होम स्क्रीन पर कौन से चिप्स दिखाएं?", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -959,7 +1007,7 @@ fun AdminRoleManagerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("📅 इवेंट (Event Calendar)", fontSize = 12.sp)
+                        Text("📅 इवेंट्स (Event Calendar)", fontSize = 12.sp)
                         Switch(checked = showEvent, onCheckedChange = { showEvent = it })
                     }
                     Row(
@@ -983,8 +1031,8 @@ fun AdminRoleManagerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("🔖 सहेजे गए (Saved Collection)", fontSize = 12.sp)
-                        Switch(checked = showSaved, onCheckedChange = { showSaved = it })
+                        Text("⚙️ कस्टमाइज (Customize)", fontSize = 12.sp)
+                        Switch(checked = showCustomize, onCheckedChange = { showCustomize = it })
                     }
                 }
             },
@@ -993,12 +1041,15 @@ fun AdminRoleManagerScreen(
                     onClick = {
                         val updatedConfig = quickAccessConfig.copy(
                             prayerCountMode = selectedMode,
-                            prayerChipLabel = customLabel.ifBlank { "🙏 निवेदन" },
+                            customPrayerCount = customCountText.toIntOrNull() ?: 0,
+                            prayerChipLabel = customLabel.ifBlank { "निवेदन" },
                             showPrayerChip = showPrayer,
                             showEventChip = showEvent,
                             showSongbookChip = showSongbook,
                             showDailyPrayerChip = showDailyPrayer,
-                            showSavedChip = showSaved
+                            showCustomizeChip = showCustomize,
+                            eventCountMode = eventCountMode,
+                            customEventCount = customEventCountText.toIntOrNull() ?: 0
                         )
                         viewModel.updateQuickAccessConfig(updatedConfig)
                         Toast.makeText(context, "क्विक एक्सेस बार सेटिंग्स अपडेट हो गईं!", Toast.LENGTH_SHORT).show()

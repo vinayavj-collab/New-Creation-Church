@@ -319,7 +319,7 @@ class LyricsRepository(
     suspend fun syncLyricsFromBlogPosts(posts: List<BlogPost>): Int = withContext(Dispatchers.IO) {
         val existingSongs = bibleDao.getAllSongs().first()
         val existingTitles = existingSongs.map { it.title.trim().lowercase() }.toSet()
-        val existingBlogIds = existingSongs.mapNotNull { if (it.blogPostId.isNotBlank()) it.blogPostId else null }.toSet()
+        val existingBlogIds = existingSongs.mapNotNull { if (it.blogPostId?.isNotBlank() == true) it.blogPostId else null }.toSet()
 
         var currentMaxNumber = bibleDao.getMaxSongNumber() ?: 0
         var newSongsAdded = 0

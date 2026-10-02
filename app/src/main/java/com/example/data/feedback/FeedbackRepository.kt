@@ -3,6 +3,7 @@ package com.example.data.feedback
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.google.firebase.FirebaseApp
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
@@ -13,8 +14,32 @@ import kotlin.coroutines.resume
 
 class FeedbackRepository(private val context: Context) {
 
-    private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
-    private val realtimeDb: FirebaseDatabase by lazy { FirebaseDatabase.getInstance() }
+    private val firestore: FirebaseFirestore by lazy {
+        try {
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseApp.initializeApp(context)
+            }
+        } catch (_: Exception) {}
+        try {
+            FirebaseFirestore.getInstance()
+        } catch (_: Exception) {
+            FirebaseApp.initializeApp(context)
+            FirebaseFirestore.getInstance()
+        }
+    }
+    private val realtimeDb: FirebaseDatabase by lazy {
+        try {
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseApp.initializeApp(context)
+            }
+        } catch (_: Exception) {}
+        try {
+            FirebaseDatabase.getInstance()
+        } catch (_: Exception) {
+            FirebaseApp.initializeApp(context)
+            FirebaseDatabase.getInstance()
+        }
+    }
 
     suspend fun submitFeedback(
         type: FeedbackType,

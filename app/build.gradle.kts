@@ -1,259 +1,118 @@
-import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.util.Properties
+import java.io.FileInputStream
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.serialization)
+}
 
 val versionPropsFile = rootProject.file("version.properties")
 val versionProps = Properties().apply {
-  if (versionPropsFile.exists()) {
-    FileInputStream(versionPropsFile).use { load(it) }
-  } else {
-    setProperty("VERSION_CODE", "97")
-    setProperty("VERSION_MAJOR", "71")
-    setProperty("VERSION_MINOR", "6")
-    setProperty("VERSION_PATCH", "0")
-    FileOutputStream(versionPropsFile).use { store(it, "Version Properties") }
-  }
+    if (versionPropsFile.exists()) {
+        load(FileInputStream(versionPropsFile))
+    }
 }
 
-val currentVersionCode = (versionProps.getProperty("VERSION_CODE") ?: "97").toInt()
-val currentMajor = versionProps.getProperty("VERSION_MAJOR") ?: "71"
-val currentMinor = versionProps.getProperty("VERSION_MINOR") ?: "6"
-val currentPatch = versionProps.getProperty("VERSION_PATCH") ?: "0"
-val currentVersionName = if (currentPatch == "0") "$currentMajor.$currentMinor" else "$currentMajor.$currentMinor.$currentPatch"
-
-plugins {
-  alias(libs.plugins.android.application)
-  alias(libs.plugins.kotlin.android)
-  alias(libs.plugins.kotlin.compose)
-  alias(libs.plugins.google.devtools.ksp)
-  alias(libs.plugins.roborazzi)
-  alias(libs.plugins.secrets)
-  alias(libs.plugins.google.services)
-}
+val vCode = (versionProps.getProperty("VERSION_CODE") ?: "98").toInt()
+val vMajor = versionProps.getProperty("VERSION_MAJOR") ?: "72"
+val vMinor = versionProps.getProperty("VERSION_MINOR") ?: "1"
+val vPatch = versionProps.getProperty("VERSION_PATCH") ?: "0"
+val vName = "$vMajor.$vMinor.$vPatch"
 
 android {
-  namespace = "com.example"
-  compileSdk = 34
+    namespace = "com.example"
+    compileSdk = 35
 
-  defaultConfig {
-    applicationId = "com.vinay.newcreation.ncck"
-    minSdk = 24
-    targetSdk = 34
-    versionCode = currentVersionCode
-    versionName = currentVersionName
+    defaultConfig {
+        applicationId = "com.vinay.newcreation.ncck"
+        minSdk = 24
+        targetSdk = 35
+        versionCode = vCode
+        versionName = vName
 
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  }
-
-  signingConfigs {
-    create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      val kFile = file(keystorePath)
-      if (kFile.exists() && System.getenv("STORE_PASSWORD") != null) {
-        storeFile = kFile
-        storePassword = System.getenv("STORE_PASSWORD")
-        keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
-        keyPassword = System.getenv("KEY_PASSWORD") ?: System.getenv("STORE_PASSWORD")
-      } else {
-        storeFile = file("${rootDir}/debug.keystore")
-        storePassword = "android"
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
-        enableV1Signing = true
-        enableV2Signing = true
-      }
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
-      enableV1Signing = true
-      enableV2Signing = true
-    }
-  }
 
-  splits {
-    abi {
-      isEnable = true
-      reset()
-      include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-      isUniversalApk = true
+    splits {
+        abi {
+            isEnable = project.hasProperty("enableAbiSplits")
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
     }
-  }
 
-  buildTypes {
-    release {
-      isCrunchPngs = false
-      isMinifyEnabled = true
-      isShrinkResources = true
-      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
-    debug { signingConfig = signingConfigs.getByName("debugConfig") }
-  }
-  compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-  }
-  kotlin {
-    jvmToolchain(21)
-  }
-  buildFeatures {
-    compose = true
-    buildConfig = true
-  }
-  testOptions { unitTests { isIncludeAndroidResources = true } }
-  dependenciesInfo {
-    includeInApk = false
-    includeInBundle = true
-  }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 }
 
-// Configure the Secrets Gradle Plugin to use .env and .env.example files
-// to match the convention used in Web projects.
-secrets {
-  propertiesFileName = ".env"
-  defaultPropertiesFileName = ".env.example"
-  ignoreList.add("FIREBASE_APPCHECK_DEBUG_TOKEN")
-}
-
-googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
-
-// Some unused dependencies are commented out below instead of being removed.
-// This makes it easy to add them back in the future if needed.
 dependencies {
-  implementation("androidx.biometric:biometric:1.1.0")
-  implementation(platform(libs.androidx.compose.bom))
-  implementation(platform(libs.firebase.bom))
-  // implementation(libs.accompanist.permissions)
-  implementation(libs.androidx.activity.compose)
-  // implementation(libs.androidx.camera.camera2)
-  // implementation(libs.androidx.camera.core)
-  // implementation(libs.androidx.camera.lifecycle)
-  // implementation(libs.androidx.camera.view)
-  implementation(libs.androidx.compose.material.icons.core)
-  implementation(libs.androidx.compose.material.icons.extended)
-  implementation(libs.androidx.compose.material3)
-  implementation("com.google.android.material:material:1.12.0")
-  implementation(libs.androidx.compose.ui)
-  implementation(libs.androidx.compose.ui.graphics)
-  implementation(libs.androidx.compose.ui.tooling.preview)
-  implementation(libs.androidx.core.ktx)
-  implementation(libs.androidx.datastore.preferences)
-  implementation(libs.androidx.lifecycle.runtime.compose)
-  implementation(libs.androidx.lifecycle.runtime.ktx)
-  implementation(libs.androidx.lifecycle.viewmodel.compose)
-  implementation(libs.androidx.navigation.compose)
-  implementation(libs.androidx.room.ktx)
-  implementation(libs.androidx.room.runtime)
-  implementation(libs.androidx.work.runtime.ktx)
-  implementation("androidx.documentfile:documentfile:1.0.1")
-  implementation(libs.zxing.core)
-  implementation(libs.coil.compose)
-  implementation(libs.converter.moshi)
-  implementation(libs.firebase.ai)
-  implementation(libs.firebase.messaging)
-  implementation(libs.firebase.database)
-  implementation(libs.firebase.config)
-  implementation(libs.firebase.firestore)
-  implementation("com.google.firebase:firebase-storage")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
 
-  // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
-  // Sign-In via Credential Manager:
-  // implementation(libs.firebase.auth)
-  // implementation(libs.androidx.credentials)
-  // implementation(libs.androidx.credentials.play.services)
-  // implementation(libs.googleid)
-  // implementation(libs.firebase.appcheck.recaptcha)
-  // implementation(libs.firebase.appcheck.debug)
-  implementation(libs.kotlinx.coroutines.android)
-  implementation(libs.kotlinx.coroutines.core)
-  implementation(libs.logging.interceptor)
-  implementation(libs.moshi.kotlin)
-  implementation(libs.okhttp)
-  // implementation(libs.play.services.location)
-  implementation(libs.retrofit)
-  testImplementation(libs.androidx.compose.ui.test.junit4)
-  testImplementation(libs.androidx.core)
-  testImplementation(libs.androidx.junit)
-  testImplementation(libs.junit)
-  testImplementation(libs.kotlinx.coroutines.test)
-  testImplementation(libs.robolectric)
-  testImplementation(libs.roborazzi)
-  testImplementation(libs.roborazzi.compose)
-  testImplementation(libs.roborazzi.junit.rule)
-  androidTestImplementation(platform(libs.androidx.compose.bom))
-  androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-  androidTestImplementation(libs.androidx.espresso.core)
-  androidTestImplementation(libs.androidx.junit)
-  androidTestImplementation(libs.androidx.runner)
-  debugImplementation(libs.androidx.compose.ui.test.manifest)
-  debugImplementation(libs.androidx.compose.ui.tooling)
-  "ksp"(libs.androidx.room.compiler)
-  "ksp"(libs.moshi.kotlin.codegen)
-}
+    // Room Database
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
-tasks.register("incrementVersion") {
-  description = "Increments version code and minor version name for release builds"
-  group = "versioning"
-  doLast {
-    val props = Properties()
-    if (versionPropsFile.exists()) {
-      FileInputStream(versionPropsFile).use { props.load(it) }
-    }
-    val oldCode = (props.getProperty("VERSION_CODE") ?: "85").toInt()
-    val major = (props.getProperty("VERSION_MAJOR") ?: "70").toInt()
-    val minor = (props.getProperty("VERSION_MINOR") ?: "5").toInt()
+    // Image Loader
+    implementation(libs.coil.compose)
 
-    val newCode = oldCode + 1
-    val newMinor = minor + 1
-    props.setProperty("VERSION_CODE", newCode.toString())
-    props.setProperty("VERSION_MAJOR", major.toString())
-    props.setProperty("VERSION_MINOR", newMinor.toString())
-    props.setProperty("VERSION_PATCH", "0")
+    // DocumentFile
+    implementation("androidx.documentfile:documentfile:1.0.1")
 
-    FileOutputStream(versionPropsFile).use { props.store(it, "Auto-incremented release version") }
-    logger.lifecycle("Version auto-incremented: Code $newCode, Name $major.$newMinor")
-  }
-}
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-config-ktx")
 
-tasks.register("incrementVersionCodeOnly") {
-  description = "Increments only version code"
-  group = "versioning"
-  doLast {
-    val props = Properties()
-    if (versionPropsFile.exists()) {
-      FileInputStream(versionPropsFile).use { props.load(it) }
-    }
-    val oldCode = (props.getProperty("VERSION_CODE") ?: "85").toInt()
-    val newCode = oldCode + 1
-    props.setProperty("VERSION_CODE", newCode.toString())
-    FileOutputStream(versionPropsFile).use { props.store(it, "Auto-incremented version code") }
-    logger.lifecycle("Version code incremented to: $newCode")
-  }
-}
+    // UI / AndroidX
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("com.google.zxing:core:3.5.3")
 
-
-tasks.register("forceVersionSyncAndRebuild") {
-  description = "Reloads version.properties, cleans generated BuildConfig, and prepares fresh build"
-  group = "versioning"
-  doLast {
-    val props = Properties()
-    if (versionPropsFile.exists()) {
-      FileInputStream(versionPropsFile).use { props.load(it) }
-    }
-    val code = props.getProperty("VERSION_CODE") ?: "96"
-    val major = props.getProperty("VERSION_MAJOR") ?: "71"
-    val minor = props.getProperty("VERSION_MINOR") ?: "5"
-    val patch = props.getProperty("VERSION_PATCH") ?: "0"
-    val name = if (patch == "0") "$major.$minor" else "$major.$minor.$patch"
-    logger.lifecycle("Forced Version Sync from version.properties: Code=$code, Name=$name")
-    val buildConfigDir = layout.buildDirectory.dir("generated/source/buildConfig").get().asFile
-    if (buildConfigDir.exists()) {
-      buildConfigDir.deleteRecursively()
-      logger.lifecycle("Cleaned old generated BuildConfig directory to force regeneration.")
-    }
-  }
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }

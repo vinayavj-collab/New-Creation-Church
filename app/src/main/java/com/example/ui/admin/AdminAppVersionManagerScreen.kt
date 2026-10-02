@@ -61,7 +61,7 @@ fun AdminAppVersionManagerScreen(
     var selectedFileSize by remember { mutableLongStateOf(0L) }
 
     var versionCodeText by remember { mutableStateOf((BuildConfig.VERSION_CODE + 1).toString()) }
-    var versionNameText by remember { mutableStateOf("71.6") }
+    var versionNameText by remember { mutableStateOf(BuildConfig.VERSION_NAME) }
     var releaseNotesText by remember { mutableStateOf("") }
     var isForceUpdate by remember { mutableStateOf(false) }
     var setAsActiveImmediately by remember { mutableStateOf(true) }

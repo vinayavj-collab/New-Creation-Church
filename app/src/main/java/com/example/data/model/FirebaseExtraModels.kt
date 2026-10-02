@@ -114,13 +114,17 @@ data class PrayerRequestsConfig(
 
 @Keep
 data class QuickAccessConfig(
-    val prayerCountMode: String = "TOTAL", // "TOTAL", "TODAY", "TESTIMONY", "ACTIVE"
-    val prayerChipLabel: String = "🙏 निवेदन",
+    val prayerCountMode: String = "TOTAL", // "TOTAL", "TODAY", "TESTIMONY", "ACTIVE", "CUSTOM"
+    val customPrayerCount: Int = 0,
+    val prayerChipLabel: String = "निवेदन",
     val showPrayerChip: Boolean = true,
     val showEventChip: Boolean = true,
     val showSongbookChip: Boolean = true,
     val showDailyPrayerChip: Boolean = true,
-    val showSavedChip: Boolean = true
+    val showCustomizeChip: Boolean = true,
+    val showSavedChip: Boolean = false,
+    val eventCountMode: String = "AUTO", // "AUTO", "CUSTOM"
+    val customEventCount: Int = 0
 )
 
 @Keep

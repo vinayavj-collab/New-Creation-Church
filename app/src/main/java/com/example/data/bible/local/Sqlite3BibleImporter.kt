@@ -85,7 +85,7 @@ object Sqlite3BibleImporter {
         }
     }
 
-    private suspend fun importSqliteFileDirect(
+    suspend fun importSqliteFileDirect(
         context: Context,
         appDb: BibleDatabase,
         dbFile: File,

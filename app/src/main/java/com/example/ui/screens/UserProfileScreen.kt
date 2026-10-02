@@ -953,11 +953,18 @@ fun ProfileCompactHeader(
 
                     Spacer(Modifier.width(6.dp))
 
+                    val isGuestOrUnregistered = currentAdmin == null && (
+                        userProfile.userId.isBlank() ||
+                        userProfile.serialNumber.isBlank() ||
+                        (!userProfile.isVerifiedVishwasi && userProfile.phoneNumber.isBlank() && userProfile.phone.isBlank())
+                    )
+
                     val badgeText = when {
                         currentAdmin != null -> if (currentAdmin.rank >= AdminHierarchy.RANK_VINAY_KUMAR || currentAdmin.isMasterAdmin()) "👑 Master Admin" else "🛡️ ${currentAdmin.designation.ifBlank { "Admin" }}"
                         userProfile.isVerifiedVishwasi -> "✔️ Verified"
-                        userProfile.role.isNotBlank() -> userProfile.role
-                        else -> "विश्वासी"
+                        isGuestOrUnregistered -> "अतिथि (Guest)"
+                        userProfile.role.isNotBlank() && !userProfile.role.equals("विश्वासी", ignoreCase = true) -> userProfile.role
+                        else -> "अतिथि (Guest)"
                     }
 
                     Surface(

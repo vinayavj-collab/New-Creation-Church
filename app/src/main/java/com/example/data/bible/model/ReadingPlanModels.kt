@@ -199,6 +199,8 @@ object PredefinedReadingPlans {
         proverbs31Days
     )
 
+    fun getAllPlansList(): List<ReadingPlanInfo> = allPlans
+
     fun getPlanById(id: String): ReadingPlanInfo? {
         return allPlans.find { it.id == id }
     }

@@ -59,7 +59,7 @@ class BibleRemoteDataSource(
                                             translationId = translationId,
                                             bookId = bookId,
                                             chapter = chapter,
-                                            verse = verseNum,
+                                            verseNumber = verseNum,
                                             text = finalText
                                         )
                                     )

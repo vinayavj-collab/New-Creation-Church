@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.example.data.prayer.model.DailyPrayerVerse
+import com.google.firebase.FirebaseApp
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -35,8 +36,32 @@ class FirebaseDailyPrayerManager private constructor(private val context: Contex
     }
 
     private val prefs: SharedPreferences = context.getSharedPreferences("daily_prayer_custom_prefs", Context.MODE_PRIVATE)
-    private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
-    private val realtimeDb: FirebaseDatabase by lazy { FirebaseDatabase.getInstance() }
+    private val firestore: FirebaseFirestore by lazy {
+        try {
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseApp.initializeApp(context)
+            }
+        } catch (_: Exception) {}
+        try {
+            FirebaseFirestore.getInstance()
+        } catch (_: Exception) {
+            FirebaseApp.initializeApp(context)
+            FirebaseFirestore.getInstance()
+        }
+    }
+    private val realtimeDb: FirebaseDatabase by lazy {
+        try {
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseApp.initializeApp(context)
+            }
+        } catch (_: Exception) {}
+        try {
+            FirebaseDatabase.getInstance()
+        } catch (_: Exception) {
+            FirebaseApp.initializeApp(context)
+            FirebaseDatabase.getInstance()
+        }
+    }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 

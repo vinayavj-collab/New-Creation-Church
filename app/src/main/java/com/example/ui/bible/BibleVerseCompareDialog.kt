@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.bible.local.BibleDatabase
+import com.example.data.bible.local.BibleVerseEntity
 import com.example.data.bible.model.BibleVerse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -51,13 +52,13 @@ fun BibleVerseCompareDialog(
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            val ids = try { dao.getAvailableTranslationIds() } catch (_: Exception) { listOf("HIOV", "ENG_KJV") }
+            val ids = try { dao.getDistinctTranslationIds() } catch (_: Exception) { listOf("HIOV", "ENG_KJV") }
             availableVersions = if (ids.isNotEmpty()) ids else listOf("HIOV", "ENG_KJV")
             if (!availableVersions.contains(selectedVersionA) && availableVersions.isNotEmpty()) {
                 selectedVersionA = availableVersions.first()
             }
             if (availableVersions.size > 1 && !availableVersions.contains(selectedVersionB)) {
-                selectedVersionB = availableVersions.first { it != selectedVersionA } ?: availableVersions[1]
+                selectedVersionB = availableVersions.firstOrNull { it != selectedVersionA } ?: availableVersions.getOrElse(1) { availableVersions[0] }
             } else if (availableVersions.size == 1) {
                 selectedVersionB = availableVersions[0]
             }
@@ -72,12 +73,12 @@ fun BibleVerseCompareDialog(
             val first = selectedVerses.first()
             val bookId = first.bookId
             val chapter = first.chapter
-            val verseNums = selectedVerses.map { it.verseNumber }
+            val verseNums = selectedVerses.map { it.verseNumber }.toSet()
 
             // Fetch Version A text
             val versesA = try {
-                dao.getVersesForCompare(selectedVersionA, bookId, chapter, verseNums)
-            } catch (_: Exception) { emptyList() }
+                dao.getVersesForChapterSync(selectedVersionA, bookId, chapter).filter { it.verseNumber in verseNums }
+            } catch (_: Exception) { emptyList<BibleVerseEntity>() }
             textVersionA = if (versesA.isNotEmpty()) {
                 versesA.joinToString(" ") { com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(it.text) }
             } else {
@@ -86,8 +87,8 @@ fun BibleVerseCompareDialog(
 
             // Fetch Version B text
             val versesB = try {
-                dao.getVersesForCompare(selectedVersionB, bookId, chapter, verseNums)
-            } catch (_: Exception) { emptyList() }
+                dao.getVersesForChapterSync(selectedVersionB, bookId, chapter).filter { it.verseNumber in verseNums }
+            } catch (_: Exception) { emptyList<BibleVerseEntity>() }
             textVersionB = if (versesB.isNotEmpty()) {
                 versesB.joinToString(" ") { com.example.ui.bible.components.UsfmTextParserEngine.cleanVerseText(it.text) }
             } else {

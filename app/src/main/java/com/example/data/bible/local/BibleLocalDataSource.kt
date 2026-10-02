@@ -284,7 +284,7 @@ class BibleLocalDataSource(
                                 translationId = obj.optString("t", BibleTranslation.HIOV.id),
                                 bookId = obj.optInt("b", 1),
                                 chapter = obj.optInt("c", 1),
-                                verse = obj.optInt("v", 1),
+                                verseNumber = obj.optInt("v", 1),
                                 text = cleanText
                             )
                         )
@@ -306,8 +306,8 @@ class BibleLocalDataSource(
                     val m3v4Text = "यह यूहन्ना ऊँट के रोम का वस्त्र पहने था, और अपनी कमर में चमड़े का कमरबन्द बाँधे हुए था, और उसका भोजन टिड्डियाँ और वनमधु था।"
                     bibleDao.insertVerses(
                         listOf(
-                            BibleVerseEntity(translationId = BibleTranslation.HIOV.id, bookId = 40, chapter = 3, verse = 3, text = m3v3Text),
-                            BibleVerseEntity(translationId = BibleTranslation.HIOV.id, bookId = 40, chapter = 3, verse = 4, text = m3v4Text)
+                            BibleVerseEntity(translationId = BibleTranslation.HIOV.id, bookId = 40, chapter = 3, verseNumber = 3, text = m3v3Text),
+                            BibleVerseEntity(translationId = BibleTranslation.HIOV.id, bookId = 40, chapter = 3, verseNumber = 4, text = m3v4Text)
                         )
                     )
                 }
@@ -695,6 +695,6 @@ class BibleLocalDataSource(
     fun getCommentariesForChapter(translationId: String, bookId: Int, chapter: Int) =
         bibleDao.getCommentariesForChapter(translationId, bookId, chapter)
 
-    fun getCommentariesForVerse(translationId: String, bookId: Int, chapter: Int, verse: Int) =
+    suspend fun getCommentariesForVerse(translationId: String, bookId: Int, chapter: Int, verse: Int) =
         bibleDao.getCommentariesForVerse(translationId, bookId, chapter, verse)
 }

@@ -11,5 +11,6 @@ data class BibleVerse(
     val isBookmarked: Boolean = false,
     val isFavorite: Boolean = false,
     val highlightColor: String? = null,
-    val note: String? = null
+    val note: String? = null,
+    val commentaryText: String? = null
 )

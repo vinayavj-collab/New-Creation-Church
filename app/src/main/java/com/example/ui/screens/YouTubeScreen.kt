@@ -277,29 +277,24 @@ fun YouTubeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
-            // Header
+            // Header (Single line, no extra details text)
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "YouTube Channels & Media",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                        Text(
-                            text = "Worship Songs, Sermons, Gospel & Fellowship Videos",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
+                    Text(
+                        text = if (settings.appLanguage == com.example.data.model.AppLanguage.HINDI) "यूट्यूब वीडियो व मीडिया" else "YouTube Videos & Media",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
 
                     OutlinedButton(
                         onClick = { showDefaultChannelDialog = true },
@@ -320,7 +315,7 @@ fun YouTubeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -383,134 +378,6 @@ fun YouTubeScreen(
                 }
             }
 
-            // Channel Hero Banner
-            item {
-                val currentInfo = when {
-                    currentTab.filterType == "ALL" -> null
-                    currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> PredefinedPlaylists.channelWorship
-                    currentTab.id == "vinay_kumar" || currentTab.filterValue == PredefinedPlaylists.channelMain.id -> PredefinedPlaylists.channelMain
-                    currentTab.id == "new_creation_church" || currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id -> PredefinedPlaylists.channelNewCreationChurch
-                    currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> YouTubeChannelInfo(
-                        id = DailymotionFeedService.CHANNEL_MAIN_ID,
-                        name = DailymotionFeedService.CHANNEL_MAIN_TITLE,
-                        handle = "dailymotion",
-                        channelUrl = "https://www.dailymotion.com/x27lzjr",
-                        description = "Official Dailymotion channel featuring Vinay Kumar AVJ videos and vlogs.",
-                        avatarUrl = ""
-                    )
-                    else -> null
-                }
-
-                if (currentInfo != null) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .clip(CircleShape)
-                                        .background(NavyPrimary),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    val initials = when {
-                                        currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> "AVJ"
-                                        currentTab.id == "new_creation_church" || currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id -> "NCC"
-                                        currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> "DM"
-                                        else -> "VK"
-                                    }
-                                    Text(
-                                        text = initials,
-                                        color = GoldWarm,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(14.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = currentInfo.name,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    )
-                                    Text(
-                                        text = currentInfo.handle,
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Text(
-                                text = currentInfo.description,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                ),
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Button(
-                                    onClick = { openChannelInYouTube(currentInfo.channelUrl) },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFCC0000)
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Subscriptions,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Subscribe", fontWeight = FontWeight.Bold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = { openChannelInYouTube(currentInfo.channelUrl) },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.OpenInNew,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Open Channel")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             // Section: Random Video Suggestion Widget
             item {
                 RandomVideoCard(
@@ -519,7 +386,7 @@ fun YouTubeScreen(
                     onShuffleClick = { randomVideoSeed++ },
                     onChannelSelect = { randomChannelFilter = it },
                     selectedChannelFilter = randomChannelFilter,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
 

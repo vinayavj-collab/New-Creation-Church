@@ -6,6 +6,7 @@ import com.example.data.model.*
 import com.example.util.UserDeviceHelper
 import com.example.util.ProfileManager
 import com.example.util.SecurityCryptoHelper
+import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
@@ -28,7 +29,14 @@ class AdminRepository(private val context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("admin_auth_prefs", Context.MODE_PRIVATE)
 
-    private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+    private val firestore: FirebaseFirestore by lazy {
+        val app = com.example.NewCreationApplication.initFirebase(context)
+        if (app != null) {
+            FirebaseFirestore.getInstance(app)
+        } else {
+            FirebaseFirestore.getInstance()
+        }
+    }
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     private val _currentAdmin = MutableStateFlow<AdminUser?>(null)

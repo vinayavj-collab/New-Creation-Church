@@ -375,7 +375,7 @@ fun SidebarContent(
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp, vertical = 4.dp)
                     .clickable {
-                        onNavigate("ADMIN_LOGIN")
+                        onNavigate("USER_PROFILE")
                         onCloseSidebar()
                     },
                 shape = RoundedCornerShape(16.dp),

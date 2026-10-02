@@ -25,8 +25,20 @@ import java.net.URL
 
 class BibleResourceRepository private constructor() {
 
-    private val firestore by lazy { FirebaseFirestore.getInstance() }
-    private val storage by lazy { FirebaseStorage.getInstance() }
+    private val firestore by lazy {
+        try {
+            FirebaseFirestore.getInstance()
+        } catch (_: Exception) {
+            FirebaseFirestore.getInstance()
+        }
+    }
+    private val storage by lazy {
+        try {
+            FirebaseStorage.getInstance()
+        } catch (_: Exception) {
+            FirebaseStorage.getInstance()
+        }
+    }
     private val resourcesCollection by lazy { firestore.collection("bible_resources") }
 
     fun observeAllResources(): Flow<List<BibleResourceModule>> = callbackFlow {

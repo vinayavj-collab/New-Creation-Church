@@ -145,9 +145,9 @@ class BackupRepository(
                         bookName = obj.optString("bookName", "Bible"),
                         chapter = obj.getInt("chapter"),
                         verse = obj.getInt("verse"),
-                        translationId = obj.optString("translationId", "hi_irv"),
+                        translationId = obj.optString("translationId", "HIOV"),
                         verseText = obj.optString("verseText", ""),
-                        timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        createdAt = obj.optLong("timestamp", System.currentTimeMillis())
                     )
                     bibleDao.insertBookmark(bm)
                     restoredCount++
@@ -164,7 +164,7 @@ class BackupRepository(
                         chapter = obj.getInt("chapter"),
                         verse = obj.getInt("verse"),
                         colorHex = obj.optString("colorHex", "#FEF08A"),
-                        timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        createdAt = obj.optLong("timestamp", System.currentTimeMillis())
                     )
                     bibleDao.setHighlight(hl)
                     restoredCount++
@@ -182,7 +182,7 @@ class BackupRepository(
                         chapter = obj.getInt("chapter"),
                         verse = obj.getInt("verse"),
                         noteText = obj.optString("noteText", ""),
-                        timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        updatedAt = obj.optLong("timestamp", System.currentTimeMillis())
                     )
                     bibleDao.saveNote(note)
                     restoredCount++

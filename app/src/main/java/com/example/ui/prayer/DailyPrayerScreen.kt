@@ -51,6 +51,7 @@ import java.util.*
 @Composable
 fun DailyPrayerScreen(
     initialPrayerId: Int? = null,
+    initialTab: Int = 0,
     onBackClick: () -> Unit,
     onOpenBible: (bookId: Int, chapter: Int, verse: Int) -> Unit,
     viewModel: com.example.ui.viewmodel.MainViewModel? = null
@@ -103,7 +104,7 @@ fun DailyPrayerScreen(
     // Quick add name state inside card
     var showQuickAddName by remember { mutableStateOf(false) }
     var quickNameText by remember { mutableStateOf("") }
-    var mainTabSelection by remember { mutableIntStateOf(0) } // 0: दैनिक प्रार्थना, 1: निवेदन, 2: उत्तरित प्रार्थना और गवाही
+    var mainTabSelection by remember { mutableIntStateOf(initialTab) } // 0: दैनिक प्रार्थना, 1: निवेदन, 2: उत्तरित प्रार्थना और गवाही
 
     if (showPrayerTimer) {
         PrayerTimerDialog(

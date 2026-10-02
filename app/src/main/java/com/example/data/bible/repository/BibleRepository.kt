@@ -14,10 +14,40 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class BibleRepository(context: Context) {
+class BibleRepository(
+    private val context: Context,
+    private val localDataSource: com.example.data.bible.local.BibleLocalDataSource? = null,
+    private val remoteDataSource: com.example.data.bible.remote.BibleRemoteDataSource? = null
+) {
     private val dao = BibleDatabase.getDatabase(context).bibleDao()
+    private val localDs = localDataSource ?: com.example.data.bible.local.BibleLocalDataSource(context, dao)
+
+    suspend fun reseedBibleDatabase() {
+        localDs.reseedBibleDatabase()
+    }
+
+    fun getAvailableTranslationIds(): List<String> = BibleTranslation.ALL.map { it.id }
+
+    suspend fun getVersesForCompare(translationId: String, bookId: Int, chapter: Int, verse: Int): List<BibleVerse> = withContext(Dispatchers.IO) {
+        val list = dao.getVersesForChapterSync(translationId, bookId, chapter)
+        val matched = list.filter { it.verseNumber == verse }
+        val book = BibleBookDefinitions.getBookById(bookId)
+        val bName = book?.nameHindi ?: "पुस्तक"
+        matched.map { entity ->
+            BibleVerse(
+                bookId = entity.bookId,
+                chapter = entity.chapter,
+                verseNumber = entity.verseNumber,
+                text = entity.text,
+                bookName = bName,
+                translationId = translationId
+            )
+        }
+    }
 
     fun getChapterVerses(
         translationId: String,
@@ -73,7 +103,7 @@ class BibleRepository(context: Context) {
         val secondaryVersesFlow = if (secondaryTransId != null) {
             dao.getVersesForChapter(secondaryTransId, bookId, chapter)
         } else {
-            kotlinx.coroutines.flow.flowOf(emptyList())
+            flowOf(emptyList())
         }
 
         return combine(versesFlow, secondaryVersesFlow, bookmarksFlow, favoritesFlow, highlightsFlow, notesFlow) { args ->
@@ -119,7 +149,7 @@ class BibleRepository(context: Context) {
 
     suspend fun toggleBookmark(bookId: Int, chapter: Int, verse: Int, isBookmarked: Boolean) {
         if (isBookmarked) {
-            dao.insertBookmark(BibleBookmarkEntity(bookId, chapter, verse))
+            dao.insertBookmark(BibleBookmarkEntity(bookId = bookId, chapter = chapter, verse = verse))
         } else {
             dao.deleteBookmark(bookId, chapter, verse)
         }
@@ -127,7 +157,7 @@ class BibleRepository(context: Context) {
 
     suspend fun toggleFavorite(bookId: Int, chapter: Int, verse: Int, isFavorite: Boolean) {
         if (isFavorite) {
-            dao.insertFavorite(BibleFavoriteEntity(bookId, chapter, verse))
+            dao.insertFavorite(BibleFavoriteEntity(bookId = bookId, chapter = chapter, verse = verse))
         } else {
             dao.deleteFavorite(bookId, chapter, verse)
         }
@@ -137,7 +167,7 @@ class BibleRepository(context: Context) {
         if (text.isBlank()) {
             dao.deleteNote(bookId, chapter, verse)
         } else {
-            dao.insertNote(BibleNoteEntity(bookId, chapter, verse, text))
+            dao.saveNote(BibleNoteEntity(bookId = bookId, chapter = chapter, verse = verse, noteText = text))
         }
     }
 }
