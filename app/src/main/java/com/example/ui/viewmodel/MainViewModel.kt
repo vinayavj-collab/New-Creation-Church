@@ -91,6 +91,7 @@ class MainViewModel(
     val attendanceRecords: StateFlow<List<ChurchAttendanceRecord>> = adminRepository.attendanceRecords
     val accountTransactions: StateFlow<List<ChurchAccountTransaction>> = adminRepository.accountTransactions
     val adminPushNotifications: StateFlow<List<AdminPushNotification>> = adminRepository.pushNotifications
+    val adminFeedbacks: StateFlow<List<com.example.data.feedback.FeedbackSubmission>> = adminRepository.adminFeedbacks
     val adminPolls: StateFlow<List<AdminPollItem>> = adminRepository.polls
     val adminReminderScheduleConfig: StateFlow<AdminReminderScheduleConfig> = adminRepository.reminderScheduleConfig
     val churchPrefixes: StateFlow<List<ChurchPrefixRecord>> = adminRepository.churchPrefixes
@@ -1686,6 +1687,43 @@ class MainViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // Dedicated stream for Personal Videos / Vlogs
+    val personalVideos: StateFlow<List<YouTubeVideo>> = combine(
+        rawYoutubeVideos,
+        personalVlogPosts,
+        isPersonalVlogAllowed
+    ) { rawVids, vlogPosts, vlogAllowed ->
+        if (!vlogAllowed) {
+            emptyList()
+        } else {
+            val fromChannels = rawVids.filter { candidate ->
+                candidate.id.startsWith("dm_${com.example.data.remote.DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                        candidate.channelId == com.example.data.remote.DailymotionFeedService.CHANNEL_VLOG_ID ||
+                        candidate.channelTitle.contains("Vinay AVJ Vlog", ignoreCase = true) ||
+                        candidate.channelTitle.contains("Vinay avj vlogs", ignoreCase = true) ||
+                        (candidate.id.startsWith("dm_") && (candidate.channelTitle.contains("vlog", ignoreCase = true) || candidate.title.contains("vlog", ignoreCase = true))) ||
+                        candidate.title.contains("vlog", ignoreCase = true) ||
+                        candidate.title.contains("व्लॉग", ignoreCase = true)
+            }
+            val fromPosts = vlogPosts.flatMap { post ->
+                post.embeddedVideoIds.map { vidId ->
+                    YouTubeVideo(
+                        id = vidId,
+                        title = post.title,
+                        description = post.plainTextExcerpt,
+                        publishedAt = post.publishedDate,
+                        publishedTimestamp = post.publishedTimestamp,
+                        thumbnailUrl = post.featuredImageUrl ?: "https://img.youtube.com/vi/$vidId/hqdefault.jpg",
+                        videoUrl = "https://www.youtube.com/watch?v=$vidId",
+                        channelTitle = "Vinay AVJ Vlog",
+                        channelId = com.example.data.remote.DailymotionFeedService.CHANNEL_VLOG_ID
+                    )
+                }
+            }
+            (fromChannels + fromPosts).distinctBy { it.id.ifBlank { it.videoUrl } }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // Dynamic YouTube Playlists
     val youtubePlaylists: StateFlow<List<YouTubePlaylist>> = youtubeRepository
         .playlistsFlow
@@ -2140,6 +2178,30 @@ class MainViewModel(
         preferencesManager.updateHomeSectionsOrder(order)
     }
 
+    fun toggleBlogSection(section: BlogSectionType, enabled: Boolean) {
+        preferencesManager.toggleBlogSection(section, enabled)
+    }
+
+    fun updateBlogSectionsOrder(order: List<BlogSectionType>) {
+        preferencesManager.updateBlogSectionsOrder(order)
+    }
+
+    fun setDefaultBlogSection(section: BlogSectionType) {
+        preferencesManager.setDefaultBlogSection(section)
+    }
+
+    fun resetBlogSectionsToDefault() {
+        val defaultOrder = listOf(
+            BlogSectionType.FELLOWSHIP,
+            BlogSectionType.AUDIO_MESSAGES,
+            BlogSectionType.PERSONAL,
+            BlogSectionType.ALL
+        )
+        preferencesManager.updateBlogSectionsOrder(defaultOrder)
+        defaultOrder.forEach { preferencesManager.toggleBlogSection(it, true) }
+        preferencesManager.setDefaultBlogSection(BlogSectionType.FELLOWSHIP)
+    }
+
     fun updateShowFellowshipEvents(enabled: Boolean) {
         preferencesManager.updateShowFellowshipEvents(enabled)
     }
@@ -2175,6 +2237,181 @@ class MainViewModel(
 
     fun updateNotifyUpcomingReminders(enabled: Boolean) {
         preferencesManager.updateNotifyUpcomingReminders(enabled)
+    }
+
+    private var wallpaperCycleIndex: Int = (System.currentTimeMillis() % com.example.util.DailyWallpaperService.INSPIRATIONAL_VERSES.size).toInt()
+    private val _currentAppliedWallpaper = MutableStateFlow<Pair<String, String>?>(null)
+    val currentAppliedWallpaper: StateFlow<Pair<String, String>?> = _currentAppliedWallpaper.asStateFlow()
+
+    fun updateDailyWallpaperEnabled(enabled: Boolean, context: Context? = null) {
+        preferencesManager.updateDailyWallpaperEnabled(enabled)
+        if (enabled && context != null) {
+            applyDailyWallpaperNow(context)
+        }
+    }
+
+    fun applyDailyWallpaperNow(
+        context: Context,
+        targetScreen: String = "both",
+        selectedStyle: com.example.util.DailyWallpaperService.TheologicalStyle? = null,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        applyDailyWallpaperWithDetails(
+            context = context,
+            forceNext = false,
+            targetScreen = targetScreen,
+            selectedStyle = selectedStyle
+        ) { success, _, _ ->
+            onComplete?.invoke(success)
+        }
+    }
+
+    fun applyNextDailyWallpaper(
+        context: Context,
+        targetScreen: String = "both",
+        selectedStyle: com.example.util.DailyWallpaperService.TheologicalStyle? = null,
+        onComplete: ((Boolean, String, String) -> Unit)? = null
+    ) {
+        applyDailyWallpaperWithDetails(
+            context = context,
+            forceNext = true,
+            targetScreen = targetScreen,
+            selectedStyle = selectedStyle,
+            onComplete = onComplete
+        )
+    }
+
+    fun applyDailyWallpaperWithDetails(
+        context: Context,
+        verseText: String = "",
+        verseRef: String = "",
+        forceNext: Boolean = false,
+        targetScreen: String = "both",
+        selectedStyle: com.example.util.DailyWallpaperService.TheologicalStyle? = null,
+        onComplete: ((Boolean, String, String) -> Unit)? = null
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val (finalVerseText, finalVerseRef) = when {
+                verseText.isNotBlank() && verseRef.isNotBlank() -> {
+                    Pair(verseText.trim(), verseRef.trim())
+                }
+                forceNext -> {
+                    wallpaperCycleIndex = (wallpaperCycleIndex + 1) % com.example.util.DailyWallpaperService.INSPIRATIONAL_VERSES.size
+                    com.example.util.DailyWallpaperService.getScriptureByIndex(wallpaperCycleIndex)
+                }
+                else -> {
+                    val adminScripture = adminTodayScripture.value
+                    val activeTodayText = getActiveTodayScripture()
+                    val todayVerse = com.example.data.bible.model.VerseOfTheDay.getTodayVerse()
+
+                    val text = when {
+                        verseText.isNotBlank() -> verseText.trim()
+                        adminScripture.hindiText.isNotBlank() -> adminScripture.hindiText.trim()
+                        activeTodayText.isNotBlank() -> activeTodayText.trim()
+                        else -> todayVerse.textHindi
+                    }
+
+                    val ref = when {
+                        verseRef.isNotBlank() -> verseRef.trim()
+                        adminScripture.hindiText.isNotBlank() && adminScripture.bookAndVerse.isNotBlank() -> adminScripture.bookAndVerse.trim()
+                        adminScripture.hindiText.isNotBlank() && adminScripture.referenceText.isNotBlank() -> adminScripture.referenceText.trim()
+                        else -> todayVerse.referenceHindi
+                    }
+
+                    Pair(text, ref)
+                }
+            }
+
+            val effectiveTargetScreen = if (targetScreen == "both" && adminWallpaperConfig.value.targetScreen != "both") {
+                adminWallpaperConfig.value.targetScreen
+            } else {
+                targetScreen
+            }
+
+            val effectiveStyle = selectedStyle ?: when (adminWallpaperConfig.value.selectedThematicStyle) {
+                "BOTANICAL" -> com.example.util.DailyWallpaperService.TheologicalStyle.SOFT_BOTANICAL_WATERCOLOR
+                "PASTEL" -> com.example.util.DailyWallpaperService.TheologicalStyle.ETHEREAL_DREAMY_PASTEL
+                "LIVING_WATER" -> com.example.util.DailyWallpaperService.TheologicalStyle.VIBRANT_SPIRITUAL_STORYBOOK
+                "ROCK" -> com.example.util.DailyWallpaperService.TheologicalStyle.ROCK_OF_AGES
+                "CINEMATIC" -> com.example.util.DailyWallpaperService.TheologicalStyle.CINEMATIC_BIBLICAL_HISTORICAL
+                else -> null
+            }
+
+            val success = com.example.util.DailyWallpaperService.applyScriptureWallpaper(
+                context = context.applicationContext,
+                verseText = finalVerseText,
+                verseRef = finalVerseRef,
+                imageUrl = null,
+                targetScreen = effectiveTargetScreen,
+                selectedStyle = effectiveStyle
+            )
+
+            if (success) {
+                _currentAppliedWallpaper.value = Pair(finalVerseText, finalVerseRef)
+            }
+
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(success, finalVerseText, finalVerseRef)
+            }
+        }
+    }
+
+    fun shareCurrentWallpaperPhoto(
+        context: Context,
+        selectedStyle: com.example.util.DailyWallpaperService.TheologicalStyle? = null,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val adminScripture = adminTodayScripture.value
+            val activeTodayText = getActiveTodayScripture()
+            val todayVerse = com.example.data.bible.model.VerseOfTheDay.getTodayVerse()
+            val text = when {
+                adminScripture.hindiText.isNotBlank() -> adminScripture.hindiText.trim()
+                activeTodayText.isNotBlank() -> activeTodayText.trim()
+                else -> todayVerse.textHindi
+            }
+            val ref = when {
+                adminScripture.bookAndVerse.isNotBlank() -> adminScripture.bookAndVerse.trim()
+                adminScripture.referenceText.isNotBlank() -> adminScripture.referenceText.trim()
+                else -> todayVerse.referenceHindi
+            }
+
+            val effectiveStyle = selectedStyle ?: when (adminWallpaperConfig.value.selectedThematicStyle) {
+                "BOTANICAL" -> com.example.util.DailyWallpaperService.TheologicalStyle.SOFT_BOTANICAL_WATERCOLOR
+                "PASTEL" -> com.example.util.DailyWallpaperService.TheologicalStyle.ETHEREAL_DREAMY_PASTEL
+                "LIVING_WATER" -> com.example.util.DailyWallpaperService.TheologicalStyle.VIBRANT_SPIRITUAL_STORYBOOK
+                "ROCK" -> com.example.util.DailyWallpaperService.TheologicalStyle.ROCK_OF_AGES
+                "CINEMATIC" -> com.example.util.DailyWallpaperService.TheologicalStyle.CINEMATIC_BIBLICAL_HISTORICAL
+                else -> null
+            }
+
+            val success = com.example.util.DailyWallpaperService.shareScriptureWallpaperPhoto(
+                context = context.applicationContext,
+                verseText = text,
+                verseRef = ref,
+                selectedStyle = effectiveStyle
+            )
+
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(success)
+            }
+        }
+    }
+
+    val adminWallpaperConfig: StateFlow<com.example.data.model.AdminWallpaperConfig> = firebaseDataRepository.adminWallpaperConfig
+
+    fun updateAdminWallpaperConfig(
+        config: com.example.data.model.AdminWallpaperConfig,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            firebaseDataRepository.updateAdminWallpaperConfig(config) { success ->
+                preferencesManager.updateAdminWallpaperConfig(config)
+                viewModelScope.launch(Dispatchers.Main) {
+                    onComplete?.invoke(success)
+                }
+            }
+        }
     }
 
     val isPersonalVlogServerEnabled: StateFlow<Boolean> = firebaseDataRepository.isPersonalVlogEnabled
@@ -2787,6 +3024,8 @@ class MainViewModel(
         val newOtp = (100000..999999).random().toString()
         preferencesManager.setMasterAdminP2Otp(newOtp)
         adminRepository.setMasterAdminSecondaryPinDirect(newOtp)
+        // Bind P2 OTP online to ADMIN1 with 10 minutes validity
+        com.example.service.CustomDeviceAuthService.generateP2ForSerial("ADMIN1", ttlMinutes = 10L, customP2Code = newOtp) { _, _, _ -> }
         com.example.util.AdminNotificationHelper.showOtpNotification(
             context = getApplication<Application>(),
             adminName = "Vinay Kumar (Master Admin)",
@@ -2796,6 +3035,105 @@ class MainViewModel(
         return newOtp
     }
     fun updateBiometricEnabled(enabled: Boolean) = preferencesManager.updateBiometricEnabled(enabled)
+    fun updateGuestDataAutoDeleteDays(days: Int) = preferencesManager.updateGuestDataAutoDeleteDays(days)
+    fun updateShowGuestDataDeletionWarning(enabled: Boolean) = preferencesManager.updateShowGuestDataDeletionWarning(enabled)
+    fun updateGuestDataDeletionWarningText(text: String) = preferencesManager.updateGuestDataDeletionWarningText(text)
+    fun updateEnableAutoCleanupExpiredGuests(enabled: Boolean) = preferencesManager.updateEnableAutoCleanupExpiredGuests(enabled)
+
+    fun verifyAndAssignSerialToGuest(
+        targetDeviceIdOrId: String,
+        assignedSerial: String,
+        role: String = "सक्रिय सदस्य (Member)",
+        pin: String = "1234",
+        authorityName: String = "Master Admin (Vinay Kumar)",
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val cleanSn = assignedSerial.trim().uppercase()
+                val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+
+                val updateMap = hashMapOf<String, Any>(
+                    "serialNumber" to cleanSn,
+                    "isVerifiedVishwasi" to true,
+                    "isVerified" to true,
+                    "role" to role,
+                    "status" to "active",
+                    "accountStatus" to "active",
+                    "assignedAuthorityName" to authorityName,
+                    "lastUpdated" to System.currentTimeMillis()
+                )
+                if (pin.isNotBlank()) {
+                    updateMap["p1PasswordHash"] = com.example.util.SecurityCryptoHelper.sha256(pin)
+                }
+
+                firestore.collection("user_profiles")
+                    .document(targetDeviceIdOrId)
+                    .set(updateMap, com.google.firebase.firestore.SetOptions.merge())
+
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    onResult(true, "प्रोफ़ाइल सत्यापित व सीरियल नंबर ($cleanSn) सफलतापूर्वक आबंटित! ✅")
+                }
+            } catch (e: Exception) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    onResult(false, "सत्यापन विफल: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun deleteGuestUserProfile(deviceIdOrId: String, onResult: (Boolean, String?) -> Unit) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                firestore.collection("user_profiles").document(deviceIdOrId).delete()
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    onResult(true, "अनसत्यापित गेस्ट प्रोफ़ाइल सफलतापूर्वक डिलीट की गई।")
+                }
+            } catch (e: Exception) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    onResult(false, "हटाने में त्रुटि: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun purgeExpiredGuestProfiles(onComplete: (purgedCount: Int, message: String) -> Unit) {
+        val days = settings.value.guestDataAutoDeleteDays
+        if (days <= 0) {
+            onComplete(0, "गेस्ट डेटा ऑटो-डिलीशन वर्तमान में बंद (Disabled) है।")
+            return
+        }
+
+        val cutoffTime = System.currentTimeMillis() - (days.toLong() * 24 * 60 * 60 * 1000L)
+        val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+
+        firestore.collection("user_profiles")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    var purged = 0
+                    for (doc in snapshot.documents) {
+                        val status = doc.getString("status") ?: ""
+                        val serial = doc.getString("serialNumber") ?: ""
+                        val lastUpdated = doc.getLong("lastUpdated") ?: 0L
+                        val isVerified = doc.getBoolean("isVerifiedVishwasi") ?: false
+
+                        val isUnregisteredGuest = !isVerified && serial.isBlank() && (status == "pending_activation" || status.isBlank())
+                        if (isUnregisteredGuest && (lastUpdated == 0L || lastUpdated < cutoffTime)) {
+                            firestore.collection("user_profiles").document(doc.id).delete()
+                            purged++
+                        }
+                    }
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        onComplete(purged, if (purged > 0) "$purged पुराने अन-रजिस्टर्ड खातों का डेटा सफलतापूर्वक साफ़ किया गया!" else "कोई एक्सपायर्ड गेस्ट डेटा नहीं मिला।")
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                onComplete(0, "सफ़ाई त्रुटि: ${e.localizedMessage}")
+            }
+    }
     fun updateMasterAdminDualAuth(enabled: Boolean) = preferencesManager.updateMasterAdminDualAuth(enabled)
     fun updateMasterAdminEmergencyRecoveryKey(key: String) = preferencesManager.updateMasterAdminEmergencyRecoveryKey(key)
     fun resetTrustedDevices() = preferencesManager.resetTrustedDevices()
@@ -2878,6 +3216,27 @@ class MainViewModel(
             } else {
                 onResult(false, result.exceptionOrNull()?.message ?: "त्रुटि हुई")
             }
+        }
+    }
+
+    fun updateFeedbackStatusAndReply(feedbackId: String, status: String, reply: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            val success = adminRepository.updateFeedbackStatusAndReply(feedbackId, status, reply)
+            onComplete(success, if (success) null else "अपडेट करने में विफल")
+        }
+    }
+
+    fun deleteFeedback(feedbackId: String, onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            val success = adminRepository.deleteFeedback(feedbackId)
+            onComplete(success, if (success) null else "डिलीट करने में विफल")
+        }
+    }
+
+    fun clearResolvedFeedbacks(onComplete: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            val success = adminRepository.clearResolvedFeedbacks()
+            onComplete(success, if (success) null else "साफ करने में विफल")
         }
     }
 

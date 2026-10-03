@@ -473,7 +473,7 @@ fun Bible3ColumnGridNavigatorContent(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = if (isHindi) book.nameHindi else book.nameEnglish,
+                                        text = book.nameHindi,
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                             color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
@@ -483,7 +483,7 @@ fun Bible3ColumnGridNavigatorContent(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = if (isHindi) book.nameEnglish else book.nameHindi,
+                                        text = book.nameEnglish,
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontSize = 9.5.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
@@ -846,14 +846,14 @@ fun BibleStepByStepListNavigatorContent(
 
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = if (isHindi) book.nameHindi else book.nameEnglish,
+                                                text = book.nameHindi,
                                                 style = MaterialTheme.typography.bodyMedium.copy(
                                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                                 )
                                             )
                                             Text(
-                                                text = "${if (isHindi) book.nameEnglish else book.nameHindi} • ${book.chapterCount} अध्याय",
+                                                text = "${book.nameEnglish} • ${book.chapterCount} अध्याय",
                                                 style = MaterialTheme.typography.bodySmall.copy(
                                                     fontSize = 11.sp,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant

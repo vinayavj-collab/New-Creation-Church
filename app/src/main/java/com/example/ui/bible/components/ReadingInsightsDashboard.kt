@@ -189,7 +189,7 @@ fun ReadingInsightsDashboard(
                     value = "${insights.longestStreak} दिन",
                     icon = Icons.Default.LocalFireDepartment,
                     iconTint = Color(0xFFEA580C),
-                    containerColor = Color(0xFFFFF7ED)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
             }
         }
@@ -205,7 +205,7 @@ fun ReadingInsightsDashboard(
                     value = "${insights.totalActivePlans}",
                     icon = Icons.Default.AutoStories,
                     iconTint = Color(0xFF059669),
-                    containerColor = Color(0xFFECFDF5)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
 
                 MetricSummaryCard(
@@ -768,7 +768,8 @@ fun MetricSummaryCard(
                     text = value,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = 17.sp
+                        fontSize = 17.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 )
                 Text(

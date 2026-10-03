@@ -42,6 +42,7 @@ import com.example.data.model.ThemeMode
 import com.example.data.model.UserProfileData
 import com.example.data.model.UserSettings
 import com.example.ui.theme.GoldWarm
+import com.example.ui.util.telegramPressEffect
 import com.example.util.ProfileManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,11 +74,7 @@ fun SidebarContent(
     ModalDrawerSheet(
         modifier = modifier
             .width(310.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { /* Consume clicks to prevent background Scrim dismissal */ }
-            )
+            
             .border(
                 width = 1.dp,
                 color = Color.White.copy(alpha = 0.12f),
@@ -90,11 +87,7 @@ fun SidebarContent(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0x66000000)) // Glass overlay rgba(0,0,0,0.4)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { /* Consume clicks to prevent background Scrim dismissal */ }
-                )
+                
                 .verticalScroll(rememberScrollState())
         ) {
             val context = LocalContext.current
@@ -248,7 +241,8 @@ fun SidebarContent(
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp, vertical = 2.dp),
                 shape = RoundedCornerShape(14.dp),
-                color = Color.White.copy(alpha = 0.08f)
+                color = Color.Transparent,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
             ) {
                 Row(
                     modifier = Modifier
@@ -290,7 +284,8 @@ fun SidebarContent(
                     Surface(
                         onClick = onToggleTheme,
                         shape = RoundedCornerShape(10.dp),
-                        color = Color.White.copy(alpha = 0.14f)
+                        color = Color.Transparent,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, GoldWarm.copy(alpha = 0.35f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -806,9 +801,28 @@ private fun SidebarNavItem(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    NavigationDrawerItem(
-        label = {
-            Column(modifier = Modifier.padding(vertical = 2.dp)) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 1.dp)
+            .telegramPressEffect(pressedScale = 0.97f, onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) Color.White.copy(alpha = 0.15f) else Color.Transparent
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (selected) GoldWarm else Color.White.copy(alpha = 0.75f),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
@@ -824,23 +838,8 @@ private fun SidebarNavItem(
                     )
                 }
             }
-        },
-        icon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (selected) GoldWarm else Color.White.copy(alpha = 0.75f),
-                modifier = Modifier.size(22.dp)
-            )
-        },
-        selected = selected,
-        onClick = onClick,
-        colors = NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = Color.White.copy(alpha = 0.15f),
-            unselectedContainerColor = Color.Transparent
-        ),
-        modifier = Modifier.padding(horizontal = 10.dp, vertical = 1.dp)
-    )
+        }
+    }
 }
 
 @Composable
@@ -851,10 +850,12 @@ private fun SidebarActionItem(
     onClick: () -> Unit
 ) {
     Surface(
-        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 1.dp)
+            .telegramPressEffect(pressedScale = 0.97f, onClick = onClick),
         color = Color.Transparent,
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(10.dp)
     ) {
         Row(
             modifier = Modifier

@@ -691,10 +691,10 @@ data class SpecialAnnouncement(
 
 @Keep
 data class AdminTodayScripture(
-    val bookAndVerse: String = "यूहन्ना 3:16",
-    val hindiText: String = "क्योंकि परमेश्वर ने जगत से ऐसा प्रेम रखा कि उसने अपना एकलौता पुत्र दे दिया...",
-    val referenceText: String = "John 3:16",
-    val reflectionThought: String = "प्रभु का प्रेम सदैव हमारे साथ है।",
+    val bookAndVerse: String = "",
+    val hindiText: String = "",
+    val referenceText: String = "",
+    val reflectionThought: String = "",
     val updatedBy: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val isPermanent: Boolean = true,

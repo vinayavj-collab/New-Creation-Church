@@ -135,6 +135,7 @@ fun AdminPanelScreen(
     val attendanceRecords by viewModel.attendanceRecords.collectAsState()
     val accountTransactions by viewModel.accountTransactions.collectAsState()
     val adminPushNotifications by viewModel.adminPushNotifications.collectAsState()
+    val adminFeedbacks by viewModel.adminFeedbacks.collectAsState()
     val fellowshipEvents by viewModel.fellowshipEvents.collectAsState()
     val auditLogs by viewModel.adminAuditLogs.collectAsState()
     val qrAuditLogs by viewModel.qrAuditLogs.collectAsState()
@@ -428,6 +429,18 @@ fun AdminPanelScreen(
             tabName.contains("Event", ignoreCase = true) || tabName.contains("कार्यक्रम", ignoreCase = true) -> {
                 selectedStudioTab = StudioBottomTab.COMMUNITY
                 selectedCommunitySubTab = "कार्यक्रम प्रबंधन (Events)"
+            }
+            tabName.contains("Playlist", ignoreCase = true) || tabName.contains("प्लेलिस्ट", ignoreCase = true) -> {
+                selectedStudioTab = StudioBottomTab.CONTENT
+                selectedContentSubTab = "प्लेलिस्ट जोड़ें व प्रबंधन (Add Playlist & Manage)"
+            }
+            tabName.contains("Video", ignoreCase = true) || tabName.contains("वीडियो", ignoreCase = true) -> {
+                selectedStudioTab = StudioBottomTab.CONTENT
+                selectedContentSubTab = "वीडियो जोड़ें व प्रबंधन (Add Video & Manage)"
+            }
+            tabName.contains("Blog", ignoreCase = true) || tabName.contains("ब्लॉग", ignoreCase = true) -> {
+                selectedStudioTab = StudioBottomTab.CONTENT
+                selectedContentSubTab = "ब्लॉग व ऑडियो सेक्शन (Blog & Audio Sections)"
             }
             tabName.contains("Broadcast", ignoreCase = true) || tabName.contains("घोषणा", ignoreCase = true) || tabName.contains("वचन", ignoreCase = true) -> {
                 selectedStudioTab = StudioBottomTab.CONTENT
@@ -1285,9 +1298,11 @@ fun AdminPanelScreen(
                     StudioBottomTab.CONTENT -> {
                         // YouTube Studio Style Content Tab with Submodules Bar
                         val contentSubTabs = listOf(
-                            "वीडियो व प्लेलिस्ट (Videos & Playlists)",
-                            "मीडिया व उपदेश नियंत्रण (Media & Sermons)",
+                            "वीडियो जोड़ें व प्रबंधन (Add Video & Manage)",
+                            "प्लेलिस्ट जोड़ें व प्रबंधन (Add Playlist & Manage)",
+                            "ब्लॉग व ऑडियो सेक्शन (Blog & Audio Sections)",
                             "दैनिक आत्मिक संदेश (Audio Message)",
+                            "मीडिया व उपदेश नियंत्रण (Media & Sermons)",
                             "घोषणा व प्रसारण (Broadcast)",
                             "पुश प्रसारण (Push)",
                             "चैट व कम्यूनिकेशन (Chat & Comms)",
@@ -1322,10 +1337,37 @@ fun AdminPanelScreen(
 
                             Box(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 4.dp)) {
                                 when (selectedContentSubTab) {
+                                    "वीडियो जोड़ें व प्रबंधन (Add Video & Manage)" -> {
+                                        AdminVideoPlaylistManagerScreen(
+                                            viewModel = viewModel,
+                                            currentAdmin = admin,
+                                            initialSection = 0,
+                                            onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
+                                        )
+                                    }
+                                    "प्लेलिस्ट जोड़ें व प्रबंधन (Add Playlist & Manage)" -> {
+                                        AdminVideoPlaylistManagerScreen(
+                                            viewModel = viewModel,
+                                            currentAdmin = admin,
+                                            initialSection = 1,
+                                            onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
+                                        )
+                                    }
+                                    "ब्लॉग व ऑडियो सेक्शन (Blog & Audio Sections)" -> {
+                                        AdminBlogSectionManagerScreen(
+                                            viewModel = viewModel,
+                                            currentAdmin = admin,
+                                            onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD },
+                                            onNavigateToAudioMessageManager = {
+                                                selectedContentSubTab = "दैनिक आत्मिक संदेश (Audio Message)"
+                                            }
+                                        )
+                                    }
                                     "वीडियो व प्लेलिस्ट (Videos & Playlists)" -> {
                                         AdminVideoPlaylistManagerScreen(
                                             viewModel = viewModel,
                                             currentAdmin = admin,
+                                            initialSection = 0,
                                             onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
                                         )
                                     }
@@ -1570,7 +1612,8 @@ fun AdminPanelScreen(
                             "रोल व एडमिन प्रबंधन (Role & Admins)",
                             "उपस्थिति ट्रैकर (Attendance)",
                             "लेखा व दशमांश (Accounts)",
-                            "कार्यक्रम प्रबंधन (Events)"
+                            "कार्यक्रम प्रबंधन (Events)",
+                            "फीडबैक व समीक्षा (Feedback)"
                         )
 
                         Column(modifier = Modifier.fillMaxSize()) {
@@ -1771,6 +1814,13 @@ fun AdminPanelScreen(
                                                 }
                                             },
                                             onBack = { selectedStudioTab = StudioBottomTab.DASHBOARD }
+                                        )
+                                    }
+                                    "फीडबैक व समीक्षा (Feedback)" -> {
+                                        AdminFeedbackManagementSection(
+                                            feedbacks = adminFeedbacks,
+                                            viewModel = viewModel,
+                                            onShowFeedback = { msg -> showFeedback(msg) }
                                         )
                                     }
                                 }
@@ -7556,6 +7606,385 @@ fun AdminNavigationConfigScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showAddDialog = false }) {
+                    Text("रद्द करें")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun AdminFeedbackManagementSection(
+    feedbacks: List<com.example.data.feedback.FeedbackSubmission>,
+    viewModel: MainViewModel,
+    onShowFeedback: (String) -> Unit
+) {
+    val context = LocalContext.current
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedFilterStatus by remember { mutableStateOf("ALL") }
+    var autoDeleteRetention by remember { mutableStateOf("कभी नहीं (Never)") }
+    var replyingFeedback by remember { mutableStateOf<com.example.data.feedback.FeedbackSubmission?>(null) }
+    var replyText by remember { mutableStateOf("") }
+
+    val filteredList = remember(feedbacks, searchQuery, selectedFilterStatus) {
+        feedbacks.filter { item ->
+            val matchesQuery = searchQuery.isBlank() ||
+                    item.subject.contains(searchQuery, ignoreCase = true) ||
+                    item.message.contains(searchQuery, ignoreCase = true) ||
+                    item.userName.contains(searchQuery, ignoreCase = true) ||
+                    item.userEmail.contains(searchQuery, ignoreCase = true)
+            val matchesStatus = selectedFilterStatus == "ALL" || item.status == selectedFilterStatus
+            matchesQuery && matchesStatus
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+        ) {
+            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Feedback, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = "यूज़र फीडबैक एवं समीक्षा (${feedbacks.size})",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                    val unreadCount = feedbacks.count { it.status == "NEW" }
+                    if (unreadCount > 0) {
+                        Badge(containerColor = MaterialTheme.colorScheme.error) {
+                            Text("$unreadCount नए", color = Color.White, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp))
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("फीडबैक विषय, संदेश या यूज़र खोजें...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf("ALL" to "सभी", "NEW" to "नए (NEW)", "RESOLVED" to "समीक्षा पूर्ण (✔)").forEach { (key, label) ->
+                        val isSelected = selectedFilterStatus == key
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedFilterStatus = key },
+                            label = { Text(label, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("ऑटो-डिलीट समय (Auto-Delete):", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf("कभी नहीं", "1M", "2M", "3M", "6M", "12M").forEach { opt ->
+                                val isSelected = autoDeleteRetention == opt
+                                Surface(
+                                    modifier = Modifier.clickable { autoDeleteRetention = opt },
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                                ) {
+                                    Text(
+                                        text = opt,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.clearResolvedFeedbacks { success, _ ->
+                                if (success) {
+                                    onShowFeedback("सभी समीक्षा पूर्ण फीडबैक साफ़ कर दिए गए")
+                                } else {
+                                    onShowFeedback("साफ करने में विफल")
+                                }
+                            }
+                        },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("साफ़ करें (Clear)", fontSize = 10.sp)
+                    }
+                }
+            }
+        }
+
+        if (filteredList.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "कोई फीडबैक उपलब्ध नहीं है",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(filteredList, key = { it.id }) { item ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (item.status == "NEW") MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                ) {
+                                    Text(
+                                        text = item.type.titleHindi.ifBlank { item.type.name },
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    if (item.status == "RESOLVED" || item.status == "SEEN") {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = Color(0xFF10B981).copy(alpha = 0.15f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                            ) {
+                                                Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(12.dp))
+                                                Text("देख लिया गया (✔)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                                            }
+                                        }
+                                    } else {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                                        ) {
+                                            Text(
+                                                text = "नया (NEW)",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = item.subject.ifBlank { "विषय नहीं" },
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = item.message,
+                                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            )
+
+                            val dateStr = remember(item.timestamp) {
+                                java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale("hi", "IN"))
+                                    .format(java.util.Date(item.timestamp))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "👤 ${item.userName.ifBlank { "अज्ञात यूज़र" }} (${item.userEmail.ifBlank { "ईमेल नहीं" }})",
+                                    style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = dateStr,
+                                    style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.outline)
+                                )
+                            }
+
+                            if (item.adminReply.isNotBlank()) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "💬 एडमिन रिप्लाई:",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        )
+                                        Text(
+                                            text = item.adminReply,
+                                            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        viewModel.deleteFeedback(item.id) { success, _ ->
+                                            if (success) {
+                                                onShowFeedback("फीडबैक सफलतापूर्वक डिलीट किया गया")
+                                            } else {
+                                                onShowFeedback("डिलीट करने में विफल")
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("डिलीट (Delete)", fontSize = 11.sp)
+                                }
+
+                                Row(
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (item.status != "RESOLVED") {
+                                        TextButton(
+                                            onClick = {
+                                                viewModel.updateFeedbackStatusAndReply(item.id, "RESOLVED", item.adminReply) { success, _ ->
+                                                    if (success) {
+                                                        onShowFeedback("फीडबैक को 'देखा गया / हल' के रूप में चिन्हित किया गया ✔")
+                                                    } else {
+                                                        onShowFeedback("त्रुटि हुई")
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("देख लिया (✔)", fontSize = 11.sp)
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    FilledTonalButton(
+                                        onClick = {
+                                            replyingFeedback = item
+                                            replyText = item.adminReply
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                    ) {
+                                        Icon(Icons.Default.Reply, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("रिप्लाई (Reply)", fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (replyingFeedback != null) {
+        val target = replyingFeedback!!
+        AlertDialog(
+            onDismissRequest = { replyingFeedback = null },
+            title = { Text("फीडबैक का रिप्लाई दें") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("यूज़र: ${target.userName.ifBlank { "अज्ञात" }}", style = MaterialTheme.typography.bodySmall)
+                    Text("विषय: ${target.subject}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = replyText,
+                        onValueChange = { replyText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("यहाँ रिप्लाई लिखें...") },
+                        minLines = 3,
+                        maxLines = 5,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val replyMsg = replyText.trim()
+                        if (replyMsg.isNotEmpty()) {
+                            viewModel.updateFeedbackStatusAndReply(target.id, "RESOLVED", replyMsg) { success, _ ->
+                                if (success) {
+                                    onShowFeedback("रिप्लाई सफलतापूर्वक भेज दिया गया और टिक मार्क लग गया ✔")
+                                    replyingFeedback = null
+                                } else {
+                                    onShowFeedback("रिप्लाई भेजने में विफल")
+                                }
+                            }
+                        } else {
+                            Toast.makeText(context, "कृपया रिप्लाई संदेश लिखें", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text("रिप्लाई भेजें व मार्क करें ✔")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { replyingFeedback = null }) {
                     Text("रद्द करें")
                 }
             }

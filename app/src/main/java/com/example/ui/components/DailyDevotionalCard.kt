@@ -57,9 +57,9 @@ fun DailyDevotionalCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
@@ -75,7 +75,7 @@ fun DailyDevotionalCard(
                         )
                     )
                 )
-                .padding(16.dp)
+                .padding(12.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -87,54 +87,59 @@ fun DailyDevotionalCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
+                        modifier = Modifier.weight(1f, fill = false),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(34.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.AutoStories,
                                     contentDescription = "Devotional Icon",
                                     tint = MaterialTheme.colorScheme.onTertiary,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
                         Column {
                             Text(
                                 text = "📖 दैनिक मनन (Daily Devotional)",
-                                fontSize = 16.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.tertiary
                             )
-                            Text(
-                                text = devotional.titleHindi.ifEmpty { "आज का विशेष आत्मिक संदेश" },
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (devotional.titleHindi.isNotBlank()) {
+                                Text(
+                                    text = devotional.titleHindi,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.padding(2.dp)
-                    ) {
-                        Text(
-                            text = devotional.category,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                    if (devotional.category.isNotBlank() && devotional.category != "दैनिक मनन (Daily Devotional)" && devotional.category != "दैनिक मनन") {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.padding(start = 4.dp)
+                        ) {
+                            Text(
+                                text = devotional.category,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Verse reference & Text box
                 Surface(
@@ -142,7 +147,7 @@ fun DailyDevotionalCard(
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(10.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -160,31 +165,32 @@ fun DailyDevotionalCard(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "\"${devotional.verseTextHindi}\"",
-                            fontSize = 13.sp,
+                            fontSize = 12.5.sp,
                             fontStyle = FontStyle.Italic,
-                            lineHeight = 19.sp,
+                            lineHeight = 18.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Devotional thought
                 Text(
                     text = devotional.devotionalThoughtHindi,
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
                     fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // Author & Share row
                 Row(
@@ -193,7 +199,7 @@ fun DailyDevotionalCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "लेखक/स्रोत: ${devotional.author}",
+                        text = "लेखक/स्रोत: ${devotional.author.ifBlank { "संपादकीय टीम" }}",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -211,13 +217,13 @@ fun DailyDevotionalCard(
                             }
                             context.startActivity(android.content.Intent.createChooser(shareIntent, "दैनिक मनन साझा करें"))
                         },
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = "Share Devotional",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }

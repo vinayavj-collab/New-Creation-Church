@@ -173,97 +173,12 @@ fun MemberDashboardContent(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp)
+            .padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 40.dp)
     ) {
         // -------------------------------------------------------------
-        // SECTION 1: MY PROFILE SECONDARY DETAILS CARD
-        // -------------------------------------------------------------
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("member_dashboard_profile_section"),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    // Secondary Info Badges Row (बपतिस्मा + विश्वास में वर्ष)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = if (userProfile.isBaptized || userProfile.baptismStatus) Icons.Default.WaterDrop else Icons.Default.HourglassEmpty,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Column {
-                                    Text("बपतिस्मा", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
-                                    Text(
-                                        text = if (userProfile.isBaptized || userProfile.baptismStatus) "हाँ (पूर्ण)" else "प्रतीक्षारत",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Column {
-                                    Text("विश्वास में वर्ष", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
-                                    Text(
-                                        text = if (userProfile.yearsInFaith > 0) "${userProfile.yearsInFaith} वर्ष" else "नव विश्वासी",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    OutlinedButton(
-                        onClick = onEditProfileClick,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("btn_dashboard_edit_profile")
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("प्रोफ़ाइल विवरण संपादित करें (Edit Profile)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-
-        // -------------------------------------------------------------
-        // SECTION 2: DIGITAL BADGE (CHURCH DIGITAL ID CARD & QR)
+        // SECTION 1: DIGITAL BADGE (CHURCH DIGITAL ID CARD & QR PASS)
         // -------------------------------------------------------------
         item {
             Card(
@@ -274,8 +189,63 @@ fun MemberDashboardContent(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)), // Premium dark ID badge style
                 border = BorderStroke(1.5.dp, GoldWarm)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     if (isUnregisteredOrGuest) {
+                        // Guest Profile Data Auto-Deletion Warning Banner (Configured by Master Admin)
+                        val settingsState = viewModel?.settings?.collectAsState()
+                        val settings = settingsState?.value
+                        if (settings?.showGuestDataDeletionWarning == true) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.7f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.Warning,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.width(10.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "⏳ अन-रजिस्टर्ड अकाउंट (Guest Warning)",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        val customWarnText = settings.guestDataDeletionWarningText.ifBlank {
+                                            "आपने अभी तक सीरियल नंबर व पासवर्ड डालकर कलीसिया पंजीकरण पूरा नहीं किया है। बिना पंजीकरण के आपका यह अस्थायी गेस्ट डेटा ${settings.guestDataAutoDeleteDays} दिनों (${settings.guestDataAutoDeleteDays / 30} महीने) बाद स्वतः साफ़ (Delete) कर दिया जाएगा।"
+                                        }
+                                        Text(
+                                            text = customWarnText,
+                                            fontSize = 11.sp,
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            lineHeight = 15.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         // -------------------------------------------------------------
                         // UNREGISTERED / GUEST USER PASS PLACEHOLDER
                         // -------------------------------------------------------------
@@ -284,16 +254,22 @@ fun MemberDashboardContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
                                 Icon(Icons.Default.Badge, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = "डिजिटल सदस्यता पास (Digital Pass)",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
-                                    color = Color.White
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            Spacer(Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = Color(0xFFF59E0B).copy(alpha = 0.2f),
@@ -309,7 +285,7 @@ fun MemberDashboardContent(
                             }
                         }
 
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(12.dp))
 
                         // Elegant "Unlock Member Pass" Card
                         Surface(
@@ -321,47 +297,47 @@ fun MemberDashboardContent(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
+                                    .padding(14.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Surface(
                                     shape = CircleShape,
                                     color = GoldWarm.copy(alpha = 0.15f),
                                     border = BorderStroke(1.dp, GoldWarm.copy(alpha = 0.5f)),
-                                    modifier = Modifier.size(54.dp)
+                                    modifier = Modifier.size(50.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             Icons.Default.Lock,
                                             contentDescription = null,
                                             tint = GoldWarm,
-                                            modifier = Modifier.size(28.dp)
+                                            modifier = Modifier.size(26.dp)
                                         )
                                     }
                                 }
 
-                                Spacer(Modifier.height(10.dp))
+                                Spacer(Modifier.height(8.dp))
 
                                 Text(
                                     text = "सदस्यता पास अनलॉक करें",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
+                                    fontSize = 14.sp,
                                     color = GoldWarm,
                                     textAlign = TextAlign.Center
                                 )
 
-                                Spacer(Modifier.height(6.dp))
+                                Spacer(Modifier.height(4.dp))
 
                                 Text(
                                     text = "डिजिटल सदस्यता पास प्राप्त करने और सभा हाजिरी (Smart Check-in) के लिए पंजीकरण पूरा करें।",
-                                    fontSize = 12.sp,
+                                    fontSize = 11.5.sp,
                                     color = Color.LightGray,
                                     textAlign = TextAlign.Center,
-                                    lineHeight = 17.sp,
-                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                    lineHeight = 16.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp)
                                 )
 
-                                Spacer(Modifier.height(16.dp))
+                                Spacer(Modifier.height(14.dp))
 
                                 Button(
                                     onClick = onEditProfileClick,
@@ -369,14 +345,14 @@ fun MemberDashboardContent(
                                     colors = ButtonDefaults.buttonColors(containerColor = GoldWarm, contentColor = Color.Black),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(44.dp)
+                                        .height(42.dp)
                                 ) {
                                     Icon(Icons.Default.AppRegistration, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(
-                                        text = "कलीसिया सदस्यता फॉर्म भरें / रजिस्टर करें",
+                                        text = "कलीसिया फॉर्म भरें / रजिस्टर करें",
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 12.5.sp
+                                        fontSize = 12.sp
                                     )
                                 }
                             }
@@ -385,40 +361,45 @@ fun MemberDashboardContent(
                         // -------------------------------------------------------------
                         // REGISTERED MEMBER DIGITAL PASS (FULL VERIFIED CARD & QR CODE)
                         // -------------------------------------------------------------
-                        // Header Bar
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
                                 Icon(Icons.Default.Badge, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = "डिजिटल सदस्यता पास (Digital Badge)",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = Color.White
+                                    fontSize = 13.5.sp,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            Spacer(Modifier.width(4.dp))
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = Color(0xFF10B981).copy(alpha = 0.2f),
                                 border = BorderStroke(1.dp, Color(0xFF10B981))
                             ) {
                                 Text(
-                                    text = "● VERIFIED MEMBER",
+                                    text = "● VERIFIED",
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF34D399),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
                         }
 
                         Spacer(Modifier.height(10.dp))
 
-                        // Digital Badge Family Pass Switch Toggle
+                        // Digital Badge Mode Toggle (Individual vs Family)
                         var selectedBadgeMode by remember { mutableStateOf(if (userProfile.isFamilyHead) "FAMILY" else "INDIVIDUAL") }
 
                         Surface(
@@ -427,7 +408,7 @@ fun MemberDashboardContent(
                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(modifier = Modifier.padding(4.dp)) {
+                            Row(modifier = Modifier.padding(3.dp)) {
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = if (selectedBadgeMode == "INDIVIDUAL") GoldWarm else Color.Transparent,
@@ -436,7 +417,7 @@ fun MemberDashboardContent(
                                         .clickable { selectedBadgeMode = "INDIVIDUAL" }
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(vertical = 6.dp),
+                                        modifier = Modifier.padding(vertical = 5.dp),
                                         horizontalArrangement = Arrangement.Center,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -453,11 +434,11 @@ fun MemberDashboardContent(
                                     shape = RoundedCornerShape(8.dp),
                                     color = if (selectedBadgeMode == "FAMILY") GoldWarm else Color.Transparent,
                                     modifier = Modifier
-                                        .weight(1.2f)
+                                        .weight(1.1f)
                                         .clickable { selectedBadgeMode = "FAMILY" }
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(vertical = 6.dp),
+                                        modifier = Modifier.padding(vertical = 5.dp),
                                         horizontalArrangement = Arrangement.Center,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -478,45 +459,80 @@ fun MemberDashboardContent(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Left: Member Details
+                            // Left: Member Details + Merged Status Badges
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (selectedBadgeMode == "FAMILY") "👨‍👩‍👧‍👦 1-टैप फैमिली पास" else "कलीसिया प्रबंधन पोर्टल",
+                                    text = if (selectedBadgeMode == "FAMILY") "👨‍👩‍👧‍👦 1-टैप फैमिली पास" else "कलीसिया पास",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = GoldWarm
                                 )
                                 Text(
-                                    text = if (selectedBadgeMode == "FAMILY") "${userProfile.displayName.ifBlank { "डेविड" }} परिवार" else userProfile.displayName.ifBlank { "सदस्य" },
-                                    fontSize = 16.sp,
+                                    text = if (selectedBadgeMode == "FAMILY") "${userProfile.displayName.ifBlank { "सदस्य" }} परिवार" else userProfile.displayName.ifBlank { "सदस्य" },
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Spacer(Modifier.height(4.dp))
+                                Spacer(Modifier.height(3.dp))
 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("सीरियल नंबर: ", fontSize = 11.sp, color = Color.LightGray)
+                                    Text("आईडी: ", fontSize = 11.sp, color = Color.LightGray)
                                     Text(
                                         text = serialNumber,
                                         fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
+                                        fontSize = 12.5.sp,
                                         color = GoldWarm
                                     )
                                 }
 
                                 Text(
-                                    text = if (selectedBadgeMode == "FAMILY") "बैच क्यूआर: 3 सदस्य जुड़े हैं" else "पदनाम: $memberRole",
-                                    fontSize = 11.sp,
-                                    color = Color.LightGray
+                                    text = if (selectedBadgeMode == "FAMILY") "बैच पास" else "पदनाम: $memberRole",
+                                    fontSize = 10.5.sp,
+                                    color = Color.LightGray,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
+
+                                Spacer(Modifier.height(6.dp))
+
+                                // Integrated Status Badges (Merged secondary info directly into Member Pass)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color.White.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = if (userProfile.isBaptized || userProfile.baptismStatus) "💧 बपतिस्मा: पूर्ण" else "⏳ बपतिस्मा: प्रतीक्षारत",
+                                            fontSize = 9.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.LightGray,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color.White.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = if (userProfile.yearsInFaith > 0) "🏆 ${userProfile.yearsInFaith} वर्ष" else "🌱 नव विश्वासी",
+                                            fontSize = 9.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.LightGray,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
                             }
 
-                            Spacer(Modifier.width(10.dp))
+                            Spacer(Modifier.width(8.dp))
 
-                            // Right: Interactive QR Code
+                            // Right: Interactive QR Code with Zoom Badge Overlay
                             val qrPayload = remember(serialNumber, selectedBadgeMode) {
                                 if (selectedBadgeMode == "FAMILY") {
                                     AttendanceSecurityHelper.generateFamilyPassPayload(
@@ -534,10 +550,10 @@ fun MemberDashboardContent(
                             if (qrBitmap != null) {
                                 Box(
                                     modifier = Modifier
-                                        .size(90.dp)
+                                        .size(84.dp)
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(Color.White)
-                                        .padding(6.dp)
+                                        .padding(5.dp)
                                         .clickable { showQrModal = true },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -546,26 +562,52 @@ fun MemberDashboardContent(
                                         contentDescription = "Digital Member QR Code",
                                         modifier = Modifier.fillMaxSize()
                                     )
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = GoldWarm,
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .size(20.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(Icons.Default.ZoomIn, contentDescription = null, tint = Color.Black, modifier = Modifier.size(13.dp))
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(12.dp))
 
-                        // Badge Action Row
+                        // Single Clean Responsive Action Bar
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
-                                onClick = { showQrModal = true },
+                                onClick = { showSelfCheckInDialog = true },
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = GoldWarm, contentColor = Color.Black),
-                                modifier = Modifier.weight(1f)
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (activeWindow?.isWindowActive == true) Color(0xFF10B981) else GoldWarm,
+                                    contentColor = if (activeWindow?.isWindowActive == true) Color.White else Color.Black
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("btn_member_self_checkin")
                             ) {
-                                Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    imageVector = if (activeWindow?.isWindowActive == true) Icons.Default.CheckCircle else Icons.Default.QrCodeScanner,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(Modifier.width(6.dp))
-                                Text("QR कोड ज़ूम करें", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (activeWindow?.isWindowActive == true) "हाजिरी दर्ज करें (खुला है)" else "स्मार्ट चेक-इन (Check-in)",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
 
                             OutlinedButton(
@@ -584,34 +626,6 @@ fun MemberDashboardContent(
                                 Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("शेयर ID", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-
-                        // Self Check-In Button (Prominently displayed when service window is open)
-                        if (viewModel != null) {
-                            Spacer(Modifier.height(10.dp))
-                            Button(
-                                onClick = { showSelfCheckInDialog = true },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (activeWindow?.isWindowActive == true) Color(0xFF10B981) else MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = if (activeWindow?.isWindowActive == true) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("btn_member_self_checkin")
-                            ) {
-                                Icon(
-                                    imageVector = if (activeWindow?.isWindowActive == true) Icons.Default.CheckCircle else Icons.Default.QrCodeScanner,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = if (activeWindow?.isWindowActive == true) "हाजिरी दर्ज करें (Self Check-in खुला है)" else "कलीसिया सभा हाजिरी (Smart Check-in)",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
                             }
                         }
                     }
@@ -824,15 +838,22 @@ fun MemberDashboardContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "बाइबल पठन योजना (Reading Plans)",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
+
+                        Spacer(Modifier.width(6.dp))
 
                         Surface(
                             shape = RoundedCornerShape(10.dp),
@@ -844,7 +865,7 @@ fun MemberDashboardContent(
                             ) {
                                 Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("7 दिन स्ट्रीक 🔥", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                                Text("7 दिन स्ट्रीक 🔥", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706), maxLines = 1)
                             }
                         }
                     }
@@ -895,10 +916,11 @@ fun MemberDashboardContent(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
-                                    Text("आज का निर्धारित अध्याय:", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
-                                    Text("उत्पत्ति अध्याय 15 (Genesis 15)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("आज का निर्धारित अध्याय:", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.outline)
+                                    Text("उत्पत्ति अध्याय 15 (Genesis 15)", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
+                                Spacer(Modifier.width(8.dp))
 
                                 Button(
                                     onClick = { onOpenBible(1, 15, 1) },
@@ -946,13 +968,18 @@ fun MemberDashboardContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Event, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Icon(Icons.Default.Event, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "आगामी कार्यक्रम (Upcoming Events)",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 

@@ -55,6 +55,23 @@ enum class HomeSectionType(val id: String, val defaultTitle: String) {
     PERSONAL_VLOG("personal_vlog", "Personal Vlog")
 }
 
+enum class BlogSectionType(
+    val id: String,
+    val titleHindi: String,
+    val titleEnglish: String,
+    val descriptionHindi: String,
+    val defaultOrder: Int
+) {
+    FELLOWSHIP("fellowship", "फेलोशिप लेख", "Fellowship Blogs", "चर्च व फेलोशिप के मुख्य ब्लॉग व लेख", 1),
+    AUDIO_MESSAGES("audio_messages", "ऑडियो संदेश", "Audio Messages", "दैनिक आत्मिक संदेश व ऑडियो वचन", 2),
+    PERSONAL("personal", "व्यक्तिगत व्लॉग", "Personal Vlog", "पादरी व व्यक्तिगत अनुभव व्लॉग", 3),
+    ALL("all", "सभी लेख", "All Posts", "सभी ब्लॉग्स व लेखों की सम्मिलित सूची", 4);
+
+    companion object {
+        fun fromId(id: String): BlogSectionType? = entries.find { it.id.equals(id, ignoreCase = true) }
+    }
+}
+
 enum class VerseAlarmFrequency(val titleHindi: String, val titleEnglish: String) {
     DAILY("प्रतिदिन एक बार (Daily Once)", "Daily Once"),
     INTERVAL_HOURS("निश्चित अंतराल पर (Fixed Interval)", "Fixed Interval")
@@ -96,6 +113,7 @@ data class UserSettings(
     val notifyYouTube: Boolean = true,
     val notifyPersonalVlog: Boolean = false, // CRITICAL: OFF by default
     val notifyUpcomingReminders: Boolean = true,
+    val dailyWallpaperEnabled: Boolean = false,
     val appLanguage: AppLanguage = AppLanguage.SYSTEM,
     val favoriteCategories: Set<String> = emptySet(),
     val homeSectionsOrder: List<HomeSectionType> = listOf(
@@ -122,6 +140,19 @@ data class UserSettings(
         HomeSectionType.PLAYLISTS,
         HomeSectionType.LATEST_EVENTS
     ),
+    val blogSectionsOrder: List<BlogSectionType> = listOf(
+        BlogSectionType.FELLOWSHIP,
+        BlogSectionType.AUDIO_MESSAGES,
+        BlogSectionType.PERSONAL,
+        BlogSectionType.ALL
+    ),
+    val enabledBlogSections: Set<BlogSectionType> = setOf(
+        BlogSectionType.FELLOWSHIP,
+        BlogSectionType.AUDIO_MESSAGES,
+        BlogSectionType.PERSONAL,
+        BlogSectionType.ALL
+    ),
+    val defaultBlogSection: BlogSectionType = BlogSectionType.FELLOWSHIP,
     val customFourthTab: CustomFourthTab = CustomFourthTab.SONG_BOOK,
     val bloggerPhotoLayout: BloggerPhotoLayout = BloggerPhotoLayout.GRID_2,
     val isDrawerEnabled: Boolean = true,
@@ -136,8 +167,8 @@ data class UserSettings(
     val userName: String = "",
     val enableWelcomeSpeech: Boolean = true,
     val enableVerseSpeechOnLaunch: Boolean = true,
-    val welcomeSpeechOncePerDay: Boolean = false,
-    val verseSpeechOncePerDay: Boolean = false,
+    val welcomeSpeechOncePerDay: Boolean = true,
+    val verseSpeechOncePerDay: Boolean = true,
     val welcomeDialogDismissed: Boolean = false,
     // Verse of the Day Alarm & Voice Settings
     val verseAlarmEnabled: Boolean = true,
@@ -198,6 +229,11 @@ data class UserSettings(
     val trustedDevices: List<String> = listOf("Android-Primary-Device", "Mobile-Auth-Terminal-01"),
     val profileReminderIntervalDays: Int = 7,
     val notificationMethod: String = "Local Notification",
+    // Guest Profile Auto-Deletion & Warning Policy
+    val guestDataAutoDeleteDays: Int = 90,
+    val showGuestDataDeletionWarning: Boolean = true,
+    val guestDataDeletionWarningText: String = "⚠️ ध्यान दें: आपने अभी तक सीरियल नंबर व पासवर्ड डालकर कलीसिया पंजीकरण पूरा नहीं किया है। बिना पंजीकरण के आपका यह अस्थायी गेस्ट डेटा 90 दिनों (3 महीने) बाद स्वतः साफ़ (Auto-deleted) कर दिया जाएगा।",
+    val enableAutoCleanupExpiredGuests: Boolean = true,
     // Chat Configuration & Access Controls
     val isChatEnabled: Boolean = false,
     val chatAllowOnlyVerified: Boolean = true,

@@ -40,12 +40,13 @@ object CustomDeviceAuthService {
 
     /**
      * Generates a 6-digit P2 OTP strictly bound to a specific Serial Number (SN).
-     * TTL = 5 minutes (default). Single-use only.
+     * TTL = 10 minutes (default). Single-use only.
      */
     fun generateP2ForSerial(
         serialNumber: String,
-        ttlMinutes: Long = 5L,
+        ttlMinutes: Long = 10L,
         issuedByDeviceId: String = "",
+        customP2Code: String? = null,
         onComplete: (success: Boolean, p2Code: String?, message: String?) -> Unit
     ) {
         val cleanSn = serialNumber.trim().uppercase()
@@ -55,7 +56,7 @@ object CustomDeviceAuthService {
         }
 
         val secureRandom = SecureRandom()
-        val p2Code = String.format("%06d", secureRandom.nextInt(1000000))
+        val p2Code = customP2Code?.trim()?.ifBlank { null } ?: String.format("%06d", secureRandom.nextInt(1000000))
         val now = System.currentTimeMillis()
         val expiresAt = now + TimeUnit.MINUTES.toMillis(ttlMinutes)
 
@@ -72,7 +73,7 @@ object CustomDeviceAuthService {
             .document(cleanSn)
             .set(sessionData)
             .addOnSuccessListener {
-                onComplete(true, p2Code, "P2 कोड सफलतापूर्वक उत्पन्न हुआ (5 मिनट वैधता)।")
+                onComplete(true, p2Code, "P2 कोड सफलतापूर्वक उत्पन्न हुआ (10 मिनट वैधता)।")
             }
             .addOnFailureListener { e ->
                 onComplete(false, null, "P2 जनरेट करने में त्रुटि: ${e.localizedMessage}")
@@ -81,7 +82,7 @@ object CustomDeviceAuthService {
 
     /**
      * Validates P2 OTP for Serial Number (SN).
-     * Strictly verifies SN matching, non-expiration, and single-use status.
+     * Strictly verifies SN matching, non-expiration (10 mins), and single-use status.
      * Consumes (invalidates) P2 upon successful verification.
      */
     fun validateP2ForSerial(
@@ -102,7 +103,7 @@ object CustomDeviceAuthService {
             .get()
             .addOnSuccessListener { doc ->
                 if (!doc.exists()) {
-                    onResult(false, "इस सीरियल नंबर ($cleanSn) के लिए कोई सक्रिय P2 नहीं मिला")
+                    onResult(false, "ऑनलाइन सुरक्षा त्रुटि: सीरियल नंबर ($cleanSn) के लिए कोई P2 OTP जनरेट नहीं किया गया है।")
                     return@addOnSuccessListener
                 }
 
@@ -113,22 +114,22 @@ object CustomDeviceAuthService {
                 val now = System.currentTimeMillis()
 
                 if (!storedSn.equals(cleanSn, ignoreCase = true)) {
-                    onResult(false, "P2 सुरक्षा त्रुटि: P2 टोकन इस सीरियल नंबर से बंधा नहीं है")
+                    onResult(false, "P2 सुरक्षा उल्लंघन: यह P2 टोकन किसी दूसरे सीरियल नंबर के लिए जनरेट हुआ था और ($cleanSn) के साथ काम नहीं करेगा।")
                     return@addOnSuccessListener
                 }
 
                 if (isUsed) {
-                    onResult(false, "यह P2 कोड पहले ही उपयोग किया जा चुका है (Single-use Expired)")
+                    onResult(false, "यह P2 OTP पहले ही उपयोग किया जा चुका है (Single-use Expired)। नया P2 OTP जनरेट करें।")
                     return@addOnSuccessListener
                 }
 
                 if (now > expiresAt) {
-                    onResult(false, "P2 कोड की समयावधि समाप्त हो चुकी है (Expired OTP)")
+                    onResult(false, "P2 OTP की 10 मिनट की समयावधि समाप्त हो चुकी है (Expired OTP)। कृपया नया P2 OTP जनरेट करें।")
                     return@addOnSuccessListener
                 }
 
                 if (storedP2 != cleanP2) {
-                    onResult(false, "गलत P2 कोड। कृपया सही 6-अंकीय OTP दर्ज करें।")
+                    onResult(false, "अमान्य P2 OTP! दर्ज किया गया OTP इस सीरियल नंबर ($cleanSn) के लिए जनरेटेड OTP से मेल नहीं खाता।")
                     return@addOnSuccessListener
                 }
 
@@ -137,11 +138,11 @@ object CustomDeviceAuthService {
                     .document(cleanSn)
                     .update("used", true)
                     .addOnCompleteListener {
-                        onResult(true, "P2 कोड सफलतापूर्वक सत्यापित ✅")
+                        onResult(true, "P2 कोड व सीरियल नंबर ($cleanSn) ऑनलाइन सफलतापूर्वक सत्यापित ✅")
                     }
             }
             .addOnFailureListener { e ->
-                onResult(false, "सत्यापन त्रुटि: ${e.localizedMessage}")
+                onResult(false, "ऑनलाइन सत्यापन त्रुटि: ${e.localizedMessage}")
             }
     }
 

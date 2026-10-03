@@ -31,11 +31,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.data.model.PredefinedPlaylists
 import com.example.data.model.YouTubeChannelInfo
 import com.example.data.model.YouTubePlaylist
@@ -75,9 +77,37 @@ fun YouTubeScreen(
     var showVideoBarManagerDialog by remember { mutableStateOf(false) }
 
     val videoQuickAccessConfig by viewModel.videoQuickAccessConfig.collectAsStateWithLifecycle()
-    val visibleTabs = remember(videoQuickAccessConfig) {
-        val list = videoQuickAccessConfig.items.filter { it.isVisible }
-        if (list.isEmpty()) com.example.data.model.defaultVideoQuickAccessItems() else list
+    val allPlaylists by viewModel.youtubePlaylists.collectAsStateWithLifecycle()
+
+    val visibleTabs = remember(videoQuickAccessConfig, isPersonalVlogAllowed) {
+        val baseItems = if (videoQuickAccessConfig.items.isEmpty()) {
+            com.example.data.model.defaultVideoQuickAccessItems()
+        } else {
+            val existingIds = videoQuickAccessConfig.items.map { it.id }.toSet()
+            val mergedList = videoQuickAccessConfig.items.toMutableList()
+            if (!existingIds.contains("dailymotion_main") && !existingIds.contains("dailymotion_vlog")) {
+                val dmIdx = mergedList.indexOfFirst { it.id == "dailymotion" || it.filterValue == "dailymotion" }
+                val mainDm = com.example.data.model.VideoQuickAccessItem(id = "dailymotion_main", label = "डेलीमोशन (मुख्य)", filterType = "CHANNEL", filterValue = "dailymotion_main", isVisible = true, isPinned = false, order = 4)
+                val vlogDm = com.example.data.model.VideoQuickAccessItem(id = "dailymotion_vlog", label = "डेलीमोशन (पर्सनल)", filterType = "CHANNEL", filterValue = "dailymotion_vlog", isVisible = true, isPinned = false, order = 5)
+                if (dmIdx >= 0) {
+                    mergedList.removeAt(dmIdx)
+                    mergedList.add(dmIdx, vlogDm)
+                    mergedList.add(dmIdx, mainDm)
+                } else {
+                    mergedList.add(mainDm)
+                    mergedList.add(vlogDm)
+                }
+            }
+            if (!existingIds.contains("other_videos")) {
+                mergedList.add(com.example.data.model.VideoQuickAccessItem(id = "other_videos", label = "अन्य", filterType = "OTHER", filterValue = "other_videos", isVisible = true, isPinned = false, order = 6))
+            }
+            mergedList
+        }
+
+        baseItems.filter { item ->
+            val isPersonalVlog = item.id == "dailymotion_vlog" || item.filterValue == "dailymotion_vlog"
+            item.isVisible && (!isPersonalVlog || isPersonalVlogAllowed)
+        }
     }
 
     var selectedTabId by remember {
@@ -95,10 +125,51 @@ fun YouTubeScreen(
         visibleTabs.firstOrNull { it.id == selectedTabId } ?: visibleTabs.firstOrNull() ?: com.example.data.model.VideoQuickAccessItem(id = "all", label = "ALL", filterType = "ALL")
     }
 
+    val dmMainVideos = remember(allVideos) {
+        allVideos.filter { candidate ->
+            val isDm = candidate.id.startsWith("dm_") ||
+                    candidate.channelId == DailymotionFeedService.CHANNEL_MAIN_ID
+            val isVlog = candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                    candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID ||
+                    candidate.channelTitle.contains("vlog", ignoreCase = true) ||
+                    candidate.title.contains("vlog", ignoreCase = true)
+            isDm && !isVlog
+        }
+    }
+
+    val dmVlogVideos = remember(allVideos, isPersonalVlogAllowed) {
+        if (!isPersonalVlogAllowed) emptyList()
+        else {
+            allVideos.filter { candidate ->
+                candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                        candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID ||
+                        candidate.channelTitle.contains("vlog", ignoreCase = true) ||
+                        candidate.title.contains("vlog", ignoreCase = true)
+            }
+        }
+    }
+
+    val otherSectionVideos = remember(allVideos, allPlaylists) {
+        val otherPlaylistVideoIds = allPlaylists
+            .filter { it.displayTarget == "OTHER_ONLY" || it.displayTarget == "ALL" }
+            .flatMap { it.videoIds + it.videoUrls.mapNotNull { url -> com.example.util.VideoUrlParser.parse(url).videoId.ifBlank { null } } }
+            .toSet()
+
+        allVideos.filter { candidate ->
+            candidate.channelId == "other_videos" ||
+            candidate.channelId == "custom_other" ||
+            candidate.channelTitle.contains("अन्य", ignoreCase = true) ||
+            candidate.channelTitle.contains("Other", ignoreCase = true) ||
+            candidate.id.startsWith("custom_") ||
+            otherPlaylistVideoIds.contains(candidate.id) ||
+            otherPlaylistVideoIds.any { candidate.videoUrl.contains(it) }
+        }
+    }
+
     var dynamicMixSeed by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     // Filtered & sorted videos: Dynamic non-definite order for ALL tab (sometimes latest, sometimes mixed random across sources)
-    val displayVideos = remember(allVideos, currentTab, dynamicMixSeed) {
+    val displayVideos = remember(allVideos, allPlaylists, currentTab, dynamicMixSeed, isPersonalVlogAllowed) {
         val validVideos = allVideos
             .filter { !it.id.startsWith("local_vid") && !it.thumbnailUrl.contains("local_vid") }
         val sortedAll = validVideos.sortedByDescending { it.publishedTimestamp }
@@ -143,13 +214,33 @@ fun YouTubeScreen(
                 }
             }
             "CHANNEL" -> {
-                if (currentTab.filterValue.equals("dailymotion", ignoreCase = true) || currentTab.id == "dailymotion") {
+                if (currentTab.filterValue.equals("dailymotion_main", ignoreCase = true) || currentTab.id == "dailymotion_main") {
+                    sortedAll.filter { candidate ->
+                        val isDm = candidate.id.startsWith("dm_") ||
+                                candidate.channelId == DailymotionFeedService.CHANNEL_MAIN_ID
+                        val isVlog = candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                                candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID ||
+                                candidate.channelTitle.contains("vlog", ignoreCase = true) ||
+                                candidate.title.contains("vlog", ignoreCase = true)
+                        isDm && !isVlog
+                    }.ifEmpty { sortedAll.filter { it.id.startsWith("dm_") } }
+                } else if (currentTab.filterValue.equals("dailymotion_vlog", ignoreCase = true) || currentTab.id == "dailymotion_vlog") {
+                    if (!isPersonalVlogAllowed) {
+                        emptyList()
+                    } else {
+                        sortedAll.filter { candidate ->
+                            candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
+                                    candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID ||
+                                    candidate.channelTitle.contains("vlog", ignoreCase = true) ||
+                                    candidate.title.contains("vlog", ignoreCase = true)
+                        }
+                    }
+                } else if (currentTab.filterValue.equals("dailymotion", ignoreCase = true) || currentTab.id == "dailymotion") {
                     sortedAll.filter { candidate ->
                         val isVlog = candidate.id.startsWith("dm_${DailymotionFeedService.CHANNEL_VLOG_ID}_") ||
                                 candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID ||
-                                candidate.channelTitle.contains("Vinay AVJ Vlog", ignoreCase = true) ||
-                                candidate.channelTitle.contains("Vinay avj vlogs", ignoreCase = true) ||
-                                (candidate.id.startsWith("dm_") && (candidate.channelTitle.contains("vlog", ignoreCase = true) || candidate.title.contains("vlog", ignoreCase = true)))
+                                candidate.channelTitle.contains("vlog", ignoreCase = true) ||
+                                candidate.title.contains("vlog", ignoreCase = true)
                         val isDm = candidate.id.startsWith("dm_") ||
                                 candidate.channelId == DailymotionFeedService.CHANNEL_MAIN_ID ||
                                 candidate.channelId == DailymotionFeedService.CHANNEL_VLOG_ID
@@ -163,6 +254,29 @@ fun YouTubeScreen(
                     sortedAll.filter { it.channelId == PredefinedPlaylists.channelNewCreationChurch.id || it.channelTitle.contains("New Creation", ignoreCase = true) }.ifEmpty { sortedAll }
                 } else {
                     sortedAll.filter { it.channelId == currentTab.filterValue || it.channelTitle.contains(currentTab.filterValue, ignoreCase = true) }.ifEmpty { sortedAll }
+                }
+            }
+            "OTHER" -> {
+                // Section "अन्य" (Custom Admin videos & target "OTHER_ONLY" or "ALL" playlists)
+                val otherPlaylistVideoIds = allPlaylists
+                    .filter { it.displayTarget == "OTHER_ONLY" || it.displayTarget == "ALL" }
+                    .flatMap { it.videoIds + it.videoUrls.mapNotNull { url -> com.example.util.VideoUrlParser.parse(url).videoId.ifBlank { null } } }
+                    .toSet()
+
+                val otherVideos = sortedAll.filter { candidate ->
+                    candidate.channelId == "other_videos" ||
+                    candidate.channelId == "custom_other" ||
+                    candidate.channelTitle.contains("अन्य", ignoreCase = true) ||
+                    candidate.channelTitle.contains("Other", ignoreCase = true) ||
+                    candidate.id.startsWith("custom_") ||
+                    otherPlaylistVideoIds.contains(candidate.id) ||
+                    otherPlaylistVideoIds.any { candidate.videoUrl.contains(it) }
+                }
+
+                if (otherVideos.isEmpty()) {
+                    sortedAll.filter { it.isRemote || it.id.startsWith("custom_") }.ifEmpty { sortedAll }
+                } else {
+                    otherVideos
                 }
             }
             "KEYWORD" -> {
@@ -185,26 +299,31 @@ fun YouTubeScreen(
         currentTab.id == "worship" || currentTab.filterValue == PredefinedPlaylists.channelWorship.id -> PredefinedPlaylists.channelWorship.id
         currentTab.id == "vinay_kumar" || currentTab.filterValue == PredefinedPlaylists.channelMain.id -> PredefinedPlaylists.channelMain.id
         currentTab.id == "new_creation_church" || currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id -> PredefinedPlaylists.channelNewCreationChurch.id
+        currentTab.id == "dailymotion_main" || currentTab.filterValue.equals("dailymotion_main", ignoreCase = true) -> DailymotionFeedService.CHANNEL_MAIN_ID
+        currentTab.id == "dailymotion_vlog" || currentTab.filterValue.equals("dailymotion_vlog", ignoreCase = true) -> DailymotionFeedService.CHANNEL_VLOG_ID
         currentTab.id == "dailymotion" || currentTab.filterValue.equals("dailymotion", ignoreCase = true) -> DailymotionFeedService.CHANNEL_MAIN_ID
         else -> currentTab.filterValue.ifBlank { null }
     }
 
-    val allPlaylists by viewModel.youtubePlaylists.collectAsStateWithLifecycle()
-
     val rawPlaylists = remember(allPlaylists, currentTab) {
         when (currentTab.filterType) {
-            "ALL" -> allPlaylists
+            "ALL" -> allPlaylists.filter { it.displayTarget != "OTHER_ONLY" }
+            "OTHER" -> allPlaylists.filter { it.displayTarget == "OTHER_ONLY" || it.displayTarget == "ALL" }
             "CHANNEL" -> {
-                if (currentTab.filterValue.equals("dailymotion", ignoreCase = true) || currentTab.id == "dailymotion") {
-                    allPlaylists.filter { it.channelTitle.contains("Dailymotion", ignoreCase = true) }.ifEmpty { allPlaylists }
+                val candidateList = allPlaylists.filter { it.displayTarget != "OTHER_ONLY" }
+                if (currentTab.filterValue.equals("dailymotion_main", ignoreCase = true) || currentTab.id == "dailymotion_main" ||
+                    currentTab.filterValue.equals("dailymotion", ignoreCase = true) || currentTab.id == "dailymotion") {
+                    candidateList.filter { it.channelTitle.contains("Dailymotion", ignoreCase = true) }.ifEmpty { candidateList }
+                } else if (currentTab.filterValue.equals("dailymotion_vlog", ignoreCase = true) || currentTab.id == "dailymotion_vlog") {
+                    candidateList.filter { it.channelTitle.contains("vlog", ignoreCase = true) }.ifEmpty { candidateList }
                 } else if (currentTab.filterValue == PredefinedPlaylists.channelWorship.id || currentTab.id == "worship") {
-                    allPlaylists.filter { it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
+                    candidateList.filter { it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { candidateList }
                 } else if (currentTab.filterValue == PredefinedPlaylists.channelMain.id || currentTab.id == "vinay_kumar") {
-                    allPlaylists.filter { it.channelTitle.contains("Vinay Kumar", ignoreCase = true) && !it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { allPlaylists }
+                    candidateList.filter { it.channelTitle.contains("Vinay Kumar", ignoreCase = true) && !it.channelTitle.contains("Worship", ignoreCase = true) }.ifEmpty { candidateList }
                 } else if (currentTab.filterValue == PredefinedPlaylists.channelNewCreationChurch.id || currentTab.id == "new_creation_church") {
-                    allPlaylists.filter { it.channelTitle.contains("New Creation", ignoreCase = true) }.ifEmpty { allPlaylists }
+                    candidateList.filter { it.channelTitle.contains("New Creation", ignoreCase = true) }.ifEmpty { candidateList }
                 } else {
-                    allPlaylists.filter { it.channelTitle.contains(currentTab.filterValue, ignoreCase = true) }.ifEmpty { allPlaylists }
+                    candidateList.filter { it.channelTitle.contains(currentTab.filterValue, ignoreCase = true) }.ifEmpty { candidateList }
                 }
             }
             "KEYWORD" -> {
@@ -414,6 +533,87 @@ fun YouTubeScreen(
                 }
             }
 
+            // Section: Dailymotion Main Channel Videos (डेलीमोशन मुख्य चैनल)
+            if (currentTab.filterType == "ALL" && dmMainVideos.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = "डेलीमोशन (मुख्य चैनल / Dailymotion Main)",
+                        subtitle = "आराधना, प्रवचन व मुख्य वीडियो",
+                        modifier = Modifier.padding(top = 14.dp),
+                        onViewAll = { selectedTabId = "dailymotion_main" }
+                    )
+                }
+
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(dmMainVideos.take(10), key = { "dm_main_${it.id}" }) { video ->
+                            HorizontalVideoCard(
+                                video = video,
+                                badgeText = "डेलीमोशन मुख्य",
+                                onClick = { onVideoClick(video) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Section: Dailymotion Personal Vlog (डेलीमोशन पर्सनल व्लॉग) - केवल जब पर्सनल ब्लॉग ON हो
+            if (currentTab.filterType == "ALL" && isPersonalVlogAllowed && dmVlogVideos.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = "डेलीमोशन (पर्सनल व्लॉग / Personal Vlogs)",
+                        subtitle = "व्यक्तिगत जीवन, यात्रा व प्रेरणा",
+                        modifier = Modifier.padding(top = 14.dp),
+                        onViewAll = { selectedTabId = "dailymotion_vlog" }
+                    )
+                }
+
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(dmVlogVideos.take(10), key = { "dm_vlog_${it.id}" }) { video ->
+                            HorizontalVideoCard(
+                                video = video,
+                                badgeText = "पर्सनल व्लॉग",
+                                onClick = { onVideoClick(video) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Section: Other Videos (अन्य वीडियो व कस्टम लिंक)
+            if (currentTab.filterType == "ALL" && otherSectionVideos.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = "अन्य वीडियो व कस्टम लिंक (Other Videos)",
+                        subtitle = "विशेष व एडमिन द्वारा जोड़े गए वीडियो",
+                        modifier = Modifier.padding(top = 14.dp),
+                        onViewAll = { selectedTabId = "other_videos" }
+                    )
+                }
+
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(otherSectionVideos.take(10), key = { "other_${it.id}" }) { video ->
+                            HorizontalVideoCard(
+                                video = video,
+                                badgeText = "अन्य",
+                                onClick = { onVideoClick(video) }
+                            )
+                        }
+                    }
+                }
+            }
+
             // Section: Latest Videos (Newest -> Oldest)
             item {
                 SectionHeader(
@@ -568,21 +768,109 @@ fun YouTubeScreen(
 @Composable
 private fun SectionHeader(
     title: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    onViewAll: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                color = MaterialTheme.colorScheme.primary
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
             )
-        )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (onViewAll != null) {
+            TextButton(
+                onClick = onViewAll,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text("सभी देखें", style = MaterialTheme.typography.labelMedium)
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HorizontalVideoCard(
+    video: YouTubeVideo,
+    badgeText: String? = null,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.width(220.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(124.dp)
+            ) {
+                AsyncImage(
+                    model = video.thumbnailUrl,
+                    contentDescription = video.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (!badgeText.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(text = badgeText, style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Play",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            Text(
+                text = video.title,
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(10.dp)
+            )
+        }
     }
 }

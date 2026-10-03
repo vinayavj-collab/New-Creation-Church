@@ -283,8 +283,8 @@ fun VideoPlayerScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
+                .background(Color.Black)
                 .statusBarsPadding()
-                .background(MaterialTheme.colorScheme.background)
         ) {
             // FIXED Video Player at the Top below status bar with swipe down / swipe up support
             Box(
@@ -501,7 +501,7 @@ fun VideoPlayerScreen(
                                         val isCurrent = if (code == "auto") {
                                             ytSettings.selectedQuality == "auto" || ytSettings.selectedQuality.isBlank() || ytSettings.selectedQuality == "default"
                                         } else {
-                                            ytSettings.selectedQuality == code || activeQualityFromTracker == code
+                                            ytSettings.selectedQuality == code
                                         }
 
                                         DropdownMenuItem(

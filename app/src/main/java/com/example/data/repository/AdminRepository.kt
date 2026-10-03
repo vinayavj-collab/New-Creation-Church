@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import com.example.data.model.*
 import com.example.util.UserDeviceHelper
 import com.example.util.ProfileManager
@@ -93,6 +94,9 @@ class AdminRepository(private val context: Context) {
     private val _qrAuditLogs = MutableStateFlow<List<com.example.data.model.QrAuditLogEntry>>(emptyList())
     val qrAuditLogs: StateFlow<List<com.example.data.model.QrAuditLogEntry>> = _qrAuditLogs.asStateFlow()
 
+    private val _adminFeedbacks = MutableStateFlow<List<com.example.data.feedback.FeedbackSubmission>>(emptyList())
+    val adminFeedbacks: StateFlow<List<com.example.data.feedback.FeedbackSubmission>> = _adminFeedbacks.asStateFlow()
+
     private val _sessionExpiredEvent = MutableStateFlow<String?>(null)
     val sessionExpiredEvent: StateFlow<String?> = _sessionExpiredEvent.asStateFlow()
 
@@ -119,6 +123,7 @@ class AdminRepository(private val context: Context) {
     private var prefixesListener: ListenerRegistration? = null
     private var p2SessionsListener: ListenerRegistration? = null
     private var transferLogsListener: ListenerRegistration? = null
+    private var feedbacksListener: ListenerRegistration? = null
 
     private val preferencesManager by lazy { com.example.data.local.PreferencesManager(context) }
     private val lockoutUntilMap = java.util.concurrent.ConcurrentHashMap<String, Long>()
@@ -144,6 +149,7 @@ class AdminRepository(private val context: Context) {
         listenToP2Sessions()
         listenToTransferLogs()
         listenToQrAuditLogs()
+        listenToFeedbacks()
     }
 
     private fun loadLocalSession() {
@@ -1827,9 +1833,9 @@ class AdminRepository(private val context: Context) {
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null && snapshot.exists()) {
                     _todayScripture.value = AdminTodayScripture(
-                        bookAndVerse = snapshot.getString("bookAndVerse") ?: "यूहन्ना 3:16",
-                        hindiText = snapshot.getString("hindiText") ?: "क्योंकि परमेश्वर ने जगत से ऐसा प्रेम रखा...",
-                        referenceText = snapshot.getString("referenceText") ?: "John 3:16",
+                        bookAndVerse = snapshot.getString("bookAndVerse") ?: "",
+                        hindiText = snapshot.getString("hindiText") ?: "",
+                        referenceText = snapshot.getString("referenceText") ?: "",
                         reflectionThought = snapshot.getString("reflectionThought") ?: "",
                         updatedBy = snapshot.getString("updatedBy") ?: "",
                         timestamp = snapshot.getLong("timestamp") ?: System.currentTimeMillis(),
@@ -5677,6 +5683,89 @@ class AdminRepository(private val context: Context) {
                     onComplete(false, e.message ?: "परिवार विभाजन में त्रुटि हुई")
                 }
             }
+        }
+    }
+
+    private fun listenToFeedbacks() {
+        try {
+            feedbacksListener = firestore.collection("feedback")
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.w("AdminRepository", "Listen failed for feedbacks", e)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val list = mutableListOf<com.example.data.feedback.FeedbackSubmission>()
+                        for (doc in snapshot.documents) {
+                            try {
+                                val item = doc.toObject(com.example.data.feedback.FeedbackSubmission::class.java)
+                                if (item != null) {
+                                    list.add(item)
+                                }
+                            } catch (ex: Exception) {
+                                Log.w("AdminRepository", "Error parsing feedback doc", ex)
+                            }
+                        }
+                        _adminFeedbacks.value = list.sortedByDescending { it.timestamp }
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e("AdminRepository", "Failed to setup feedbacks listener", e)
+        }
+    }
+
+    suspend fun updateFeedbackStatusAndReply(feedbackId: String, status: String, reply: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val updates = mapOf(
+                "status" to status,
+                "adminReply" to reply.trim()
+            )
+            firestore.collection("feedback").document(feedbackId)
+                .set(updates, SetOptions.merge())
+                .await()
+            try {
+                com.google.firebase.database.FirebaseDatabase.getInstance()
+                    .getReference("app_feedback").child(feedbackId)
+                    .updateChildren(updates)
+            } catch (_: Exception) {}
+            true
+        } catch (e: Exception) {
+            Log.e("AdminRepository", "Failed to update feedback status/reply", e)
+            false
+        }
+    }
+
+    suspend fun deleteFeedback(feedbackId: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            firestore.collection("feedback").document(feedbackId).delete().await()
+            try {
+                com.google.firebase.database.FirebaseDatabase.getInstance()
+                    .getReference("app_feedback").child(feedbackId).removeValue()
+            } catch (_: Exception) {}
+            true
+        } catch (e: Exception) {
+            Log.e("AdminRepository", "Failed to delete feedback", e)
+            false
+        }
+    }
+
+    suspend fun clearResolvedFeedbacks(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val snapshot = firestore.collection("feedback")
+                .whereEqualTo("status", "RESOLVED")
+                .get()
+                .await()
+            for (doc in snapshot.documents) {
+                doc.reference.delete()
+                try {
+                    com.google.firebase.database.FirebaseDatabase.getInstance()
+                        .getReference("app_feedback").child(doc.id).removeValue()
+                } catch (_: Exception) {}
+            }
+            true
+        } catch (e: Exception) {
+            Log.e("AdminRepository", "Failed to clear resolved feedbacks", e)
+            false
         }
     }
 }

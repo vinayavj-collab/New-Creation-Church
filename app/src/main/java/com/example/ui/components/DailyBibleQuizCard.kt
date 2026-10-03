@@ -97,20 +97,6 @@ fun DailyBibleQuizCard(
                             )
                         }
                     }
-
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.padding(2.dp)
-                    ) {
-                        Text(
-                            text = quiz.category,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

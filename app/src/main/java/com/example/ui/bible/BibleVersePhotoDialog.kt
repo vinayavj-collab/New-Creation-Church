@@ -35,6 +35,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.data.bible.model.BibleVerse
+import com.example.data.model.LocalAppProfile
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 
 data class PhotoThemeBackground(
     val id: String,
@@ -224,6 +227,38 @@ fun BibleVersePhotoDialog(
                                 ),
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                             )
+                        }
+                    }
+
+                    // Subtle Church Brand Watermark at Bottom Corner
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.Black.copy(alpha = 0.4f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val activeProfile = LocalAppProfile.current
+                                Image(
+                                    painter = painterResource(id = activeProfile.drawerLogoRes),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = activeProfile.displayNameEnglish,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = selectedTheme.textColor.copy(alpha = 0.85f)
+                                )
+                            }
                         }
                     }
                 }

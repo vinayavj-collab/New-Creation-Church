@@ -75,6 +75,10 @@ fun MyApplicationTheme(
   val customPrimary = androidx.compose.runtime.remember(customPrimaryHex) { parseHexColor(customPrimaryHex) }
   val customSecondary = androidx.compose.runtime.remember(customSecondaryHex) { parseHexColor(customSecondaryHex) }
 
+  val isSunday = androidx.compose.runtime.remember {
+      java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK) == java.util.Calendar.SUNDAY
+  }
+
   val baseColorScheme =
     when {
       customPrimary != null -> if (darkTheme) DarkColorScheme else LightColorScheme
@@ -86,8 +90,18 @@ fun MyApplicationTheme(
       else -> LightColorScheme
     }
 
-  val finalColorScheme = androidx.compose.runtime.remember(baseColorScheme, customPrimary, customSecondary, darkTheme) {
+  val finalColorScheme = androidx.compose.runtime.remember(baseColorScheme, customPrimary, customSecondary, darkTheme, isSunday, dynamicColor) {
       var scheme = baseColorScheme
+
+      // When Dynamic Theme is enabled and today is Sunday, apply a special Sabbath Worship Gold accent
+      if (dynamicColor && isSunday && customPrimary == null) {
+          val sundayGold = if (darkTheme) androidx.compose.ui.graphics.Color(0xFFFFD700) else androidx.compose.ui.graphics.Color(0xFFC59B27)
+          scheme = scheme.copy(
+              primary = sundayGold,
+              primaryContainer = sundayGold.copy(alpha = if (darkTheme) 0.35f else 0.2f)
+          )
+      }
+
       customPrimary?.let { p ->
           scheme = scheme.copy(
               primary = p,

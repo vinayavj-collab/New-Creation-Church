@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 
 class BibleViewModel(application: Application) : AndroidViewModel(application) {
     private val database = BibleDatabase.getDatabase(application)
+    private val appDb = com.example.data.local.AppDatabase.getInstance(application)
+    private val searchHistoryRepository = com.example.data.repository.BibleSearchHistoryRepository(appDb.bibleSearchHistoryDao())
     private val dao = database.bibleDao()
     private val localDataSource = BibleLocalDataSource(application, dao)
     private val repository = BibleRepository(application, localDataSource)
@@ -79,6 +81,9 @@ class BibleViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchResults = MutableStateFlow<List<BibleVerse>>(emptyList())
     val searchResults: StateFlow<List<BibleVerse>> = _searchResults.asStateFlow()
 
+    private val _searchHistory = MutableStateFlow<List<com.example.data.local.BibleSearchHistoryEntity>>(emptyList())
+    val searchHistory: StateFlow<List<com.example.data.local.BibleSearchHistoryEntity>> = _searchHistory.asStateFlow()
+
     private val _bookmarks = MutableStateFlow<List<BibleBookmarkEntity>>(emptyList())
     val bookmarks: StateFlow<List<BibleBookmarkEntity>> = _bookmarks.asStateFlow()
 
@@ -98,6 +103,9 @@ class BibleViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             localDataSource.ensureSeeded()
             loadVerses()
+        }
+        viewModelScope.launch {
+            searchHistoryRepository.searchHistory.collect { _searchHistory.value = it }
         }
         viewModelScope.launch {
             dao.getAllBookmarks().collect { _bookmarks.value = it }
@@ -389,21 +397,62 @@ class BibleViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadVerses() {
         viewModelScope.launch {
-            repository.getChapterVerses(
+            val versesFlow = repository.getChapterVerses(
                 translationId = currentTranslationId,
                 bookId = currentBookId,
                 chapter = _currentChapter.value,
                 coroutineScope = viewModelScope,
                 dualHindiId = dualHindiId,
                 dualEnglishId = dualEnglishId
-            ).collect { list ->
-                _versesState.value = list
+            )
+            val headingsFlow = localDataSource.getHeadingsForChapter(
+                translationId = currentTranslationId,
+                bookId = currentBookId,
+                chapter = _currentChapter.value
+            )
+
+            kotlinx.coroutines.flow.combine(versesFlow, headingsFlow) { versesList, headingsList ->
+                Pair(versesList, headingsList)
+            }.collect { (versesList, headingsList) ->
+                _versesState.value = versesList
+                _chapterSections.value = buildChapterSections(headingsList, versesList)
             }
         }
     }
 
+    private fun buildChapterSections(headings: List<BibleSectionHeading>, verses: List<BibleVerse>): List<ChapterSection> {
+        if (verses.isEmpty()) return emptyList()
+        if (headings.isEmpty()) {
+            return listOf(ChapterSection(heading = null, verses = verses))
+        }
+        val sortedHeadings = headings.sortedBy { it.beforeVerse }
+        val sections = mutableListOf<ChapterSection>()
+
+        val firstHeadingVerse = sortedHeadings.first().beforeVerse
+        val leadingVerses = verses.filter { it.verseNumber < firstHeadingVerse }
+        if (leadingVerses.isNotEmpty()) {
+            sections.add(ChapterSection(heading = null, verses = leadingVerses))
+        }
+
+        for (i in sortedHeadings.indices) {
+            val currentH = sortedHeadings[i]
+            val startV = currentH.beforeVerse
+            val nextStartV = if (i + 1 < sortedHeadings.size) sortedHeadings[i + 1].beforeVerse else Int.MAX_VALUE
+            val secVerses = verses.filter { it.verseNumber >= startV && it.verseNumber < nextStartV }
+            if (secVerses.isNotEmpty()) {
+                sections.add(ChapterSection(heading = currentH, verses = secVerses))
+            }
+        }
+        return sections
+    }
+
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
+        if (query.isNotBlank()) {
+            viewModelScope.launch {
+                searchHistoryRepository.saveSearch(query)
+            }
+        }
         if (query.isBlank()) {
             _searchResults.value = emptyList()
             return
@@ -412,6 +461,18 @@ class BibleViewModel(application: Application) : AndroidViewModel(application) {
             localDataSource.searchVerses(currentTranslationId, query).collect {
                 _searchResults.value = it
             }
+        }
+    }
+
+    fun deleteSearchHistoryItem(id: Long) {
+        viewModelScope.launch {
+            searchHistoryRepository.deleteItem(id)
+        }
+    }
+
+    fun clearSearchHistory() {
+        viewModelScope.launch {
+            searchHistoryRepository.clearAll()
         }
     }
 

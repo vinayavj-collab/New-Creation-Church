@@ -16,12 +16,14 @@ class PreferencesManager(context: Context) {
         context.getSharedPreferences("vinay_app_prefs", Context.MODE_PRIVATE)
 
     init {
-        // Reset default to false for v37 if previously saved as default true
-        if (!prefs.getBoolean("v37_defaults_migrated", false)) {
+        // Migration to make all Welcome and Voice options ON by default (v73)
+        if (!prefs.getBoolean("v73_welcome_voice_all_on_migrated", false)) {
             prefs.edit()
-                .putBoolean("welcome_speech_once_day", false)
-                .putBoolean("verse_speech_once_day", false)
-                .putBoolean("v37_defaults_migrated", true)
+                .putBoolean("enable_welcome_speech", true)
+                .putBoolean("enable_verse_speech_launch", true)
+                .putBoolean("welcome_speech_once_day", true)
+                .putBoolean("verse_speech_once_day", true)
+                .putBoolean("v73_welcome_voice_all_on_migrated", true)
                 .apply()
         }
 
@@ -230,6 +232,40 @@ class PreferencesManager(context: Context) {
         val dailyPrayerSlotStr = prefs.getString("daily_prayer_reminder_slot", DailyPrayerSlot.MORNING.name) ?: DailyPrayerSlot.MORNING.name
         val dailyPrayerSlot = try { DailyPrayerSlot.valueOf(dailyPrayerSlotStr) } catch (e: Exception) { DailyPrayerSlot.MORNING }
 
+        val defaultBlogEnabled = setOf(
+            BlogSectionType.FELLOWSHIP.id,
+            BlogSectionType.AUDIO_MESSAGES.id,
+            BlogSectionType.PERSONAL.id,
+            BlogSectionType.ALL.id
+        )
+        val enabledBlogStrings = prefs.getStringSet("enabled_blog_sections", defaultBlogEnabled) ?: defaultBlogEnabled
+        val enabledBlogSections = enabledBlogStrings.mapNotNull { id ->
+            BlogSectionType.fromId(id)
+        }.toMutableSet()
+        // Ensure core sections exist
+        if (enabledBlogSections.isEmpty()) {
+            enabledBlogSections.addAll(BlogSectionType.entries)
+        }
+
+        val blogOrderStr = prefs.getString("blog_sections_order", null)
+        val blogSectionsOrder = if (blogOrderStr.isNullOrBlank()) {
+            listOf(
+                BlogSectionType.FELLOWSHIP,
+                BlogSectionType.AUDIO_MESSAGES,
+                BlogSectionType.PERSONAL,
+                BlogSectionType.ALL
+            )
+        } else {
+            val list = blogOrderStr.split(",").mapNotNull { id ->
+                BlogSectionType.fromId(id)
+            }.toMutableList()
+            BlogSectionType.entries.forEach { if (!list.contains(it)) list.add(it) }
+            list
+        }
+
+        val defaultBlogSecStr = prefs.getString("default_blog_section", BlogSectionType.FELLOWSHIP.id) ?: BlogSectionType.FELLOWSHIP.id
+        val defaultBlogSection = BlogSectionType.fromId(defaultBlogSecStr) ?: BlogSectionType.FELLOWSHIP
+
         return UserSettings(
             themeMode = themeMode,
             showFellowshipEvents = prefs.getBoolean("show_fellowship_events", true),
@@ -246,10 +282,14 @@ class PreferencesManager(context: Context) {
             notifyYouTube = prefs.getBoolean("notify_youtube", true),
             notifyPersonalVlog = prefs.getBoolean("notify_personal_vlog", false),
             notifyUpcomingReminders = prefs.getBoolean("notify_upcoming_reminders", true),
+            dailyWallpaperEnabled = prefs.getBoolean("daily_wallpaper_enabled", false),
             appLanguage = appLanguage,
             favoriteCategories = favCats,
             homeSectionsOrder = homeSectionsOrder,
             enabledHomeSections = enabledHomeSections,
+            blogSectionsOrder = blogSectionsOrder,
+            enabledBlogSections = enabledBlogSections,
+            defaultBlogSection = defaultBlogSection,
             customFourthTab = customFourthTab,
             bloggerPhotoLayout = bloggerPhotoLayout,
             isDrawerEnabled = prefs.getBoolean("is_drawer_enabled", true),
@@ -263,8 +303,8 @@ class PreferencesManager(context: Context) {
             userName = prefs.getString("user_name", "") ?: "",
             enableWelcomeSpeech = prefs.getBoolean("enable_welcome_speech", true),
             enableVerseSpeechOnLaunch = prefs.getBoolean("enable_verse_speech_launch", true),
-            welcomeSpeechOncePerDay = prefs.getBoolean("welcome_speech_once_day", false),
-            verseSpeechOncePerDay = prefs.getBoolean("verse_speech_once_day", false),
+            welcomeSpeechOncePerDay = prefs.getBoolean("welcome_speech_once_day", true),
+            verseSpeechOncePerDay = prefs.getBoolean("verse_speech_once_day", true),
             welcomeDialogDismissed = prefs.getBoolean("welcome_dialog_dismissed", false),
             verseAlarmEnabled = prefs.getBoolean("verse_alarm_enabled", true),
             verseAlarmHour = prefs.getInt("verse_alarm_hour", 6),
@@ -321,6 +361,10 @@ class PreferencesManager(context: Context) {
             trustedDevices = prefs.getString("trusted_devices_list", "Android-Primary-Device,Mobile-Auth-Terminal-01")?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: listOf("Android-Primary-Device"),
             profileReminderIntervalDays = prefs.getInt("profile_reminder_interval_days", 7),
             notificationMethod = prefs.getString("notification_method", "Local Notification") ?: "Local Notification",
+            guestDataAutoDeleteDays = prefs.getInt("guest_data_auto_delete_days", 90),
+            showGuestDataDeletionWarning = prefs.getBoolean("show_guest_data_deletion_warning", true),
+            guestDataDeletionWarningText = prefs.getString("guest_data_deletion_warning_text", "⚠️ ध्यान दें: आपने अभी तक सीरियल नंबर व पासवर्ड डालकर कलीसिया पंजीकरण पूरा नहीं किया है। बिना पंजीकरण के आपका यह अस्थायी गेस्ट डेटा 90 दिनों (3 महीने) बाद स्वतः साफ़ (Auto-deleted) कर दिया जाएगा।") ?: "⚠️ ध्यान दें: आपने अभी तक सीरियल नंबर व पासवर्ड डालकर कलीसिया पंजीकरण पूरा नहीं किया है। बिना पंजीकरण के आपका यह अस्थायी गेस्ट डेटा 90 दिनों (3 महीने) बाद स्वतः साफ़ (Auto-deleted) कर दिया जाएगा।",
+            enableAutoCleanupExpiredGuests = prefs.getBoolean("enable_auto_cleanup_expired_guests", true),
             isChatEnabled = prefs.getBoolean("is_chat_enabled", false),
             chatAllowOnlyVerified = prefs.getBoolean("chat_allow_only_verified", true),
             chatWhitelistedUserIds = prefs.getString("chat_whitelisted_user_ids", "")?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList(),
@@ -431,6 +475,26 @@ class PreferencesManager(context: Context) {
     fun updateInactiveAdminAutoDisableDays(days: Int) {
         prefs.edit().putInt("inactive_admin_auto_disable_days", days).apply()
         _settings.value = _settings.value.copy(inactiveAdminAutoDisableDays = days)
+    }
+
+    fun updateGuestDataAutoDeleteDays(days: Int) {
+        prefs.edit().putInt("guest_data_auto_delete_days", days).apply()
+        _settings.value = _settings.value.copy(guestDataAutoDeleteDays = days)
+    }
+
+    fun updateShowGuestDataDeletionWarning(enabled: Boolean) {
+        prefs.edit().putBoolean("show_guest_data_deletion_warning", enabled).apply()
+        _settings.value = _settings.value.copy(showGuestDataDeletionWarning = enabled)
+    }
+
+    fun updateGuestDataDeletionWarningText(text: String) {
+        prefs.edit().putString("guest_data_deletion_warning_text", text).apply()
+        _settings.value = _settings.value.copy(guestDataDeletionWarningText = text)
+    }
+
+    fun updateEnableAutoCleanupExpiredGuests(enabled: Boolean) {
+        prefs.edit().putBoolean("enable_auto_cleanup_expired_guests", enabled).apply()
+        _settings.value = _settings.value.copy(enableAutoCleanupExpiredGuests = enabled)
     }
 
     fun enableAdminLockSystem() {
@@ -544,6 +608,44 @@ class PreferencesManager(context: Context) {
         _settings.value = _settings.value.copy(notifyUpcomingReminders = enabled)
     }
 
+    fun updateDailyWallpaperEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("daily_wallpaper_enabled", enabled).apply()
+        _settings.value = _settings.value.copy(dailyWallpaperEnabled = enabled)
+    }
+
+    private val _adminWallpaperConfig = MutableStateFlow(loadAdminWallpaperConfig())
+    val adminWallpaperConfig: StateFlow<AdminWallpaperConfig> = _adminWallpaperConfig.asStateFlow()
+
+    private fun loadAdminWallpaperConfig(): AdminWallpaperConfig {
+        return AdminWallpaperConfig(
+            isEnabled = prefs.getBoolean("admin_wp_enabled", true),
+            frequencyPerDay = prefs.getInt("admin_wp_frequency", 1),
+            targetScreen = prefs.getString("admin_wp_target_screen", "both") ?: "both",
+            showOnboardingPrompt = prefs.getBoolean("admin_wp_show_onboarding", true),
+            customPromptPreset = prefs.getString(
+                "admin_wp_custom_prompt",
+                "Cinematic biblical historical context, spiritual divine mood, golden heavenly light rays, sacred atmosphere"
+            ) ?: "Cinematic biblical historical context, spiritual divine mood, golden heavenly light rays, sacred atmosphere",
+            selectedThematicStyle = prefs.getString("admin_wp_thematic_style", "AUTO") ?: "AUTO",
+            lastUpdatedTimestamp = prefs.getLong("admin_wp_updated_ts", System.currentTimeMillis()),
+            updatedByAdmin = prefs.getString("admin_wp_updated_by", "Master Admin") ?: "Master Admin"
+        )
+    }
+
+    fun updateAdminWallpaperConfig(config: AdminWallpaperConfig) {
+        prefs.edit()
+            .putBoolean("admin_wp_enabled", config.isEnabled)
+            .putInt("admin_wp_frequency", config.frequencyPerDay)
+            .putString("admin_wp_target_screen", config.targetScreen)
+            .putBoolean("admin_wp_show_onboarding", config.showOnboardingPrompt)
+            .putString("admin_wp_custom_prompt", config.customPromptPreset)
+            .putString("admin_wp_thematic_style", config.selectedThematicStyle)
+            .putLong("admin_wp_updated_ts", config.lastUpdatedTimestamp)
+            .putString("admin_wp_updated_by", config.updatedByAdmin)
+            .apply()
+        _adminWallpaperConfig.value = config
+    }
+
     fun toggleHomeSection(section: HomeSectionType, enabled: Boolean) {
         val current = _settings.value.enabledHomeSections.toMutableSet()
         if (enabled) current.add(section) else current.remove(section)
@@ -555,6 +657,24 @@ class PreferencesManager(context: Context) {
         val orderStr = order.joinToString(",") { it.id }
         prefs.edit().putString("home_sections_order", orderStr).apply()
         _settings.value = _settings.value.copy(homeSectionsOrder = order)
+    }
+
+    fun toggleBlogSection(section: BlogSectionType, enabled: Boolean) {
+        val current = _settings.value.enabledBlogSections.toMutableSet()
+        if (enabled) current.add(section) else current.remove(section)
+        prefs.edit().putStringSet("enabled_blog_sections", current.map { it.id }.toSet()).apply()
+        _settings.value = _settings.value.copy(enabledBlogSections = current)
+    }
+
+    fun updateBlogSectionsOrder(order: List<BlogSectionType>) {
+        val orderStr = order.joinToString(",") { it.id }
+        prefs.edit().putString("blog_sections_order", orderStr).apply()
+        _settings.value = _settings.value.copy(blogSectionsOrder = order)
+    }
+
+    fun setDefaultBlogSection(section: BlogSectionType) {
+        prefs.edit().putString("default_blog_section", section.id).apply()
+        _settings.value = _settings.value.copy(defaultBlogSection = section)
     }
 
     fun updateCustomFourthTab(tab: CustomFourthTab) {

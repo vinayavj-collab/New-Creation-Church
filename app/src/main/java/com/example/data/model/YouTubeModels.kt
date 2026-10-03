@@ -38,7 +38,9 @@ fun defaultVideoQuickAccessItems(): List<VideoQuickAccessItem> = listOf(
     VideoQuickAccessItem(id = "worship", label = "Worship", filterType = "CHANNEL", filterValue = "UC92tSCn2I6lwcUyAdyS_MMw", isVisible = true, isPinned = false, order = 1),
     VideoQuickAccessItem(id = "vinay_kumar", label = "Vinay Kumar AVJ", filterType = "CHANNEL", filterValue = "UClFK75L0wsDMf10Tj77hlsg", isVisible = true, isPinned = false, order = 2),
     VideoQuickAccessItem(id = "new_creation_church", label = "New Creation Church", filterType = "CHANNEL", filterValue = "UC4lEaYq9Wp_l5jXgU_1_1gg", isVisible = true, isPinned = false, order = 3),
-    VideoQuickAccessItem(id = "dailymotion", label = "Dailymotion", filterType = "CHANNEL", filterValue = "dailymotion", isVisible = true, isPinned = false, order = 4)
+    VideoQuickAccessItem(id = "dailymotion_main", label = "डेलीमोशन (मुख्य)", filterType = "CHANNEL", filterValue = "dailymotion_main", isVisible = true, isPinned = false, order = 4),
+    VideoQuickAccessItem(id = "dailymotion_vlog", label = "डेलीमोशन (पर्सनल)", filterType = "CHANNEL", filterValue = "dailymotion_vlog", isVisible = true, isPinned = false, order = 5),
+    VideoQuickAccessItem(id = "other_videos", label = "अन्य", filterType = "OTHER", filterValue = "other_videos", isVisible = true, isPinned = false, order = 6)
 )
 
 data class YouTubePlaylist(
@@ -52,7 +54,8 @@ data class YouTubePlaylist(
     val videoUrls: List<String> = emptyList(),
     val videoIds: List<String> = emptyList(),
     val isCustom: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val displayTarget: String = "ALL" // "OTHER_ONLY", "PLAYLIST_ONLY", "ALL"
 )
 
 data class YouTubeChannelInfo(

@@ -251,6 +251,15 @@ fun VideoQuickAccessManagerDialog(
                                     label = { Text("चैनल", fontSize = 11.sp) }
                                 )
                                 FilterChip(
+                                    selected = formFilterType == "OTHER",
+                                    onClick = {
+                                        formFilterType = "OTHER"
+                                        formFilterValue = "other_videos"
+                                        if (formLabel.isBlank()) formLabel = "अन्य"
+                                    },
+                                    label = { Text("अन्य", fontSize = 11.sp) }
+                                )
+                                FilterChip(
                                     selected = formFilterType == "ALL",
                                     onClick = { formFilterType = "ALL"; formFilterValue = "" },
                                     label = { Text("सभी", fontSize = 11.sp) }
@@ -271,7 +280,7 @@ fun VideoQuickAccessManagerDialog(
                                     value = formFilterValue,
                                     onValueChange = { formFilterValue = it },
                                     label = { Text("चैनल ID / नाम") },
-                                    placeholder = { Text("UC92tSCn2I6lwcUyAdyS_MMw या dailymotion") },
+                                    placeholder = { Text("dailymotion_main, dailymotion_vlog, UC...") },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -280,6 +289,20 @@ fun VideoQuickAccessManagerDialog(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
+                                    SuggestionChip(
+                                        onClick = {
+                                            formFilterValue = "dailymotion_main"
+                                            if (formLabel.isBlank()) formLabel = "डेलीमोशन (मुख्य)"
+                                        },
+                                        label = { Text("DM मुख्य", fontSize = 10.sp) }
+                                    )
+                                    SuggestionChip(
+                                        onClick = {
+                                            formFilterValue = "dailymotion_vlog"
+                                            if (formLabel.isBlank()) formLabel = "डेलीमोशन (पर्सनल)"
+                                        },
+                                        label = { Text("DM पर्सनल", fontSize = 10.sp) }
+                                    )
                                     SuggestionChip(
                                         onClick = { formFilterValue = PredefinedPlaylists.channelWorship.id },
                                         label = { Text("Worship", fontSize = 10.sp) }
@@ -292,11 +315,13 @@ fun VideoQuickAccessManagerDialog(
                                         onClick = { formFilterValue = PredefinedPlaylists.channelNewCreationChurch.id },
                                         label = { Text("NCC", fontSize = 10.sp) }
                                     )
-                                    SuggestionChip(
-                                        onClick = { formFilterValue = "dailymotion" },
-                                        label = { Text("Dailymotion", fontSize = 10.sp) }
-                                    )
                                 }
+                            } else if (formFilterType == "OTHER") {
+                                Text(
+                                    text = "यह चिप/टैब केवल 'अन्य' श्रेणी और एडमिन द्वारा जोड़े गए विशेष वीडियो को प्रदर्शित करेगा।",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
 
                             Row(

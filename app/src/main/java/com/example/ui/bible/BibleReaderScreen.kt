@@ -1,6 +1,7 @@
 package com.example.ui.bible
 
 import android.app.Activity
+import androidx.activity.compose.BackHandler
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -443,6 +444,7 @@ fun BibleReaderScreen(
     var showQuickFontSheet by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showNavigatorModal by remember { mutableStateOf(false) }
+    var isFullScreen by remember { mutableStateOf(false) }
 
     // YouVersion Multi-verse selection state
     var selectedVerseNumbers by remember { mutableStateOf(setOf<Int>()) }
@@ -453,7 +455,52 @@ fun BibleReaderScreen(
     var activeFootnoteSheet by remember { mutableStateOf<Pair<String, List<FootnoteItem>>?>(null) }
     var activeCommentaryVerse by remember { mutableStateOf<BibleVerse?>(null) }
 
+    BackHandler {
+        when {
+            isFullScreen -> isFullScreen = false
+            showNavigatorModal -> showNavigatorModal = false
+            showQuickFontSheet -> showQuickFontSheet = false
+            showSettingsDialog -> showSettingsDialog = false
+            showHighlightStylesDialog -> showHighlightStylesDialog = false
+            showCompareDialog -> showCompareDialog = false
+            verseForNoteDialog != null -> verseForNoteDialog = null
+            verseForPhotoDialog != null -> verseForPhotoDialog = null
+            verseForDetailsSheet != null -> verseForDetailsSheet = null
+            activeFootnoteSheet != null -> activeFootnoteSheet = null
+            activeCommentaryVerse != null -> activeCommentaryVerse = null
+            selectedVerseNumbers.isNotEmpty() -> selectedVerseNumbers = emptySet()
+            else -> onBackClick()
+        }
+    }
+
     val listState = rememberLazyListState()
+    var isHeaderVisible by remember { mutableStateOf(true) }
+    var previousFirstVisibleItemIndex by remember { mutableIntStateOf(0) }
+    var previousScrollOffset by remember { mutableIntStateOf(0) }
+    var lastUserInteractionTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { Pair(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+            .collect { (currentIndex, currentOffset) ->
+                lastUserInteractionTime = System.currentTimeMillis()
+                if (currentIndex == 0 && currentOffset < 30) {
+                    isHeaderVisible = true
+                } else if (currentIndex > previousFirstVisibleItemIndex) {
+                    isHeaderVisible = false
+                } else if (currentIndex < previousFirstVisibleItemIndex) {
+                    isHeaderVisible = true
+                } else {
+                    val offsetDelta = currentOffset - previousScrollOffset
+                    if (offsetDelta > 15) {
+                        isHeaderVisible = false
+                    } else if (offsetDelta < -15) {
+                        isHeaderVisible = true
+                    }
+                }
+                previousFirstVisibleItemIndex = currentIndex
+                previousScrollOffset = currentOffset
+            }
+    }
     var slideForward by remember { mutableStateOf(true) }
     var currentTargetVerse by remember { mutableStateOf(targetVerse) }
     var initialScrollDoneForChapter by remember(bookId, chapter, targetVerse) { mutableStateOf(false) }
@@ -467,15 +514,31 @@ fun BibleReaderScreen(
         }
     }
 
-    // Keep Screen On based on settings
-    DisposableEffect(readingSettings.screenTimeoutMinutes) {
-        val activity = context as? Activity
-        if (readingSettings.screenTimeoutMinutes == -1 || readingSettings.screenTimeoutMinutes > 0) {
-            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        } else {
-            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    // Keep Screen On or apply custom timeout based on settings
+    LaunchedEffect(lastUserInteractionTime, readingSettings.screenTimeoutMinutes) {
+        val activity = context as? Activity ?: return@LaunchedEffect
+        val timeoutMins = readingSettings.screenTimeoutMinutes
+        when {
+            timeoutMins == -1 -> {
+                // Always On: keep screen on continuously while reading
+                activity.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+            timeoutMins == 0 -> {
+                // System Default: clear FLAG_KEEP_SCREEN_ON so phone display timeout handles screen off
+                activity.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+            timeoutMins > 0 -> {
+                // Custom inactivity timeout (1, 2, 5, 10, 15 minutes)
+                activity.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                kotlinx.coroutines.delay(timeoutMins * 60 * 1000L)
+                activity.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
         }
+    }
+
+    DisposableEffect(Unit) {
         onDispose {
+            val activity = context as? Activity
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
@@ -862,461 +925,438 @@ fun BibleReaderScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                windowInsets = WindowInsets(0.dp),
-                title = {
-                    // Spacious Book, Chapter & Verse selector
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
-                        modifier = Modifier.clickable { showNavigatorModal = true }
+            if (!isFullScreen) {
+                AnimatedVisibility(
+                    visible = isHeaderVisible,
+                    enter = slideInVertically { -it } + fadeIn(),
+                    exit = slideOutVertically { -it } + fadeOut()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp)
+                        // 1. ONLY Book, Chapter & Verse Selector as Quick Access Capsule Pill
+                        val headerTitleText = remember(currentBook, currentChapter, selectedVerseNumbers, currentVisibleVerse, currentTargetVerse, selectedTranslation) {
+                            val isHindiTrans = selectedTranslation.id == "HIOV" || selectedTranslation.id.startsWith("HIN") || selectedTranslation.language.equals("HINDI", ignoreCase = true)
+                            BibleHeaderFormatter.formatHeaderTitle(
+                                book = currentBook,
+                                chapter = currentChapter,
+                                selectedVerses = selectedVerseNumbers,
+                                visibleVerse = currentVisibleVerse ?: currentTargetVerse ?: 1,
+                                isHindi = isHindiTrans
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)),
+                            shadowElevation = 4.dp,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .clickable { showNavigatorModal = true }
                         ) {
-                            val headerTitleText = remember(currentBook, currentChapter, selectedVerseNumbers, currentVisibleVerse, currentTargetVerse, selectedTranslation.language) {
-                                BibleHeaderFormatter.formatHeaderTitle(
-                                    book = currentBook,
-                                    chapter = currentChapter,
-                                    selectedVerses = selectedVerseNumbers,
-                                    visibleVerse = currentVisibleVerse ?: currentTargetVerse ?: 1,
-                                    isHindi = selectedTranslation.language == "hi"
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = headerTitleText,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.2.sp
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    Icons.Default.ArrowDropDown,
+                                    contentDescription = "Select Book, Chapter and Verse",
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
-                            Text(
-                                text = headerTitleText,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.2.sp
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Select Book, Chapter and Verse",
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    // Hindi Translation Badge
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    ) {
-                        Text(
-                            text = "हिन्दी (HIOV)",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 11.sp
-                            ),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                        )
-                    }
-
-                    // Audio Button (Kept right here as requested!)
-                    IconButton(onClick = {
-                        viewModel.toggleAudioPlayer(!readingSettings.showAudioPlayer)
-                    }) {
-                        Icon(
-                            imageVector = if (readingSettings.showAudioPlayer) Icons.Default.VolumeUp else Icons.Default.VolumeMute,
-                            contentDescription = "Audio Bible",
-                            tint = if (readingSettings.showAudioPlayer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // 3-Dots / Customization & Extra Icons Shifted Here
-                    Box {
-                        IconButton(onClick = { showTopOverflowMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Options & Settings")
                         }
 
-                        DropdownMenu(
-                            expanded = showTopOverflowMenu,
-                            onDismissRequest = { showTopOverflowMenu = false },
-                            shape = RoundedCornerShape(16.dp)
+                        // 2. Remaining elements as standalone transparent toggle / icon buttons
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("पठन एवं थीम अनुकूलन (Display & Themes)") },
-                                leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                                onClick = {
-                                    showTopOverflowMenu = false
-                                    showQuickFontSheet = true
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("ऑडियो सेटिंग्स एवं कस्टमाइजेशन (Audio Settings)") },
-                                leadingIcon = { Icon(Icons.Default.Audiotrack, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                                onClick = {
-                                    showTopOverflowMenu = false
-                                    if (!readingSettings.showAudioPlayer) {
-                                        viewModel.toggleAudioPlayer(true)
-                                    }
-                                    showSettingsDialog = true
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("खोजें (Search Scripture)") },
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                                onClick = {
-                                    showTopOverflowMenu = false
-                                    onSearchClick()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("सहेजे गए (Bookmarks & Notes)") },
-                                leadingIcon = { Icon(Icons.Default.BookmarkBorder, contentDescription = null) },
-                                onClick = {
-                                    showTopOverflowMenu = false
-                                    onSavedClick()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("रीडिंग प्लान (Reading Plan)") },
-                                leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                                onClick = {
-                                    showTopOverflowMenu = false
-                                    onReadingPlanClick()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("प्लान हाइलाइट शैलियाँ (Highlight Styles)") },
-                                leadingIcon = { Icon(Icons.Default.Style, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                                onClick = {
-                                    showTopOverflowMenu = false
-                                    showHighlightStylesDialog = true
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("अनुवाद बदलें (Switch Translation)") },
-                                leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null) },
-                                onClick = {
-                                    showTopOverflowMenu = false
+                            // Transparent Translation Badge
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color.Transparent,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                                modifier = Modifier.clickable {
                                     val all = BibleTranslation.ALL
                                     val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
                                     val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
                                     viewModel.selectTranslation(all[nextIndex])
                                 }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("सम्पूर्ण सेटिंग्स (Full Settings)") },
-                                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                                onClick = {
-                                    showTopOverflowMenu = false
-                                    showSettingsDialog = true
+                            ) {
+                                Text(
+                                    text = selectedTranslation.shortName,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = 10.sp
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+
+                            // Transparent Audio Button
+                            IconButton(
+                                onClick = { viewModel.toggleAudioPlayer(!readingSettings.showAudioPlayer) },
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (readingSettings.showAudioPlayer) Icons.Default.VolumeUp else Icons.Default.VolumeMute,
+                                    contentDescription = "Audio Bible",
+                                    tint = if (readingSettings.showAudioPlayer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            // Transparent 3-Dots Options Menu Button
+                            Box {
+                                IconButton(
+                                    onClick = { showTopOverflowMenu = true },
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.MoreVert,
+                                        contentDescription = "Options & Settings",
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
-                            )
+
+                                DropdownMenu(
+                                    expanded = showTopOverflowMenu,
+                                    onDismissRequest = { showTopOverflowMenu = false },
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("पठन एवं थीम अनुकूलन (Display & Themes)") },
+                                        leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                        onClick = {
+                                            showTopOverflowMenu = false
+                                            showQuickFontSheet = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("ऑडियो सेटिंग्स एवं कस्टमाइजेशन (Audio Settings)") },
+                                        leadingIcon = { Icon(Icons.Default.Audiotrack, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                        onClick = {
+                                            showTopOverflowMenu = false
+                                            if (!readingSettings.showAudioPlayer) {
+                                                viewModel.toggleAudioPlayer(true)
+                                            }
+                                            showSettingsDialog = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("खोजें (Search Scripture)") },
+                                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                        onClick = {
+                                            showTopOverflowMenu = false
+                                            onSearchClick()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("सहेजे गए (Bookmarks & Notes)") },
+                                        leadingIcon = { Icon(Icons.Default.BookmarkBorder, contentDescription = null) },
+                                        onClick = {
+                                            showTopOverflowMenu = false
+                                            onSavedClick()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("रीडिंग प्लान (Reading Plan)") },
+                                        leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                        onClick = {
+                                            showTopOverflowMenu = false
+                                            onReadingPlanClick()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("प्लान हाइलाइट शैलियाँ (Highlight Styles)") },
+                                        leadingIcon = { Icon(Icons.Default.Style, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                        onClick = {
+                                            showTopOverflowMenu = false
+                                            showHighlightStylesDialog = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("अनुवाद बदलें (Switch Translation)") },
+                                        leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null) },
+                                        onClick = {
+                                            showTopOverflowMenu = false
+                                            val all = BibleTranslation.ALL
+                                            val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
+                                            val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
+                                            viewModel.selectTranslation(all[nextIndex])
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("सम्पूर्ण सेटिंग्स (Full Settings)") },
+                                        leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                                        onClick = {
+                                            showTopOverflowMenu = false
+                                            showSettingsDialog = true
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-            )
+            }
         },
         bottomBar = {
-            Column {
-                if (readingSettings.showAudioPlayer) {
-                    BibleAudioPlayerBar(
-                        audioManager = viewModel.audioManager,
-                        currentBook = currentBook,
-                        currentChapter = currentChapter,
-                        verses = verses,
-                        activeTargetVerse = effectiveTargetVerse
-                    )
-                }
+            if (!isFullScreen) {
+                Column {
+                    if (readingSettings.showAudioPlayer) {
+                        BibleAudioPlayerBar(
+                            audioManager = viewModel.audioManager,
+                            currentBook = currentBook,
+                            currentChapter = currentChapter,
+                            verses = verses,
+                            activeTargetVerse = effectiveTargetVerse
+                        )
+                    }
 
-                // YouVersion Multi-verse Floating Action Bar
-                AnimatedVisibility(
-                    visible = selectedVerseNumbers.isNotEmpty(),
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut()
-                ) {
-                    Surface(
-                        tonalElevation = 8.dp,
-                        shadowElevation = 12.dp,
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    // YouVersion Multi-verse Floating Action Bar
+                    AnimatedVisibility(
+                        visible = selectedVerseNumbers.isNotEmpty(),
+                        enter = slideInVertically { it } + fadeIn(),
+                        exit = slideOutVertically { it } + fadeOut()
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        Surface(
+                            tonalElevation = 8.dp,
+                            shadowElevation = 12.dp,
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Row 1: Verse Reference and Highlight Palette
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
                             ) {
-                                Text(
-                                    text = selectionReferenceTitle,
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-
-                                // Highlight color dots
+                                // Row 1: Verse Reference and Highlight Palette
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    listOf(
-                                        Color(0xFFFEF08A) to "#FEF08A",
-                                        Color(0xFFBBF7D0) to "#BBF7D0",
-                                        Color(0xFFBAE6FD) to "#BAE6FD",
-                                        Color(0xFFFBCFE8) to "#FBCFE8",
-                                        Color(0xFFDDD6FE) to "#DDD6FE"
-                                    ).forEach { (color, hex) ->
+                                    Text(
+                                        text = selectionReferenceTitle,
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+
+                                    // Highlight color dots
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        listOf(
+                                            Color(0xFFFEF08A) to "#FEF08A",
+                                            Color(0xFFBBF7D0) to "#BBF7D0",
+                                            Color(0xFFBAE6FD) to "#BAE6FD",
+                                            Color(0xFFFBCFE8) to "#FBCFE8",
+                                            Color(0xFFDDD6FE) to "#DDD6FE"
+                                        ).forEach { (color, hex) ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(26.dp)
+                                                    .clip(CircleShape)
+                                                    .background(color)
+                                                    .clickable {
+                                                        selectedVersesList.forEach { v ->
+                                                            viewModel.setHighlight(v, hex)
+                                                        }
+                                                        val lastHighlighted = selectedVersesList.firstOrNull()?.verseNumber
+                                                        if (lastHighlighted != null) {
+                                                            currentTargetVerse = lastHighlighted
+                                                            viewModel.audioManager.setCurrentVerseNumber(lastHighlighted)
+                                                        }
+                                                        selectedVerseNumbers = emptySet()
+                                                    }
+                                            )
+                                        }
+
+                                        // Clear highlight
                                         Box(
                                             modifier = Modifier
                                                 .size(26.dp)
                                                 .clip(CircleShape)
-                                                .background(color)
+                                                .border(1.dp, Color.Gray.copy(alpha = 0.5f), CircleShape)
                                                 .clickable {
                                                     selectedVersesList.forEach { v ->
-                                                        viewModel.setHighlight(v, hex)
-                                                    }
-                                                    val lastHighlighted = selectedVersesList.firstOrNull()?.verseNumber
-                                                    if (lastHighlighted != null) {
-                                                        currentTargetVerse = lastHighlighted
-                                                        viewModel.audioManager.setCurrentVerseNumber(lastHighlighted)
+                                                        viewModel.removeHighlight(v)
                                                     }
                                                     selectedVerseNumbers = emptySet()
-                                                }
-                                        )
-                                    }
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear Highlight", modifier = Modifier.size(14.dp))
+                                        }
 
-                                    // Clear highlight
-                                    Box(
-                                        modifier = Modifier
-                                            .size(26.dp)
-                                            .clip(CircleShape)
-                                            .border(1.dp, Color.Gray.copy(alpha = 0.5f), CircleShape)
-                                            .clickable {
-                                                selectedVersesList.forEach { v ->
-                                                    viewModel.removeHighlight(v)
-                                                }
-                                                selectedVerseNumbers = emptySet()
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear Highlight", modifier = Modifier.size(14.dp))
-                                    }
-
-                                    // Close selection
-                                    IconButton(
-                                        onClick = { selectedVerseNumbers = emptySet() },
-                                        modifier = Modifier.size(28.dp)
-                                    ) {
-                                        Icon(Icons.Default.Close, contentDescription = "Deselect", modifier = Modifier.size(20.dp))
+                                        // Close selection
+                                        IconButton(
+                                            onClick = { selectedVerseNumbers = emptySet() },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "Deselect", modifier = Modifier.size(20.dp))
+                                        }
                                     }
                                 }
-                            }
 
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f))
-                            Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f))
+                                Spacer(modifier = Modifier.height(6.dp))
 
-                            // Row 2: YouVersion Signature Action Buttons (Share, Photo Image, Compare, Favorite, Bookmark, Note, Copy, Audio)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // 1. Share
-                                YouVersionActionItem(
-                                    icon = Icons.Default.Share,
-                                    label = "साझा",
-                                    onClick = {
-                                        val fullText = selectedVersesList.joinToString("\n") { "${it.verseNumber}. ${it.text}" }
-                                        val shareBody = "$selectionReferenceTitle\n\n$fullText\n\n— YouVersion Bible"
-                                        val intent = Intent().apply {
-                                            action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, shareBody)
-                                            type = "text/plain"
-                                        }
-                                        context.startActivity(Intent.createChooser(intent, "Share Verse"))
-                                        selectedVerseNumbers = emptySet()
-                                    }
-                                )
-
-                                // 2. Image (Photo Verse)
-                                YouVersionActionItem(
-                                    icon = Icons.Default.PhotoLibrary,
-                                    label = "फोटो",
-                                    onClick = {
-                                        val firstVerse = selectedVersesList.firstOrNull()
-                                        if (firstVerse != null) {
-                                            val combinedText = selectedVersesList.joinToString(" ") { it.text }
-                                            verseForPhotoDialog = firstVerse.copy(text = combinedText)
-                                        }
-                                        selectedVerseNumbers = emptySet()
-                                    }
-                                )
-
-                                // 3. Compare Translations
-                                YouVersionActionItem(
-                                    icon = Icons.Default.CompareArrows,
-                                    label = "तुलना",
-                                    onClick = {
-                                        showCompareDialog = true
-                                    }
-                                )
-
-                                // 4. Favorite
-                                val anyNotFav = selectedVersesList.any { !it.isFavorite }
-                                YouVersionActionItem(
-                                    icon = if (anyNotFav) Icons.Default.StarBorder else Icons.Default.Star,
-                                    label = "पसंदीदा",
-                                    tint = if (!anyNotFav) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface,
-                                    onClick = {
-                                        selectedVersesList.forEach { viewModel.toggleFavorite(it) }
-                                        selectedVerseNumbers = emptySet()
-                                    }
-                                )
-
-                                // 5. Bookmark
-                                val anyNotBookmarked = selectedVersesList.any { !it.isBookmarked }
-                                YouVersionActionItem(
-                                    icon = if (anyNotBookmarked) Icons.Default.BookmarkBorder else Icons.Default.Bookmark,
-                                    label = "बुकमार्क",
-                                    tint = if (!anyNotBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                    onClick = {
-                                        selectedVersesList.forEach { viewModel.toggleBookmark(it) }
-                                        selectedVerseNumbers = emptySet()
-                                    }
-                                )
-
-                                // 6. Send to Study Note (Auto-Embed into recent note)
-                                YouVersionActionItem(
-                                    icon = Icons.Default.PostAdd,
-                                    label = "नोट में भेजें",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            try {
-                                                val dao = com.example.data.bible.local.BibleDatabase.getInstance(context).bibleDao()
-                                                val notesRepo = com.example.data.bible.repository.StudyNotesRepository(dao)
-                                                val combinedText = selectedVersesList.joinToString(" ") { v ->
-                                                    if (selectedVersesList.size > 1) "(${v.verseNumber}) ${v.text}" else v.text
-                                                }
-                                                val (noteId, noteTitle) = notesRepo.appendScriptureToRecentNote(
-                                                    referenceLabel = "$selectionReferenceTitle (${selectedTranslation.id})",
-                                                    scriptureText = combinedText
-                                                )
-                                                Toast.makeText(context, "📖 स्टडी नोट '$noteTitle' में जोड़ा गया!", Toast.LENGTH_SHORT).show()
-                                            } catch (e: Exception) {
-                                                Toast.makeText(context, "नोट में जोड़ने में विफल", Toast.LENGTH_SHORT).show()
+                                // Row 2: YouVersion Signature Action Buttons
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceAround,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // 1. Share
+                                    YouVersionActionItem(
+                                        icon = Icons.Default.Share,
+                                        label = "साझा",
+                                        onClick = {
+                                            val fullText = selectedVersesList.joinToString("\n") { "${it.verseNumber}. ${it.text}" }
+                                            val shareBody = "$selectionReferenceTitle\n\n$fullText\n\n— YouVersion Bible"
+                                            val intent = Intent().apply {
+                                                action = Intent.ACTION_SEND
+                                                putExtra(Intent.EXTRA_TEXT, shareBody)
+                                                type = "text/plain"
                                             }
+                                            context.startActivity(Intent.createChooser(intent, "Share Verse"))
+                                            selectedVerseNumbers = emptySet()
                                         }
-                                        selectedVerseNumbers = emptySet()
-                                    }
-                                )
-
-                                // 7. Verse Note Editor
-                                YouVersionActionItem(
-                                    icon = Icons.Default.EditNote,
-                                    label = "नोट्स",
-                                    onClick = {
-                                        verseForNoteDialog = selectedVersesList.firstOrNull()
-                                        selectedVerseNumbers = emptySet()
-                                    }
-                                )
-
-                                // 7. Copy
-                                YouVersionActionItem(
-                                    icon = Icons.Default.ContentCopy,
-                                    label = "कॉपी",
-                                    onClick = {
-                                        val fullText = selectedVersesList.joinToString("\n") { "${it.verseNumber}. ${it.text}" }
-                                        val clipText = "$selectionReferenceTitle\n$fullText"
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        clipboard.setPrimaryClip(ClipData.newPlainText("Bible Verse", clipText))
-                                        Toast.makeText(context, "कॉपी किया गया ($selectionReferenceTitle)", Toast.LENGTH_SHORT).show()
-                                        selectedVerseNumbers = emptySet()
-                                    }
-                                )
-
-                                // 8. Play Audio
-                                YouVersionActionItem(
-                                    icon = Icons.Default.PlayCircleOutline,
-                                    label = "ऑडियो",
-                                    onClick = {
-                                        val firstV = selectedVersesList.firstOrNull()?.verseNumber ?: 1
-                                        viewModel.audioManager.playFromVerse(firstV, currentBook.id, currentChapter, verses)
-                                        selectedVerseNumbers = emptySet()
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Default Chapter Bottom Navigation Bar (when no verses selected)
-                if (selectedVerseNumbers.isEmpty()) {
-                    Surface(
-                        tonalElevation = 2.dp,
-                        shadowElevation = 4.dp,
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val hasPrev = currentChapter > 1 || currentBook.id > 1
-                            OutlinedButton(
-                                onClick = {
-                                    slideForward = false
-                                    currentTargetVerse = null
-                                    viewModel.previousChapter()
-                                },
-                                enabled = hasPrev,
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("पिछला", style = MaterialTheme.typography.labelSmall)
-                            }
-
-                            TextButton(onClick = { showNavigatorModal = true }) {
-                                Text(
-                                    text = "अध्याय $currentChapter / ${currentBook.chapterCount}",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
                                     )
-                                )
-                            }
 
-                            val hasNext = currentChapter < currentBook.chapterCount || currentBook.id < 66
-                            Button(
-                                onClick = {
-                                    slideForward = true
-                                    currentTargetVerse = null
-                                    viewModel.nextChapter()
-                                },
-                                enabled = hasNext,
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text("अगला", style = MaterialTheme.typography.labelSmall)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    // 2. Image (Photo Verse)
+                                    YouVersionActionItem(
+                                        icon = Icons.Default.PhotoLibrary,
+                                        label = "फोटो",
+                                        onClick = {
+                                            val firstVerse = selectedVersesList.firstOrNull()
+                                            if (firstVerse != null) {
+                                                val combinedText = selectedVersesList.joinToString(" ") { it.text }
+                                                verseForPhotoDialog = firstVerse.copy(text = combinedText)
+                                            }
+                                            selectedVerseNumbers = emptySet()
+                                        }
+                                    )
+
+                                    // 3. Compare Translations
+                                    YouVersionActionItem(
+                                        icon = Icons.Default.CompareArrows,
+                                        label = "तुलना",
+                                        onClick = {
+                                            showCompareDialog = true
+                                        }
+                                    )
+
+                                    // 4. Favorite
+                                    val anyNotFav = selectedVersesList.any { !it.isFavorite }
+                                    YouVersionActionItem(
+                                        icon = if (anyNotFav) Icons.Default.StarBorder else Icons.Default.Star,
+                                        label = "पसंदीदा",
+                                        tint = if (!anyNotFav) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface,
+                                        onClick = {
+                                            selectedVersesList.forEach { viewModel.toggleFavorite(it) }
+                                            selectedVerseNumbers = emptySet()
+                                        }
+                                    )
+
+                                    // 5. Bookmark
+                                    val anyNotBookmarked = selectedVersesList.any { !it.isBookmarked }
+                                    YouVersionActionItem(
+                                        icon = if (anyNotBookmarked) Icons.Default.BookmarkBorder else Icons.Default.Bookmark,
+                                        label = "बुकमार्क",
+                                        tint = if (!anyNotBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                        onClick = {
+                                            selectedVersesList.forEach { viewModel.toggleBookmark(it) }
+                                            selectedVerseNumbers = emptySet()
+                                        }
+                                    )
+
+                                    // 6. Send to Study Note
+                                    YouVersionActionItem(
+                                        icon = Icons.Default.PostAdd,
+                                        label = "नोट में भेजें",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                try {
+                                                    val dao = com.example.data.bible.local.BibleDatabase.getInstance(context).bibleDao()
+                                                    val notesRepo = com.example.data.bible.repository.StudyNotesRepository(dao)
+                                                    val combinedText = selectedVersesList.joinToString(" ") { v ->
+                                                        if (selectedVersesList.size > 1) "(${v.verseNumber}) ${v.text}" else v.text
+                                                    }
+                                                    val (noteId, noteTitle) = notesRepo.appendScriptureToRecentNote(
+                                                        referenceLabel = "$selectionReferenceTitle (${selectedTranslation.id})",
+                                                        scriptureText = combinedText
+                                                    )
+                                                    Toast.makeText(context, "📖 स्टडी नोट '$noteTitle' में जोड़ा गया!", Toast.LENGTH_SHORT).show()
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(context, "नोट में जोड़ने में विफल", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                            selectedVerseNumbers = emptySet()
+                                        }
+                                    )
+
+                                    // 7. Verse Note Editor
+                                    YouVersionActionItem(
+                                        icon = Icons.Default.EditNote,
+                                        label = "नोट्स",
+                                        onClick = {
+                                            verseForNoteDialog = selectedVersesList.firstOrNull()
+                                            selectedVerseNumbers = emptySet()
+                                        }
+                                    )
+
+                                    // 8. Copy
+                                    YouVersionActionItem(
+                                        icon = Icons.Default.ContentCopy,
+                                        label = "कॉपी",
+                                        onClick = {
+                                            val fullText = selectedVersesList.joinToString("\n") { "${it.verseNumber}. ${it.text}" }
+                                            val clipText = "$selectionReferenceTitle\n$fullText"
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            clipboard.setPrimaryClip(ClipData.newPlainText("Bible Verse", clipText))
+                                            Toast.makeText(context, "कॉपी किया गया ($selectionReferenceTitle)", Toast.LENGTH_SHORT).show()
+                                            selectedVerseNumbers = emptySet()
+                                        }
+                                    )
+
+                                    // 9. Play Audio
+                                    YouVersionActionItem(
+                                        icon = Icons.Default.PlayCircleOutline,
+                                        label = "ऑडियो",
+                                        onClick = {
+                                            val firstV = selectedVersesList.firstOrNull()?.verseNumber ?: 1
+                                            viewModel.audioManager.playFromVerse(firstV, currentBook.id, currentChapter, verses)
+                                            selectedVerseNumbers = emptySet()
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -1332,6 +1372,22 @@ fun BibleReaderScreen(
                 .padding(innerPadding)
                 .then(swipeModifier)
         ) {
+            if (isFullScreen) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.TopEnd
+                ) {
+                    SmallFloatingActionButton(
+                        onClick = { isFullScreen = false },
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ) {
+                        Icon(Icons.Default.FullscreenExit, contentDescription = "Exit Full Screen", modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()

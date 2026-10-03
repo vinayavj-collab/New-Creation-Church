@@ -88,7 +88,7 @@ data class BibleReadingSettings(
     val showNoteHint: Boolean = true,
     val showAudioPlayer: Boolean = false,
     val noteFormatHtml: Boolean = true,
-    val screenTimeoutMinutes: Int = -1, // Default keep screen on while reading or custom timeout
+    val screenTimeoutMinutes: Int = 0, // Default System Default (0) or custom timeout / -1 always on
     val theme: BibleTheme = BibleTheme.PAPER, // Default comforting reading paper
     val rememberLastReadingPosition: Boolean = true,
     val selectedTranslationId: String = BibleTranslation.HIOV.id,

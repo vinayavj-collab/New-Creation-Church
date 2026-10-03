@@ -12,9 +12,10 @@ import androidx.room.TypeConverters
         YouTubeVideoEntity::class,
         SavedItemEntity::class,
         RecentlyViewedEntity::class,
-        NotificationEntity::class
+        NotificationEntity::class,
+        BibleSearchHistoryEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -24,6 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun savedItemDao(): SavedItemDao
     abstract fun recentlyViewedDao(): RecentlyViewedDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun bibleSearchHistoryDao(): BibleSearchHistoryDao
 
     companion object {
         @Volatile

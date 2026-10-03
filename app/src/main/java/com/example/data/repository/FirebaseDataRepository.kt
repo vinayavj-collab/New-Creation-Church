@@ -178,6 +178,9 @@ class FirebaseDataRepository private constructor() {
     private val _mediaGovernanceConfig = MutableStateFlow(com.example.data.model.MediaGovernanceConfig())
     val mediaGovernanceConfig: StateFlow<com.example.data.model.MediaGovernanceConfig> = _mediaGovernanceConfig.asStateFlow()
 
+    private val _adminWallpaperConfig = MutableStateFlow(com.example.data.model.AdminWallpaperConfig())
+    val adminWallpaperConfig: StateFlow<com.example.data.model.AdminWallpaperConfig> = _adminWallpaperConfig.asStateFlow()
+
     private val _sermons = MutableStateFlow<List<com.example.data.model.SermonItem>>(emptyList())
     val sermons: StateFlow<List<com.example.data.model.SermonItem>> = _sermons.asStateFlow()
 
@@ -362,6 +365,38 @@ class FirebaseDataRepository private constructor() {
                     val vidId = snapshot.getValue(String::class.java)?.trim()
                     _pinnedVideoId.value = if (vidId.isNullOrBlank()) null else vidId
                     Log.i(TAG, "Firebase pinned_video_id updated: ${_pinnedVideoId.value}")
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+
+            // --- Admin AI Wallpaper Configuration (Master Control) ---
+            database.getReference("admin_wallpaper_config").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val isEnabled = snapshot.child("isEnabled").getValue(Boolean::class.java) ?: true
+                        val freq = snapshot.child("frequencyPerDay").getValue(Int::class.java) ?: 1
+                        val target = snapshot.child("targetScreen").getValue(String::class.java) ?: "both"
+                        val onboarding = snapshot.child("showOnboardingPrompt").getValue(Boolean::class.java) ?: true
+                        val prompt = snapshot.child("customPromptPreset").getValue(String::class.java)
+                            ?: "Cinematic biblical historical context, spiritual divine mood, golden heavenly light rays, sacred atmosphere"
+                        val style = snapshot.child("selectedThematicStyle").getValue(String::class.java) ?: "AUTO"
+                        val ts = snapshot.child("lastUpdatedTimestamp").getValue(Long::class.java) ?: System.currentTimeMillis()
+                        val admin = snapshot.child("updatedByAdmin").getValue(String::class.java) ?: "Master Admin"
+
+                        val cfg = com.example.data.model.AdminWallpaperConfig(
+                            isEnabled = isEnabled,
+                            frequencyPerDay = freq,
+                            targetScreen = target,
+                            showOnboardingPrompt = onboarding,
+                            customPromptPreset = prompt,
+                            selectedThematicStyle = style,
+                            lastUpdatedTimestamp = ts,
+                            updatedByAdmin = admin
+                        )
+                        _adminWallpaperConfig.value = cfg
+                        com.example.data.local.PreferencesManager.getInstanceOrNull()?.updateAdminWallpaperConfig(cfg)
+                        Log.i(TAG, "Firebase admin_wallpaper_config received: $prompt (Style: $style)")
+                    }
                 }
                 override fun onCancelled(error: DatabaseError) {}
             })
@@ -1225,6 +1260,7 @@ class FirebaseDataRepository private constructor() {
                 val desc = child.child("description").getValue(String::class.java).orEmpty()
                 val isCustom = child.child("isCustom").getValue(Boolean::class.java) ?: false
                 val createdAt = child.child("createdAt").getValue(Long::class.java) ?: System.currentTimeMillis()
+                val displayTarget = child.child("displayTarget").getValue(String::class.java) ?: "ALL"
 
                 val videoUrlsList = mutableListOf<String>()
                 val videoUrlsSnap = child.child("videoUrls")
@@ -1256,7 +1292,8 @@ class FirebaseDataRepository private constructor() {
                         videoUrls = videoUrlsList,
                         videoIds = videoIdsList,
                         isCustom = isCustom || videoUrlsList.isNotEmpty(),
-                        createdAt = createdAt
+                        createdAt = createdAt,
+                        displayTarget = displayTarget
                     )
                 )
             } catch (e: Exception) {
@@ -1985,7 +2022,8 @@ class FirebaseDataRepository private constructor() {
                 "videoUrls" to finalPlaylist.videoUrls,
                 "videoIds" to finalPlaylist.videoIds,
                 "isCustom" to finalPlaylist.isCustom,
-                "createdAt" to finalPlaylist.createdAt
+                "createdAt" to finalPlaylist.createdAt,
+                "displayTarget" to finalPlaylist.displayTarget
             )
 
             // 1. Sync to Firebase Realtime Database
@@ -2073,11 +2111,15 @@ class FirebaseDataRepository private constructor() {
             database.getReference("youtube_videos").child(vidId).setValue(mapOf(
                 "id" to finalVideo.id,
                 "title" to finalVideo.title,
+                "channelId" to finalVideo.channelId,
                 "channelTitle" to finalVideo.channelTitle,
                 "videoUrl" to finalVideo.videoUrl,
                 "thumbnailUrl" to finalVideo.thumbnailUrl,
                 "description" to finalVideo.description,
-                "publishedTimestamp" to finalVideo.publishedTimestamp
+                "publishedAt" to finalVideo.publishedAt,
+                "publishedTimestamp" to finalVideo.publishedTimestamp,
+                "isRemote" to true,
+                "isPinned" to finalVideo.isPinned
             )).addOnSuccessListener { onComplete?.invoke(true) }
               .addOnFailureListener { onComplete?.invoke(false) }
         } catch (e: Exception) {
@@ -2397,6 +2439,29 @@ class FirebaseDataRepository private constructor() {
                 }
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting Sermon: ${e.message}", e)
+            onComplete?.invoke(false)
+        }
+    }
+
+    fun updateAdminWallpaperConfig(
+        config: com.example.data.model.AdminWallpaperConfig,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        try {
+            val database = FirebaseDatabase.getInstance()
+            val updatedConfig = config.copy(lastUpdatedTimestamp = System.currentTimeMillis())
+            database.getReference("admin_wallpaper_config").setValue(updatedConfig)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        _adminWallpaperConfig.value = updatedConfig
+                        com.example.data.local.PreferencesManager.getInstanceOrNull()?.updateAdminWallpaperConfig(updatedConfig)
+                    }
+                    onComplete?.invoke(task.isSuccessful)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating admin_wallpaper_config: ${e.message}", e)
+            _adminWallpaperConfig.value = config
+            com.example.data.local.PreferencesManager.getInstanceOrNull()?.updateAdminWallpaperConfig(config)
             onComplete?.invoke(false)
         }
     }

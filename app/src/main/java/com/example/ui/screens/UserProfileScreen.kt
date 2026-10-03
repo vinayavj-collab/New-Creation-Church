@@ -89,6 +89,7 @@ fun UserProfileScreen(
     var showCameraPermissionDialog by remember { mutableStateOf(false) }
     var showAdminQuickP1Dialog by remember { mutableStateOf(false) }
     var showAdminFullLoginDialog by remember { mutableStateOf(false) }
+    var showMasterAdminOverrideDialog by remember { mutableStateOf(false) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
     var selectedImageUriForCrop by remember { mutableStateOf<Uri?>(null) }
 
@@ -240,18 +241,11 @@ fun UserProfileScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "उपयोगकर्ता प्रोफ़ाइल (Profile)",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
-                        Text(
-                            text = if (userProfile.displayName.isNotBlank()) userProfile.displayName else "व्यक्तिगत विवरण व इतिहास",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = "उपयोगकर्ता प्रोफ़ाइल (Profile)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("user_profile_back_button")) {
@@ -264,8 +258,8 @@ fun UserProfileScreen(
                         modifier = Modifier.testTag("admin_toggle_top_button")
                     ) {
                         Icon(
-                            imageVector = if (currentAdmin != null) Icons.Default.VerifiedUser else Icons.Default.AdminPanelSettings,
-                            contentDescription = "एडमिन कंट्रोल",
+                            imageVector = if (currentAdmin != null) Icons.Default.VerifiedUser else Icons.Default.Lock,
+                            contentDescription = "प्रोफ़ाइल लॉगिन",
                             tint = if (currentAdmin != null) GoldWarm else MaterialTheme.colorScheme.primary
                         )
                     }
@@ -779,6 +773,23 @@ fun UserProfileScreen(
             onSwitchToFullLogin = {
                 showAdminQuickP1Dialog = false
                 showAdminFullLoginDialog = true
+            },
+            onTripleTapMasterAdmin = {
+                showAdminQuickP1Dialog = false
+                showMasterAdminOverrideDialog = true
+            }
+        )
+    }
+
+    // Master Admin Direct Override Modal Dialog (Triggered by triple-tap on Lock Icon)
+    if (showMasterAdminOverrideDialog) {
+        com.example.ui.components.MasterAdminDirectLoginDialog(
+            viewModel = viewModel,
+            onDismiss = { showMasterAdminOverrideDialog = false },
+            onSuccess = {
+                viewModel.setAdminSessionUnlocked(true)
+                showMasterAdminOverrideDialog = false
+                onOpenAdminPanel()
             }
         )
     }

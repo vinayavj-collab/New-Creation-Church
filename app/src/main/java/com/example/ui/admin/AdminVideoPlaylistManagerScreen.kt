@@ -49,6 +49,7 @@ import java.util.*
 fun AdminVideoPlaylistManagerScreen(
     viewModel: MainViewModel,
     currentAdmin: AdminUser?,
+    initialSection: Int = 0,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -60,8 +61,8 @@ fun AdminVideoPlaylistManagerScreen(
     val pinnedVideoId by viewModel.pinnedVideoId.collectAsStateWithLifecycle()
     val quickAccessConfig by viewModel.videoQuickAccessConfig.collectAsStateWithLifecycle()
 
-    var selectedSection by remember { mutableIntStateOf(0) }
-    val sections = listOf("📺 वीडियो लिंक", "📑 प्लेलिस्ट प्रबंधन", "⚡ क्विक एक्सेस टैग्स")
+    var selectedSection by remember(initialSection) { mutableIntStateOf(initialSection) }
+    val sections = listOf("📺 वीडियो जोड़ें व प्रबंधन (Videos)", "📑 प्लेलिस्ट जोड़ें व प्रबंधन (Playlists)", "⚡ क्विक एक्सेस टैग्स (Quick Tags)")
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -1109,6 +1110,7 @@ fun AddEditVideoDialog(
     }
 
     val channelSuggestions = listOf(
+        "अन्य वीडियो (Other Videos)" to "other_videos",
         "Vinay Kumar AVJ" to "UClFK75L0wsDMf10Tj77hlsg",
         "Worship New Creation Church" to "UC92tSCn2I6lwcUyAdyS_MMw",
         "New Creation Church Official" to "UC4lEaYq9Wp_l5jXgU_1_1gg",
@@ -1121,7 +1123,7 @@ fun AddEditVideoDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (existingVideo != null) "वीडियो लिंक संपादित करें" else "नया वीडियो लिंक जोड़ें",
+                text = if (existingVideo != null) "वीडियो लिंक संपादित करें" else "नया वीडियो लिंक जोड़ें (Add Video)",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -1164,12 +1166,44 @@ fun AddEditVideoDialog(
                     ) {
                         channelSuggestions.take(3).forEach { (name, id) ->
                             FilterChip(
-                                selected = channelTitleInput == name,
+                                selected = channelIdInput == id || channelTitleInput == name,
                                 onClick = {
                                     channelTitleInput = name
                                     channelIdInput = id
                                 },
                                 label = { Text(name, fontSize = 10.sp) }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("यूट्यूब के 'अन्य' सेक्शन में शामिल करें", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("यह वीडियो यूट्यूब टैब के 'अन्य' सेक्शन और 'ALL' लिस्ट दोनों में दिखेगा", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(
+                                checked = channelIdInput == "other_videos",
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        channelIdInput = "other_videos"
+                                        channelTitleInput = "अन्य (Other Videos)"
+                                    } else {
+                                        channelIdInput = "UClFK75L0wsDMf10Tj77hlsg"
+                                        channelTitleInput = "Vinay Kumar AVJ"
+                                    }
+                                }
                             )
                         }
                     }
@@ -1223,8 +1257,8 @@ fun AddEditVideoDialog(
                     val video = YouTubeVideo(
                         id = vidId,
                         title = titleInput.ifBlank { "नया वीडियो ($vidId)" },
-                        channelId = channelIdInput.ifBlank { "vinay_channel" },
-                        channelTitle = channelTitleInput.ifBlank { "Vinay Kumar AVJ" },
+                        channelId = channelIdInput.ifBlank { "other_videos" },
+                        channelTitle = channelTitleInput.ifBlank { "अन्य (Other Videos)" },
                         thumbnailUrl = thumb,
                         publishedAt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()),
                         publishedTimestamp = System.currentTimeMillis(),
@@ -1260,12 +1294,13 @@ fun AddEditPlaylistDialog(
     var channelTitleInput by remember { mutableStateOf(existingPlaylist?.channelTitle ?: "New Creation Church") }
     var thumbnailInput by remember { mutableStateOf(existingPlaylist?.thumbnailUrl ?: "") }
     var descriptionInput by remember { mutableStateOf(existingPlaylist?.description ?: "") }
+    var displayTargetInput by remember { mutableStateOf(existingPlaylist?.displayTarget ?: "ALL") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (existingPlaylist != null) "यूट्यूब प्लेलिस्ट संपादित करें" else "यूट्यूब प्लेलिस्ट लिंक जोड़ें",
+                text = if (existingPlaylist != null) "यूट्यूब प्लेलिस्ट संपादित करें" else "यूट्यूब प्लेलिस्ट लिंक जोड़ें (Add Playlist)",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -1297,6 +1332,76 @@ fun AddEditPlaylistDialog(
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp)
                     )
+                }
+
+                item {
+                    Text("वीडियो शो करने का स्थान (Display Options):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            // Option 1: OTHER_ONLY
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { displayTargetInput = "OTHER_ONLY" }
+                                    .padding(vertical = 4.dp, horizontal = 4.dp)
+                            ) {
+                                RadioButton(
+                                    selected = displayTargetInput == "OTHER_ONLY",
+                                    onClick = { displayTargetInput = "OTHER_ONLY" }
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text("यूट्यूब के 'अन्य' में केवल videos", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("इसके वीडियो यूट्यूब के 'अन्य' सेक्शन में दिखेंगे", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            // Option 2: PLAYLIST_ONLY
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { displayTargetInput = "PLAYLIST_ONLY" }
+                                    .padding(vertical = 4.dp, horizontal = 4.dp)
+                            ) {
+                                RadioButton(
+                                    selected = displayTargetInput == "PLAYLIST_ONLY",
+                                    onClick = { displayTargetInput = "PLAYLIST_ONLY" }
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text("बाकी existing Playlist के साथ एक और प्लेलिस्ट", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("प्लेलिस्ट सूची में एक और प्लेलिस्ट के रूप में दिखेगी", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            // Option 3: ALL
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { displayTargetInput = "ALL" }
+                                    .padding(vertical = 4.dp, horizontal = 4.dp)
+                            ) {
+                                RadioButton(
+                                    selected = displayTargetInput == "ALL",
+                                    onClick = { displayTargetInput = "ALL" }
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text("सभी जगह (Playlists + अन्य + ALL)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("प्लेलिस्ट में भी और इसके वीडियो अन्य व ALL में भी दिखेंगे", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 item {
@@ -1353,7 +1458,8 @@ fun AddEditPlaylistDialog(
                         description = descriptionInput,
                         videoUrls = existingPlaylist?.videoUrls ?: emptyList(),
                         videoIds = existingPlaylist?.videoIds ?: emptyList(),
-                        isCustom = existingPlaylist?.isCustom ?: false
+                        isCustom = existingPlaylist?.isCustom ?: false,
+                        displayTarget = displayTargetInput
                     )
                     onSave(playlist)
                 },
@@ -1380,6 +1486,7 @@ fun CreateNamedPlaylistDialog(
     var channelTitle by remember { mutableStateOf("Vinay Kumar AVJ") }
     var descriptionInput by remember { mutableStateOf("") }
     var videoLinksText by remember { mutableStateOf("") }
+    var displayTargetInput by remember { mutableStateOf("ALL") }
     val selectedExistingVideoIds = remember { mutableStateListOf<String>() }
 
     AlertDialog(
@@ -1414,6 +1521,73 @@ fun CreateNamedPlaylistDialog(
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp)
                     )
+                }
+
+                item {
+                    Text("वीडियो शो करने का स्थान (Display Options):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { displayTargetInput = "OTHER_ONLY" }
+                                    .padding(vertical = 4.dp, horizontal = 4.dp)
+                            ) {
+                                RadioButton(
+                                    selected = displayTargetInput == "OTHER_ONLY",
+                                    onClick = { displayTargetInput = "OTHER_ONLY" }
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text("यूट्यूब के 'अन्य' में केवल videos", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("इसके वीडियो केवल यूट्यूब के 'अन्य' सेक्शन में दिखेंगे", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { displayTargetInput = "PLAYLIST_ONLY" }
+                                    .padding(vertical = 4.dp, horizontal = 4.dp)
+                            ) {
+                                RadioButton(
+                                    selected = displayTargetInput == "PLAYLIST_ONLY",
+                                    onClick = { displayTargetInput = "PLAYLIST_ONLY" }
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text("बाकी existing Playlist के साथ एक और प्लेलिस्ट", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("प्लेलिस्ट सूची में एक और प्लेलिस्ट के रूप में दिखेगी", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { displayTargetInput = "ALL" }
+                                    .padding(vertical = 4.dp, horizontal = 4.dp)
+                            ) {
+                                RadioButton(
+                                    selected = displayTargetInput == "ALL",
+                                    onClick = { displayTargetInput = "ALL" }
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text("सभी जगह (Playlists + अन्य + ALL)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("प्लेलिस्ट में भी और इसके वीडियो अन्य व ALL में भी दिखेंगे", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 item {
@@ -1543,7 +1717,8 @@ fun CreateNamedPlaylistDialog(
                         description = descriptionInput,
                         videoUrls = collectedUrls,
                         videoIds = parsedNewVideos.map { it.id } + selectedExistingVideoIds,
-                        isCustom = true
+                        isCustom = true,
+                        displayTarget = displayTargetInput
                     )
 
                     onSave(playlist, parsedNewVideos)

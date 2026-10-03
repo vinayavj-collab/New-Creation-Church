@@ -1232,6 +1232,266 @@ fun SettingsScreen(
                 }
             }
 
+            // Daily Scripture AI Wallpaper Toggle Card for Users
+            item {
+                val currentAppliedVerse by viewModel.currentAppliedWallpaper.collectAsState()
+                var isApplyingWallpaper by remember { mutableStateOf(false) }
+                var isSharingWallpaper by remember { mutableStateOf(false) }
+                var lastStatusMessage by remember { mutableStateOf<String?>(null) }
+                var selectedTargetScreen by remember { mutableStateOf("both") } // "both", "lock", "home"
+                var selectedAiStyle by remember { mutableStateOf<com.example.util.DailyWallpaperService.TheologicalStyle?>(null) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Wallpaper,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "दैनिक AI वॉलपेपर (Daily Wallpaper)",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = "प्रतिदिन वचन अनुसार AI वॉलपेपर लॉक/होम स्क्रीन पर सेट करें",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = settings.dailyWallpaperEnabled,
+                                onCheckedChange = { isChecked ->
+                                    viewModel.updateDailyWallpaperEnabled(isChecked, if (isChecked) context else null)
+                                    if (isChecked) {
+                                        Toast.makeText(context, "AI वॉलपेपर सक्रिय किया जा रहा है...", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "दैनिक वॉलपेपर बंद किया गया", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Target Screen Selection (Both, Lock, Home)
+                        Text(
+                            text = "स्क्रीन चयन (Target Screen):",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                Triple("both", "📱 दोनों (Both)", "होम व लॉक दोनों"),
+                                Triple("lock", "🔒 लॉक स्क्रीन", "केवल लॉक स्क्रीन"),
+                                Triple("home", "🏠 होम स्क्रीन", "केवल होम स्क्रीन")
+                            ).forEach { (key, label, _) ->
+                                val isSelected = selectedTargetScreen == key
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedTargetScreen = key },
+                                    label = { Text(label, fontSize = 11.5.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // AI Style Selector Chips
+                        Text(
+                            text = "🎨 AI स्पिरिचुअल आर्ट थीम (Thematic Style):",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            val isAuto = selectedAiStyle == null
+                            FilterChip(
+                                selected = isAuto,
+                                onClick = { selectedAiStyle = null },
+                                label = { Text("✨ ऑटो (वचन अनुसार)", fontSize = 11.sp, fontWeight = if (isAuto) FontWeight.Bold else FontWeight.Normal) }
+                            )
+                            val isPastures = selectedAiStyle == com.example.util.DailyWallpaperService.TheologicalStyle.SOFT_BOTANICAL_WATERCOLOR
+                            FilterChip(
+                                selected = isPastures,
+                                onClick = { selectedAiStyle = com.example.util.DailyWallpaperService.TheologicalStyle.SOFT_BOTANICAL_WATERCOLOR },
+                                label = { Text("🌿 हरी चराइयां", fontSize = 11.sp) }
+                            )
+                            val isGlory = selectedAiStyle == com.example.util.DailyWallpaperService.TheologicalStyle.ETHEREAL_DREAMY_PASTEL
+                            FilterChip(
+                                selected = isGlory,
+                                onClick = { selectedAiStyle = com.example.util.DailyWallpaperService.TheologicalStyle.ETHEREAL_DREAMY_PASTEL },
+                                label = { Text("✨ स्वर्गीय प्रकाश", fontSize = 11.sp) }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Success confirmation banner if applied
+                        if (lastStatusMessage != null) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = lastStatusMessage ?: "",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    )
+                                }
+                            }
+                        }
+
+                        // Action Buttons: Set Now & Change Old Wallpaper
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    isApplyingWallpaper = true
+                                    Toast.makeText(context, "AI वॉलपेपर लागू किया जा रहा है...", Toast.LENGTH_SHORT).show()
+                                    viewModel.applyDailyWallpaperWithDetails(
+                                        context = context,
+                                        forceNext = false,
+                                        targetScreen = selectedTargetScreen,
+                                        selectedStyle = selectedAiStyle
+                                    ) { success, verseText, verseRef ->
+                                        isApplyingWallpaper = false
+                                        if (success) {
+                                            lastStatusMessage = "✅ AI वॉलपेपर सेट: $verseRef"
+                                            Toast.makeText(context, "✅ आज का AI आत्मिक वॉलपेपर सेट हो गया!\n$verseRef", Toast.LENGTH_LONG).show()
+                                        } else {
+                                            Toast.makeText(context, "❌ वॉलपेपर सेट करने में समस्या आई, कृपया दोबारा प्रयास करें।", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                enabled = !isApplyingWallpaper
+                            ) {
+                                if (isApplyingWallpaper) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("सेट हो रहा है...", fontSize = 12.sp)
+                                } else {
+                                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Set Now (लागू करें)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    isApplyingWallpaper = true
+                                    Toast.makeText(context, "AI नया वॉलपेपर तैयार कर बदला जा रहा है...", Toast.LENGTH_SHORT).show()
+                                    viewModel.applyNextDailyWallpaper(
+                                        context = context,
+                                        targetScreen = selectedTargetScreen,
+                                        selectedStyle = selectedAiStyle
+                                    ) { success, verseText, verseRef ->
+                                        isApplyingWallpaper = false
+                                        if (success) {
+                                            lastStatusMessage = "✅ नया AI वॉलपेपर बदला गया: $verseRef"
+                                            Toast.makeText(context, "✅ पुराना वॉलपेपर बदलकर नया वचन सेट हो गया!\n$verseRef", Toast.LENGTH_LONG).show()
+                                        } else {
+                                            Toast.makeText(context, "❌ वॉलपेपर बदलने में समस्या आई।", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                enabled = !isApplyingWallpaper
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("वॉलपेपर बदलें", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Share HD Wallpaper Photo Button
+                        OutlinedButton(
+                            onClick = {
+                                isSharingWallpaper = true
+                                Toast.makeText(context, "वचन फोटो तैयार की जा रही है...", Toast.LENGTH_SHORT).show()
+                                viewModel.shareCurrentWallpaperPhoto(context, selectedAiStyle) { success ->
+                                    isSharingWallpaper = false
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            enabled = !isSharingWallpaper
+                        ) {
+                            if (isSharingWallpaper) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("फोटो तैयार हो रही है...", fontSize = 12.sp)
+                            } else {
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("📤 वचन वॉलपेपर फोटो शेयर करें (WhatsApp / Share)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+
             // 1. Language & Localization
             item {
                 SettingsSectionHeader(title = strings.secLanguage, icon = Icons.Default.Language)
@@ -1689,48 +1949,6 @@ fun SettingsScreen(
                             } else null,
                             modifier = Modifier.fillMaxWidth()
                         )
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                        // Sidebar (Navigation Drawer) controls
-                        Text(
-                            text = "नेविगेशन साइडबार (Navigation Sidebar)",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        SettingsSwitchRow(
-                            title = "साइडबार सक्षम करें (Enable Sidebar)",
-                            subtitle = "साइडबार मेनू को स्वाइप या हेडर आइकन से खोलें",
-                            checked = settings.isDrawerEnabled,
-                            onCheckedChange = { viewModel.updateIsDrawerEnabled(it) }
-                        )
-
-                        if (settings.isDrawerEnabled) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "साइडबार स्थिति (Sidebar Position):",
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                FilterChip(
-                                    selected = settings.drawerPosition == "left",
-                                    onClick = { viewModel.updateDrawerPosition("left") },
-                                    label = { Text("Left (बाईं ओर)") },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                FilterChip(
-                                    selected = settings.drawerPosition == "right",
-                                    onClick = { viewModel.updateDrawerPosition("right") },
-                                    label = { Text("Right (दाईं ओर)") },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
                     }
                 }
             }

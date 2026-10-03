@@ -492,6 +492,309 @@ fun AdminRoleManagerScreen(
                         Spacer(Modifier.height(10.dp))
                         HorizontalDivider(color = GoldWarm.copy(alpha = 0.2f))
                         Spacer(Modifier.height(10.dp))
+
+                        // Guest Data Auto-Deletion & Warning Banner Policy
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "⏳ अन-रजिस्टर्ड गेस्ट डेटा साफ़ (Auto-Delete) नीति",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp
+                                )
+                                Text(
+                                    text = if (settings.guestDataAutoDeleteDays > 0)
+                                        "बिना SN व पासवर्ड वाले गेस्ट अकाउंट ${settings.guestDataAutoDeleteDays} दिनों (${settings.guestDataAutoDeleteDays / 30} महीने) बाद स्वतः साफ़ होंगे"
+                                    else
+                                        "गेस्ट डेटा ऑटो-डिलीशन बंद है (Disabled)",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            var expandedGuestDays by remember { mutableStateOf(false) }
+                            Box {
+                                OutlinedButton(onClick = { expandedGuestDays = true }, shape = RoundedCornerShape(8.dp)) {
+                                    Text(
+                                        if (settings.guestDataAutoDeleteDays > 0) "${settings.guestDataAutoDeleteDays} दिन" else "बंद (Disabled)",
+                                        fontSize = 11.sp
+                                    )
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                                }
+                                DropdownMenu(expanded = expandedGuestDays, onDismissRequest = { expandedGuestDays = false }) {
+                                    mapOf(
+                                        30 to "30 दिन (1 महीना)",
+                                        60 to "60 दिन (2 महीने)",
+                                        90 to "90 दिन (3 महीने - अनुशंसित)",
+                                        180 to "180 दिन (6 महीने)",
+                                        365 to "365 दिन (1 वर्ष)",
+                                        0 to "बंद रखें (Disabled)"
+                                    ).forEach { (days, label) ->
+                                        DropdownMenuItem(
+                                            text = { Text(label) },
+                                            onClick = {
+                                                viewModel.updateGuestDataAutoDeleteDays(days)
+                                                expandedGuestDays = false
+                                                Toast.makeText(context, "गेस्ट ऑटो-डिलीशन नीति बदलकर $label की गई।", Toast.LENGTH_SHORT).show()
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        // Show Warning Banner Toggle
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "⚠️ गेस्ट प्रोफ़ाइल में चेतावनी बैनर दिखाएं",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp
+                                )
+                                Text(
+                                    text = "अन-रजिस्टर्ड विश्वासियों को उनके डैशबोर्ड/प्रोफ़ाइल में ऑटो-डिलीशन की चेतावनी दिखेगी",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = settings.showGuestDataDeletionWarning,
+                                onCheckedChange = { show ->
+                                    viewModel.updateShowGuestDataDeletionWarning(show)
+                                    Toast.makeText(context, if (show) "चेतावनी बैनर सक्रिय!" else "चेतावनी बैनर बंद किया गया!", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+
+                        if (settings.showGuestDataDeletionWarning) {
+                            Spacer(Modifier.height(8.dp))
+                            var warningTextEdit by remember(settings.guestDataDeletionWarningText) { mutableStateOf(settings.guestDataDeletionWarningText) }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp))
+                                    .border(1.dp, GoldWarm.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "✏️ चेतावनी संदेश कस्टमाइज़र (Edit Guest Warning Message):",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = GoldWarm
+                                )
+
+                                Spacer(Modifier.height(6.dp))
+
+                                // Quick Preset Templates
+                                Text("त्वरित टेम्पलेट्स (Quick Presets):", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.outline)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    AssistChip(
+                                        onClick = {
+                                            warningTextEdit = "⚠️ ध्यान दें: आपने अभी तक सीरियल नंबर व पासवर्ड डालकर कलीसिया पंजीकरण पूरा नहीं किया है। बिना पंजीकरण के आपका यह अस्थायी गेस्ट डेटा ${settings.guestDataAutoDeleteDays} दिनों (${settings.guestDataAutoDeleteDays / 30} महीने) बाद स्वतः साफ़ (Auto-deleted) कर दिया जाएगा।"
+                                        },
+                                        label = { Text("⚠️ 90-दिन मानक", fontSize = 10.sp) }
+                                    )
+                                    AssistChip(
+                                        onClick = {
+                                            warningTextEdit = "⚡ चेतावनी: बिना पास्टर/एडमिन सत्यापन के आपका अस्थायी खाता केवल 30 दिनों में डिलीट कर दिया जाएगा। 'कलीसिया फॉर्म भरें' पर टैप करके तुरंत रजिस्टर करें।"
+                                        },
+                                        label = { Text("⚡ 30-दिन सख्त", fontSize = 10.sp) }
+                                    )
+                                    AssistChip(
+                                        onClick = {
+                                            warningTextEdit = "🙏 जय मसीह की! कलीसिया की डिजिटल हाजिरी व सेवाओं का लाभ उठाने के लिए कृपया पास्टर जी से संपर्क करके अपना सीरियल नंबर दर्ज करें।"
+                                        },
+                                        label = { Text("🙏 सौम्य संदेश", fontSize = 10.sp) }
+                                    )
+                                }
+
+                                Spacer(Modifier.height(6.dp))
+
+                                OutlinedTextField(
+                                    value = warningTextEdit,
+                                    onValueChange = { warningTextEdit = it },
+                                    label = { Text("संदेश सम्पादित करें (Edit Message)", fontSize = 11.sp) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    maxLines = 4,
+                                    shape = RoundedCornerShape(10.dp),
+                                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.5.sp)
+                                )
+
+                                Spacer(Modifier.height(8.dp))
+
+                                Button(
+                                    onClick = {
+                                        viewModel.updateGuestDataDeletionWarningText(warningTextEdit.trim())
+                                        Toast.makeText(context, "गेस्ट चेतावनी संदेश अद्यतन व सहेजा गया! ✅", Toast.LENGTH_SHORT).show()
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = GoldWarm, contentColor = Color.Black),
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("संदेश सहेजें (Save Message)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                Spacer(Modifier.height(10.dp))
+
+                                // Live Preview Banner
+                                Text("पूर्वावलोकन (Live Preview for Guest Users):", fontSize = 10.5.sp, color = MaterialTheme.colorScheme.outline)
+                                Spacer(Modifier.height(4.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.6f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = warningTextEdit.ifBlank { "कोई संदेश नहीं" },
+                                            fontSize = 10.5.sp,
+                                            color = Color.White,
+                                            lineHeight = 14.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        // -------------------------------------------------------------
+                        // UNVERIFIED PROFILES DIRECTORY CARD
+                        // -------------------------------------------------------------
+                        var showUnverifiedDialog by remember { mutableStateOf(false) }
+                        val appProfiles by viewModel.appUserProfiles.collectAsState()
+                        val unverifiedProfiles = remember(appProfiles) {
+                            appProfiles.filter {
+                                !it.isVerifiedVishwasi && !it.isVerified && it.serialNumber.isBlank() && it.assignedAuthorityName.isBlank()
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFF1E1B4B), // Deep indigo
+                            border = BorderStroke(1.2.dp, Color(0xFF818CF8)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.NoAccounts, contentDescription = null, tint = Color(0xFFA5B4FC), modifier = Modifier.size(20.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = "📋 अनसत्यापित प्रोफ़ाइलें (Unverified Profiles)",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.5.sp,
+                                            color = Color.White
+                                        )
+                                    }
+
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFFEF4444)
+                                    ) {
+                                        Text(
+                                            text = "${unverifiedProfiles.size}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(6.dp))
+
+                                Text(
+                                    text = "जिन्होंने किसी भी पास्टर/एडमिन के थ्रू लॉगिन या सत्यापन नहीं कराया है। यहाँ से उनकी सूची देखें, सत्यापन (SN) करें या रिमाइंडर भेजें।",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFC7D2FE),
+                                    lineHeight = 15.sp
+                                )
+
+                                Spacer(Modifier.height(12.dp))
+
+                                Button(
+                                    onClick = { showUnverifiedDialog = true },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1), contentColor = Color.White),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.ListAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "अनसत्यापित प्रोफ़ाइल सूची देखें (${unverifiedProfiles.size})",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        if (showUnverifiedDialog) {
+                            UnverifiedProfilesManagementDialog(
+                                viewModel = viewModel,
+                                unverifiedProfiles = unverifiedProfiles,
+                                onDismiss = { showUnverifiedDialog = false }
+                            )
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        // Manual Immediate Purge Button
+                        var isPurging by remember { mutableStateOf(false) }
+                        OutlinedButton(
+                            onClick = {
+                                isPurging = true
+                                viewModel.purgeExpiredGuestProfiles { count, msg ->
+                                    isPurging = false
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                }
+                            },
+                            enabled = !isPurging,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            if (isPurging) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.error, strokeWidth = 2.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text("गेस्ट डेटा साफ़ हो रहा है...", fontSize = 11.sp)
+                            } else {
+                                Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("🗑️ अभी निष्प्रयोज्य गेस्ट डेटा साफ़ करें (Purge Now)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        HorizontalDivider(color = GoldWarm.copy(alpha = 0.2f))
+                        Spacer(Modifier.height(10.dp))
                         // Global Admin Emergency Kill-Switch
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -4958,4 +5261,362 @@ fun AdminAssignmentSuccessDialog(
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UnverifiedProfilesManagementDialog(
+    viewModel: com.example.ui.viewmodel.MainViewModel,
+    unverifiedProfiles: List<com.example.data.model.UserProfileData>,
+    onDismiss: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedProfileForVerify by remember { mutableStateOf<com.example.data.model.UserProfileData?>(null) }
+    val settings by viewModel.settings.collectAsState()
+
+    val filteredList = remember(unverifiedProfiles, searchQuery) {
+        if (searchQuery.isBlank()) {
+            unverifiedProfiles
+        } else {
+            val q = searchQuery.trim().lowercase()
+            unverifiedProfiles.filter {
+                it.displayName.lowercase().contains(q) ||
+                it.phoneNumber.contains(q) ||
+                it.city.lowercase().contains(q) ||
+                it.bio.lowercase().contains(q) ||
+                it.deviceId.lowercase().contains(q)
+            }
+        }
+    }
+
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.90f),
+            tonalElevation = 8.dp
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.NoAccounts,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "अनसत्यापित प्रोफ़ाइलें (Unverified Profiles)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "कुल अन-वेरीफाइड गेस्ट: ${unverifiedProfiles.size} सदस्य",
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Search Bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("नाम, मोबाइल नंबर, या शहर से खोजें...", fontSize = 12.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Clear, contentDescription = null)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.5.sp)
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                if (filteredList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.CheckCircleOutline,
+                                contentDescription = null,
+                                tint = Color(0xFF10B981),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = if (searchQuery.isNotBlank()) "कोई मेल खाती प्रोफ़ाइल नहीं मिली" else "कोई अनसत्यापित (Unverified) गेस्ट प्रोफ़ाइल नहीं है 🎉",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(filteredList) { profile ->
+                            val daysElapsed = ((System.currentTimeMillis() - profile.lastUpdated) / (1000L * 60 * 60 * 24)).toInt()
+                            val daysRemaining = (settings.guestDataAutoDeleteDays - daysElapsed).coerceAtLeast(0)
+
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            modifier = Modifier.size(44.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Default.Person,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = profile.displayName.ifBlank { "अनाम गेस्ट विश्वासी" },
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp
+                                            )
+                                            Text(
+                                                text = "📞 ${profile.phoneNumber.ifBlank { profile.phone.ifBlank { "फ़ोन नहीं भरा" } }} • 📍 ${profile.city.ifBlank { "शहर नहीं भरा" }}",
+                                                fontSize = 11.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            if (profile.churchName.isNotBlank()) {
+                                                Text(
+                                                    text = "🏛️ ${profile.churchName}",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+
+                                        // Countdown Chip
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = if (daysRemaining <= 15) MaterialTheme.colorScheme.errorContainer else Color(0xFFF59E0B).copy(alpha = 0.15f)
+                                        ) {
+                                            Text(
+                                                text = if (settings.guestDataAutoDeleteDays > 0) "⏳ $daysRemaining दिन शेष" else "गेस्ट",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (daysRemaining <= 15) MaterialTheme.colorScheme.error else Color(0xFFD97706),
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.height(10.dp))
+
+                                    // Action Buttons Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // 1. Verify & Assign Serial Number Button
+                                        Button(
+                                            onClick = { selectedProfileForVerify = profile },
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                            modifier = Modifier.weight(1f),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(Modifier.width(4.dp))
+                                            Text("सत्यापित करें (SN)", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        // 2. Reminder Button
+                                        OutlinedButton(
+                                            onClick = {
+                                                val phone = profile.phoneNumber.ifBlank { profile.phone }
+                                                val msg = "जय मसीह की! ${profile.displayName.ifBlank { "जी" }}, कलीसिया ऐप में आपका स्वागत है। डिजिटल पास व उपस्थिति अनलॉक करने के लिए कृपया अपना कलीसिया फॉर्म/पंजीकरण पूरा करें।"
+                                                try {
+                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                                        data = android.net.Uri.parse("https://api.whatsapp.com/send?phone=$phone&text=${java.net.URLEncoder.encode(msg, "UTF-8")}")
+                                                    }
+                                                    context.startActivity(intent)
+                                                } catch (_: Exception) {
+                                                    Toast.makeText(context, "व्हाट्सएप उपलब्ध नहीं है", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.weight(1f),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(Modifier.width(4.dp))
+                                            Text("रिमाइंडर भेजें", fontSize = 10.5.sp)
+                                        }
+
+                                        // 3. Delete Profile Button
+                                        IconButton(
+                                            onClick = {
+                                                viewModel.deleteGuestUserProfile(profile.deviceId.ifBlank { profile.userId }) { ok, msg ->
+                                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete Profile", tint = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Modal Dialog to Verify & Assign Serial Number
+    if (selectedProfileForVerify != null) {
+        val targetProfile = selectedProfileForVerify!!
+        var assignedSnInput by remember { mutableStateOf("NCC${(100..999).random()}") }
+        var assignedRoleInput by remember { mutableStateOf("सक्रिय सदस्य (Member)") }
+        var initialPinInput by remember { mutableStateOf("1234") }
+        var isSubmitting by remember { mutableStateOf(false) }
+
+        androidx.compose.ui.window.Dialog(onDismissRequest = { selectedProfileForVerify = null }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth(0.92f),
+                tonalElevation = 8.dp
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "प्रोफ़ाइल सत्यापित व सीरियल नंबर आबंटित करें",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = "सदस्य: ${targetProfile.displayName.ifBlank { "गेस्ट विश्वासी" }} (${targetProfile.phoneNumber})",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+
+                    OutlinedTextField(
+                        value = assignedSnInput,
+                        onValueChange = { assignedSnInput = it.uppercase() },
+                        label = { Text("सीरियल नंबर (Serial Number e.g. NCC01)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = assignedRoleInput,
+                        onValueChange = { assignedRoleInput = it },
+                        label = { Text("पद/भूमिका (Role e.g. सक्रिय सदस्य)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = initialPinInput,
+                        onValueChange = { initialPinInput = it },
+                        label = { Text("प्रारंभिक P1 पासवर्ड / पिन") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+
+                    Spacer(Modifier.height(18.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { selectedProfileForVerify = null }) {
+                            Text("रद्द करें")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                isSubmitting = true
+                                viewModel.verifyAndAssignSerialToGuest(
+                                    targetDeviceIdOrId = targetProfile.deviceId.ifBlank { targetProfile.userId },
+                                    assignedSerial = assignedSnInput.trim().uppercase(),
+                                    role = assignedRoleInput.trim(),
+                                    pin = initialPinInput.trim()
+                                ) { success, msg ->
+                                    isSubmitting = false
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    if (success) {
+                                        selectedProfileForVerify = null
+                                    }
+                                }
+                            },
+                            enabled = !isSubmitting && assignedSnInput.isNotBlank(),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            if (isSubmitting) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("सत्यापित करें (Verify)", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

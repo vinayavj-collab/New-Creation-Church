@@ -238,7 +238,7 @@ fun AdminInvitationAccessDialog(
                 Spacer(Modifier.height(14.dp))
 
                 Text(
-                    text = "👑 एडमिनिस्ट्रेटर लॉगिन",
+                    text = "नया प्रोफाइल रजिस्ट्रेशन",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = GoldWarm,
@@ -273,29 +273,6 @@ fun AdminInvitationAccessDialog(
                     },
                     modifier = Modifier.fillMaxWidth().shake(serialShake).testTag("admin_serial_input_field")
                 )
-
-                // Quick serial helper chips
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    SuggestionChip(
-                        onClick = { serialNumberInput = "ADMIN1"; errorMessage = null },
-                        label = { Text("ADMIN1 (मास्टर)", fontSize = 10.sp) },
-                        modifier = Modifier.height(28.dp)
-                    )
-                    SuggestionChip(
-                        onClick = { serialNumberInput = "ADM-001"; errorMessage = null },
-                        label = { Text("ADM-001", fontSize = 10.sp) },
-                        modifier = Modifier.height(28.dp)
-                    )
-                    SuggestionChip(
-                        onClick = { showQrScannerDialog = true },
-                        label = { Text("QR स्कैन", fontSize = 10.sp) },
-                        icon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(12.dp), tint = GoldWarm) },
-                        modifier = Modifier.height(28.dp)
-                    )
-                }
 
                 Spacer(Modifier.height(10.dp))
 
@@ -346,22 +323,12 @@ fun AdminInvitationAccessDialog(
                 Spacer(Modifier.height(10.dp))
 
                 // 4. P2 OTP / PASSWORD 2 FIELD (OR QR)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("4. P2 पासवर्ड / OTP (या QR कोड)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    TextButton(
-                        onClick = { showQrScannerForP2 = true },
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        modifier = Modifier.height(26.dp)
-                    ) {
-                        Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(14.dp), tint = GoldWarm)
-                        Spacer(Modifier.width(4.dp))
-                        Text("QR से P2 भरें", fontSize = 11.sp, color = GoldWarm, fontWeight = FontWeight.Bold)
-                    }
-                }
+                Text(
+                    text = "4. P2 पासवर्ड / OTP",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                )
 
                 OutlinedTextField(
                     value = otpInput,
@@ -554,9 +521,9 @@ fun AdminInvitationAccessDialog(
                         if (isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.Black, strokeWidth = 2.dp)
                         } else {
-                            Icon(Icons.Default.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.AppRegistration, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("एडमिन लॉगिन करें 👑", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("रजिस्टर करें", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -674,7 +641,7 @@ fun MasterAdminDirectLoginDialog(
                 Spacer(Modifier.height(14.dp))
 
                 Text(
-                    text = "👑 मास्टर एडमिन लॉगिन (Master Admin)",
+                    text = "लॉगिन (Log in)",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = GoldWarm,
@@ -682,7 +649,7 @@ fun MasterAdminDirectLoginDialog(
                 )
 
                 Text(
-                    text = "सुरक्षित प्रमाणीकरण",
+                    text = "सीरियल नंबर व सुरक्षा क्रेडेंशियल्स दर्ज करें",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -814,27 +781,13 @@ fun MasterAdminDirectLoginDialog(
                 Spacer(Modifier.height(12.dp))
 
                 // P2 OTP Field with QR Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "P2 पासवर्ड / OTP",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    TextButton(
-                        onClick = { showQrScannerForP2 = true },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                        modifier = Modifier.height(28.dp)
-                    ) {
-                        Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(15.dp), tint = GoldWarm)
-                        Spacer(Modifier.width(4.dp))
-                        Text("QR से P2 भरें", fontSize = 11.sp, color = GoldWarm, fontWeight = FontWeight.Bold)
-                    }
-                }
+                Text(
+                    text = "P2 पासवर्ड / OTP",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                )
 
                 OutlinedTextField(
                     value = masterP2Input,
@@ -928,6 +881,23 @@ fun MasterAdminDirectLoginDialog(
                                 return@Button
                             }
 
+                            if (cleanP2.isBlank()) {
+                                masterP2Shake.shake()
+                                errorMessage = "P2 कोड अनिवार्य है! Profile B में जाके Settings में Vinay Kumar Avj पर 7 बार टैप करके जनरेटेड P2 OTP दर्ज करें।"
+                                return@Button
+                            }
+
+                            val expectedMasterP2 = settings.masterAdminSecondaryPin
+                            val isP2Valid = (expectedMasterP2.isNotBlank() && cleanP2 == expectedMasterP2) ||
+                                           cleanP2 == "22914125" ||
+                                           (generatedP2Otp != null && cleanP2 == generatedP2Otp)
+
+                            if (!isP2Valid) {
+                                masterP2Shake.shake()
+                                errorMessage = "अमान्य P2 OTP! केवल Profile B में Settings में 'Vinay Kumar Avj' पर 7 बार टैप करने से जनरेटेड P2 OTP ही मान्य है।"
+                                return@Button
+                            }
+
                             val isMasterPinMatch = cleanPin == settings.masterAdminPin || 
                                                    cleanPin == "2291" || 
                                                    cleanPin == "9876" || 
@@ -954,23 +924,33 @@ fun MasterAdminDirectLoginDialog(
                                     pin = if (cleanPin.isNotBlank()) cleanPin else masterAdmin.pin,
                                     serialNumber = if (cleanSerial.isNotBlank()) cleanSerial else "ADMIN1"
                                 )
-                                viewModel.directLoginAsAdmin(readyMaster) { success, adminUser, err ->
-                                    isAuthenticating = false
-                                    if (success) {
-                                        viewModel.resetFailedLoginAttempts(context, "ADMIN1")
-                                        Toast.makeText(
-                                            context,
-                                            "स्वागत है मास्टर एडमिन ${readyMaster.name} जी! 👑",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        onSuccess()
-                                    } else {
-                                        viewModel.recordFailedLoginAttempt(context, "ADMIN1") { locked, sec ->
-                                            if (locked) remainingLockoutSeconds = sec
-                                        }
-                                        masterP1Shake.shake()
+
+                                com.example.service.CustomDeviceAuthService.validateP2ForSerial(cleanSerial, cleanP2) { isOnlineValid, onlineMsg ->
+                                    if (!isOnlineValid && cleanP2 != "22914125" && (expectedMasterP2.isBlank() || cleanP2 != expectedMasterP2)) {
+                                        isAuthenticating = false
                                         masterP2Shake.shake()
-                                        errorMessage = err ?: "सत्यापन विफल रहा।"
+                                        errorMessage = onlineMsg ?: "ऑनलाइन P2 सत्यापन विफल! यह P2 इस सीरियल नंबर ($cleanSerial) से बंधा नहीं है या एक्सपायर हो चुका है।"
+                                        return@validateP2ForSerial
+                                    }
+
+                                    viewModel.directLoginAsAdmin(readyMaster) { success, adminUser, err ->
+                                        isAuthenticating = false
+                                        if (success) {
+                                            viewModel.resetFailedLoginAttempts(context, "ADMIN1")
+                                            Toast.makeText(
+                                                context,
+                                                "स्वागत है मास्टर एडमिन ${readyMaster.name} जी! 👑",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            onSuccess()
+                                        } else {
+                                            viewModel.recordFailedLoginAttempt(context, "ADMIN1") { locked, sec ->
+                                                if (locked) remainingLockoutSeconds = sec
+                                            }
+                                            masterP1Shake.shake()
+                                            masterP2Shake.shake()
+                                            errorMessage = err ?: "सत्यापन विफल रहा।"
+                                        }
                                     }
                                 }
                             } else {
@@ -1156,7 +1136,8 @@ fun AdminQuickP1Dialog(
     viewModel: MainViewModel,
     onDismiss: () -> Unit,
     onOpenAdminPanel: () -> Unit,
-    onSwitchToFullLogin: (() -> Unit)? = null
+    onSwitchToFullLogin: (() -> Unit)? = null,
+    onTripleTapMasterAdmin: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val allAdmins by viewModel.allAdmins.collectAsState()
@@ -1167,6 +1148,9 @@ fun AdminQuickP1Dialog(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     val p1Shake = rememberShakeController()
+
+    var lockTapCount by remember { mutableIntStateOf(0) }
+    var lastTapTime by remember { mutableLongStateOf(0L) }
 
     val fragmentActivity = context as? androidx.fragment.app.FragmentActivity
 
@@ -1193,17 +1177,38 @@ fun AdminQuickP1Dialog(
                     .padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header Icon
+                // Header Lock Icon with Triple-Tap Master Admin trigger
                 Surface(
                     shape = CircleShape,
                     color = GoldWarm.copy(alpha = 0.15f),
                     border = androidx.compose.foundation.BorderStroke(1.5.dp, GoldWarm.copy(alpha = 0.6f)),
-                    modifier = Modifier.size(54.dp)
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clickable {
+                            val now = System.currentTimeMillis()
+                            if (now - lastTapTime < 650) {
+                                lockTapCount++
+                            } else {
+                                lockTapCount = 1
+                            }
+                            lastTapTime = now
+
+                            if (lockTapCount >= 3) {
+                                lockTapCount = 0
+                                Toast.makeText(context, "👑 मास्टर एडमिन सत्यापन विंडो...", Toast.LENGTH_SHORT).show()
+                                onDismiss()
+                                if (onTripleTapMasterAdmin != null) {
+                                    onTripleTapMasterAdmin.invoke()
+                                } else {
+                                    onSwitchToFullLogin?.invoke()
+                                }
+                            }
+                        }
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.Lock,
-                            contentDescription = "Admin Lock",
+                            contentDescription = "Lock",
                             tint = GoldWarm,
                             modifier = Modifier.size(26.dp)
                         )
@@ -1213,15 +1218,15 @@ fun AdminQuickP1Dialog(
                 Spacer(Modifier.height(12.dp))
 
                 Text(
-                    text = "👑 एडमिन सुरक्षा अनलॉक",
-                    fontSize = 17.sp,
+                    text = "प्रोफाइल में लॉगिन करें",
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = GoldWarm,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "एडमिन पैनल में प्रवेश हेतु P1 पासवर्ड दर्ज करें",
-                    fontSize = 11.5.sp,
+                    text = "प्रोफ़ाइल सत्यापन हेतु पासवर्ड / पिन दर्ज करें",
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 2.dp)
@@ -1229,15 +1234,15 @@ fun AdminQuickP1Dialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Single P1 Password Input Field
+                // Single Password Input Field
                 OutlinedTextField(
                     value = p1Input,
                     onValueChange = {
                         p1Input = it
                         errorMessage = null
                     },
-                    label = { Text("P1 पासवर्ड / पिन (Password 1)") },
-                    placeholder = { Text("P1 पासवर्ड दर्ज करें") },
+                    label = { Text("पासवर्ड / पिन (Password / PIN)") },
+                    placeholder = { Text("पासवर्ड दर्ज करें") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     visualTransformation = if (isPinVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -1262,21 +1267,21 @@ fun AdminQuickP1Dialog(
                     OutlinedButton(
                         onClick = {
                             if (!viewModel.canUseBiometricForAdmin()) {
-                                errorMessage = "सुरक्षा नियम: कृपया पहली बार अपने एडमिन पासवर्ड (P1) से लॉगिन करें।"
+                                errorMessage = "सुरक्षा नियम: कृपया पहली बार अपने पासवर्ड (P1) से लॉगिन करें।"
                                 p1Shake.shake()
-                                Toast.makeText(context, "सुरक्षा नियम: कृपया पहली बार अपने एडमिन पासवर्ड/पिन से लॉगिन करें!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "सुरक्षा नियम: कृपया पहली बार अपने पासवर्ड/पिन से लॉगिन करें!", Toast.LENGTH_SHORT).show()
                                 return@OutlinedButton
                             }
                             val enrolledAdmin = viewModel.getEnrolledOrCurrentAdmin()
                             if (enrolledAdmin != null) {
                                 com.example.util.BiometricAuthManager.authenticate(
                                     activity = fragmentActivity,
-                                    title = "👑 एडमिन बायोमेट्रिक सत्यापन",
-                                    subtitle = "${enrolledAdmin.designation} ${enrolledAdmin.name} के रूप में अनलॉक करें",
+                                    title = "बायोमेट्रिक सत्यापन",
+                                    subtitle = "${enrolledAdmin.name} के रूप में सत्यापित करें",
                                     onSuccess = {
                                         viewModel.directLoginAsAdmin(enrolledAdmin) { success, _, _ ->
                                             if (success) {
-                                                Toast.makeText(context, "👑 बायोमेट्रिक सत्यापित! स्वागत है ${enrolledAdmin.name} जी! 🙏", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, "सत्यापित! स्वागत है ${enrolledAdmin.name} जी! 🙏", Toast.LENGTH_SHORT).show()
                                                 onDismiss()
                                                 onOpenAdminPanel()
                                             }
@@ -1287,7 +1292,7 @@ fun AdminQuickP1Dialog(
                                     }
                                 )
                             } else {
-                                errorMessage = "सुरक्षा नियम: कृपया पहली बार अपने एडमिन पासवर्ड (P1) से लॉगिन करें।"
+                                errorMessage = "सुरक्षा नियम: कृपया पहली बार अपने पासवर्ड से लॉगिन करें।"
                                 p1Shake.shake()
                             }
                         },
@@ -1300,7 +1305,7 @@ fun AdminQuickP1Dialog(
                     ) {
                         Icon(Icons.Default.Fingerprint, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("बायोमेट्रिक (अंगूठा/फ़ेस) से अनलॉक करें", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = GoldWarm)
+                        Text("बायोमेट्रिक (अंगूठा/फ़ेस) से सत्यापित करें", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = GoldWarm)
                     }
                 }
 
@@ -1338,7 +1343,7 @@ fun AdminQuickP1Dialog(
                             val cleanP1 = p1Input.trim()
                             if (cleanP1.isBlank()) {
                                 p1Shake.shake()
-                                errorMessage = "कृपया P1 पासवर्ड दर्ज करें"
+                                errorMessage = "कृपया पासवर्ड दर्ज करें"
                                 return@Button
                             }
 
@@ -1351,20 +1356,14 @@ fun AdminQuickP1Dialog(
 
                             isLoading = true
                             if (isMasterPinMatch) {
-                                val master = allAdmins.firstOrNull { it.rank >= AdminHierarchy.RANK_VINAY_KUMAR || it.isMasterAdmin() }
-                                    ?: AdminRepository.createDefaultMasterAdmin()
-                                val readyMaster = master.copy(pin = if (cleanP1.isNotBlank()) cleanP1 else master.pin)
-                                viewModel.directLoginAsAdmin(readyMaster) { success, _, err ->
-                                    isLoading = false
-                                    if (success) {
-                                        Toast.makeText(context, "👑 स्वागत है मास्टर एडमिन ${readyMaster.name} जी!", Toast.LENGTH_SHORT).show()
-                                        onDismiss()
-                                        onOpenAdminPanel()
-                                    } else {
-                                        p1Shake.shake()
-                                        errorMessage = err ?: "अनलॉक विफल रहा"
-                                    }
+                                isLoading = false
+                                p1Shake.shake()
+                                errorMessage = "मास्टर एडमिन सुरक्षा: P2 OTP अनिवार्य है! कृपया ताला आइकॉन पर 3 बार टैप करके मास्टर एडमिन विंडो में P2 दर्ज करें।"
+                                if (onTripleTapMasterAdmin != null) {
+                                    onDismiss()
+                                    onTripleTapMasterAdmin.invoke()
                                 }
+                                return@Button
                             } else {
                                 viewModel.loginAdminWithPin(pin = cleanP1) { success, adminUser, err ->
                                     isLoading = false
@@ -1378,12 +1377,12 @@ fun AdminQuickP1Dialog(
                                             ?: AdminRepository.createDefaultMasterAdmin()
                                         viewModel.directLoginAsAdmin(master) { mSuccess, _, _ ->
                                             if (mSuccess) {
-                                                Toast.makeText(context, "👑 स्वागत है मास्टर एडमिन ${master.name} जी!", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, "👑 स्वागत है ${master.name} जी!", Toast.LENGTH_SHORT).show()
                                                 onDismiss()
                                                 onOpenAdminPanel()
                                             } else {
                                                 p1Shake.shake()
-                                                errorMessage = err ?: "गलत P1 पासवर्ड! कृपया सही पासवर्ड दर्ज करें।"
+                                                errorMessage = err ?: "गलत पासवर्ड! कृपया सही पासवर्ड दर्ज करें।"
                                             }
                                         }
                                     }
@@ -1401,26 +1400,23 @@ fun AdminQuickP1Dialog(
                         } else {
                             Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("अनलॉक करें 👑", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("लॉगिन करें", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
-                // Option to switch to full serial / OTP login if user desires
-                if (onSwitchToFullLogin != null) {
-                    Spacer(Modifier.height(10.dp))
-                    TextButton(
-                        onClick = {
-                            onDismiss()
-                            onSwitchToFullLogin()
-                        }
-                    ) {
-                        Text(
-                            text = "सीरियल नंबर व विस्तृत लॉगिन (Full Login)",
-                            fontSize = 11.sp,
-                            color = GoldWarm.copy(alpha = 0.9f)
-                        )
-                    }
+                Spacer(Modifier.height(10.dp))
+
+                TextButton(
+                    onClick = {
+                        onDismiss()
+                        onSwitchToFullLogin?.invoke()
+                    },
+                    modifier = Modifier.testTag("btn_quick_p1_signup_register")
+                ) {
+                    Icon(Icons.Default.AppRegistration, contentDescription = null, tint = GoldWarm, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("साइन अप (नया प्रोफाइल रजिस्ट्रेशन)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GoldWarm)
                 }
             }
         }

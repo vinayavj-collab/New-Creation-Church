@@ -1,5 +1,6 @@
 package com.example.ui.bible
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -59,6 +60,15 @@ fun BibleHomeScreen(
         savedNavMode = getSavedNavigatorMode(context)
     }
 
+    BackHandler {
+        when {
+            showNavigatorModal -> showNavigatorModal = false
+            bookForChapterPicker != null -> bookForChapterPicker = null
+            showSettingsDialog -> showSettingsDialog = false
+            else -> onBackClick()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -73,11 +83,6 @@ fun BibleHomeScreen(
                             text = if (savedNavMode == BibleNavigatorMode.GRID) "ग्रिड नेविगेशन (Grid)" else "सूची नेविगेशन (List)",
                             style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -285,14 +290,14 @@ private fun BookRowItem(
 
                 Column {
                     Text(
-                        text = if (isHindi) book.nameHindi else book.nameEnglish,
+                        text = book.nameHindi,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 17.sp
                         )
                     )
                     Text(
-                        text = (if (isHindi) book.nameEnglish else book.nameHindi) + " • ${book.chapterCount} Ch",
+                        text = "${book.nameEnglish} • ${book.chapterCount} Ch",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

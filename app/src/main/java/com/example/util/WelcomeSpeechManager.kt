@@ -15,6 +15,7 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
     private var isTtsInitialized = false
     private var hasSpokenInCurrentSession = false
     private var isAppInForeground = false
+    private var pendingLaunchSpeech: (() -> Unit)? = null
     private val prefs = context.getSharedPreferences("welcome_speech_prefs", Context.MODE_PRIVATE)
 
     init {
@@ -42,9 +43,12 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
                 tts?.setLanguage(Locale.getDefault())
             }
             isTtsInitialized = true
+            pendingLaunchSpeech?.invoke()
+            pendingLaunchSpeech = null
         } else {
             Log.e(TAG, "TextToSpeech init failed with status $status")
             isTtsInitialized = false
+            pendingLaunchSpeech = null
         }
     }
 
@@ -61,7 +65,30 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
         speechSpeed: Float = 1.0f,
         speechVolume: Float = 1.0f
     ) {
-        if (!isAppInForeground || hasSpokenInCurrentSession || !isTtsInitialized || tts == null) {
+        if (hasSpokenInCurrentSession) {
+            return
+        }
+
+        if (!isTtsInitialized || tts == null) {
+            pendingLaunchSpeech = {
+                speakOnAppOpen(
+                    userName,
+                    enableWelcomeSpeech,
+                    enableVerseSpeech,
+                    welcomeOncePerDay,
+                    verseOncePerDay,
+                    todayVerse,
+                    todaysVerseText,
+                    isUpdateAvailable,
+                    speechPitch,
+                    speechSpeed,
+                    speechVolume
+                )
+            }
+            return
+        }
+
+        if (!isAppInForeground) {
             return
         }
 
@@ -73,8 +100,7 @@ class WelcomeSpeechManager private constructor(private val context: Context) : T
         val effectiveTodayVerse = todayVerse ?: VerseOfTheDay.getTodayVerse()
         val effectiveVerseText = if (!todaysVerseText.isNullOrBlank()) todaysVerseText else effectiveTodayVerse.textHindi
 
-        val shouldSpeakWelcome = enableWelcomeSpeech && userName.isNotBlank() &&
-                (!welcomeOncePerDay || lastWelcomeDate != currentDate)
+        val shouldSpeakWelcome = enableWelcomeSpeech && (!welcomeOncePerDay || lastWelcomeDate != currentDate)
         val shouldSpeakVerse = enableVerseSpeech && effectiveVerseText.isNotBlank() &&
                 (!verseOncePerDay || lastVerseDate != currentDate)
         val shouldSpeakUpdate = isUpdateAvailable && lastUpdateDate != currentDate

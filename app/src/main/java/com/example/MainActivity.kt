@@ -126,7 +126,8 @@ sealed interface AppRoute {
         val targetStartChapter: Int? = if (isReadingPlanMode) chapter else null,
         val targetStartVerse: Int? = if (isReadingPlanMode) (highlightStartVerse ?: targetVerse) else null,
         val targetEndChapter: Int? = if (isReadingPlanMode) chapter else null,
-        val targetEndVerse: Int? = if (isReadingPlanMode) highlightEndVerse else null
+        val targetEndVerse: Int? = if (isReadingPlanMode) highlightEndVerse else null,
+        val previousRoute: AppRoute = AppRoute.Main
     ) : AppRoute
     data object BibleSearch : AppRoute
     data object BibleSaved : AppRoute
@@ -278,7 +279,6 @@ class MainActivity : FragmentActivity() {
                     customSecondaryHex = remoteSecondaryColor
                 ) {
                     var showSplash by remember { mutableStateOf(true) }
-                    var showNotificationOnboardingModal by remember { mutableStateOf(false) }
 
                     val context = LocalContext.current
                     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -302,19 +302,7 @@ class MainActivity : FragmentActivity() {
                         }
                     }
 
-                    LaunchedEffect(showSplash) {
-                        if (!showSplash && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            val hasPermission = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.POST_NOTIFICATIONS
-                            ) == PackageManager.PERMISSION_GRANTED
 
-                            val isPromptedForUpdate = viewModel.isNotificationPromptShownForVersion(61)
-                            if (!hasPermission && (!viewModel.isNotificationOnboardingCompleted() || !isPromptedForUpdate)) {
-                                showNotificationOnboardingModal = true
-                            }
-                        }
-                    }
 
                     if (showSplash) {
                         SplashScreen(onFinished = { showSplash = false })
@@ -358,23 +346,7 @@ class MainActivity : FragmentActivity() {
                             onClearExternalRoute = { externalRouteState.value = null }
                         )
 
-                        if (showNotificationOnboardingModal) {
-                            com.example.ui.components.NotificationOnboardingModal(
-                                onDismiss = {
-                                    showNotificationOnboardingModal = false
-                                    viewModel.setNotificationPromptShownForVersion(61, true)
-                                    viewModel.setNotificationOnboardingCompleted(true)
-                                },
-                                onGrantPermission = {
-                                    showNotificationOnboardingModal = false
-                                    viewModel.setNotificationPromptShownForVersion(61, true)
-                                    viewModel.setNotificationOnboardingCompleted(true)
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                    }
-                                }
-                            )
-                        }
+
                     }
                 }
             }
@@ -643,6 +615,8 @@ fun AppNavigationHost(
         if (drawerState.isOpen) {
             drawerState.snapTo(DrawerValue.Closed)
         }
+        com.example.util.WelcomeSpeechManager.getInstance(context.applicationContext).setAppInForeground(true)
+        viewModel.triggerWelcomeSpeechOnLaunch()
     }
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
@@ -664,10 +638,10 @@ fun AppNavigationHost(
                 is AppRoute.PlaylistDetail -> {
                     currentRoute = AppRoute.Main
                 }
-                is AppRoute.BibleReader, AppRoute.BibleSearch, AppRoute.BibleSaved, AppRoute.BibleReadingPlan -> {
-                    currentRoute = AppRoute.BibleHome
+                is AppRoute.BibleReader -> {
+                    currentRoute = route.previousRoute
                 }
-                is AppRoute.BibleHome -> {
+                is AppRoute.BibleHome, AppRoute.BibleSearch, AppRoute.BibleSaved, AppRoute.BibleReadingPlan -> {
                     currentRoute = AppRoute.Main
                 }
                 is AppRoute.PhotoViewer -> {
@@ -677,7 +651,10 @@ fun AppNavigationHost(
                     currentRoute = AppRoute.UpcomingEvents
                 }
                 is AppRoute.AdminPanel -> {
-                    currentRoute = AppRoute.Main
+                    currentRoute = AppRoute.UserProfile
+                }
+                is AppRoute.About, is AppRoute.SyncCenter, is AppRoute.BackupRestore, is AppRoute.HomeScreenSettings -> {
+                    currentRoute = AppRoute.Settings()
                 }
                 AppRoute.Main -> {
                     if (currentDestination != MainDestination.HOME) {
@@ -699,6 +676,15 @@ fun AppNavigationHost(
 
     var showFeedbackDialog by remember { mutableStateOf(false) }
     var showAdminInvitationDialog by remember { mutableStateOf(false) }
+
+    if (!settings.welcomeDialogDismissed) {
+        com.example.ui.components.DailyWallpaperOnboardingDialog(
+            viewModel = viewModel,
+            onDismiss = {
+                viewModel.updateWelcomeDialogDismissed(true)
+            }
+        )
+    }
 
     if (showFeedbackDialog) {
         com.example.ui.components.FeedbackDialog(
@@ -1030,7 +1016,19 @@ fun AppNavigationHost(
                                             onOpenNotifications = { currentRoute = AppRoute.NotificationHistory },
                                             onOpenUserProfile = { currentRoute = AppRoute.UserProfile },
                                             onVideoClick = { currentRoute = AppRoute.YouTubePlayer(it, previousRoute = AppRoute.Main) },
-                                            onPlaylistClick = { currentRoute = AppRoute.PlaylistDetail(it) }
+                                            onPlaylistClick = { currentRoute = AppRoute.PlaylistDetail(it) },
+                                            onPostClick = { currentRoute = AppRoute.PostDetail(it, previousRoute = AppRoute.Main, originDestination = MainDestination.HOME) },
+                                            onViewAllPosts = {
+                                                blogsInitialTab = BlogTab.FELLOWSHIP
+                                                currentDestination = MainDestination.BLOGS
+                                            },
+                                            onViewAllPersonalPosts = {
+                                                blogsInitialTab = BlogTab.PERSONAL
+                                                currentDestination = MainDestination.BLOGS
+                                            },
+                                            onViewAllVideos = {
+                                                currentDestination = MainDestination.YOUTUBE
+                                            }
                                         )
                                     }
                                     MainDestination.BLOGS -> {
@@ -1256,7 +1254,7 @@ fun AppNavigationHost(
         is AppRoute.HomeScreenSettings -> {
             HomeScreenSettingsScreen(
                 viewModel = viewModel,
-                onBack = { currentRoute = AppRoute.Main }
+                onBack = { currentRoute = AppRoute.Settings() }
             )
         }
 
@@ -1297,7 +1295,7 @@ fun AppNavigationHost(
         is AppRoute.About -> {
             val isPersonalVlogAllowed by viewModel.isPersonalVlogAllowed.collectAsState()
             AboutScreen(
-                onBack = { currentRoute = AppRoute.Main },
+                onBack = { currentRoute = AppRoute.Settings() },
                 isPersonalVlogAllowed = isPersonalVlogAllowed
             )
         }
@@ -1363,14 +1361,14 @@ fun AppNavigationHost(
         is AppRoute.SyncCenter -> {
             SyncCenterScreen(
                 syncRepository = viewModel.syncCenterRepository,
-                onBackClick = { currentRoute = AppRoute.Main }
+                onBackClick = { currentRoute = AppRoute.Settings() }
             )
         }
 
         is AppRoute.BackupRestore -> {
             BackupRestoreScreen(
                 backupRepository = viewModel.backupRepository,
-                onBackClick = { currentRoute = AppRoute.Main }
+                onBackClick = { currentRoute = AppRoute.Settings() }
             )
         }
 
@@ -1414,7 +1412,7 @@ fun AppNavigationHost(
                 targetStartVerse = if (route.isReadingPlanMode) route.targetStartVerse else null,
                 targetEndChapter = if (route.isReadingPlanMode) route.targetEndChapter else null,
                 targetEndVerse = if (route.isReadingPlanMode) route.targetEndVerse else null,
-                onBackClick = { currentRoute = AppRoute.BibleHome },
+                onBackClick = { currentRoute = route.previousRoute },
                 onSearchClick = { currentRoute = AppRoute.BibleSearch },
                 onSavedClick = { currentRoute = AppRoute.BibleSaved },
                 onReadingPlanClick = { currentRoute = AppRoute.BibleReadingPlan }
@@ -1424,9 +1422,9 @@ fun AppNavigationHost(
         is AppRoute.BibleSearch -> {
             BibleSearchScreen(
                 viewModel = bibleViewModel,
-                onBackClick = { currentRoute = AppRoute.BibleHome },
+                onBackClick = { currentRoute = AppRoute.Main },
                 onVerseClick = { bId, chap, verseNum ->
-                    currentRoute = AppRoute.BibleReader(bId, chap, verseNum, isReadingPlanMode = false)
+                    currentRoute = AppRoute.BibleReader(bId, chap, verseNum, isReadingPlanMode = false, previousRoute = AppRoute.BibleSearch)
                 }
             )
         }
@@ -1434,9 +1432,9 @@ fun AppNavigationHost(
         is AppRoute.BibleSaved -> {
             BibleSavedScreen(
                 viewModel = bibleViewModel,
-                onBackClick = { currentRoute = AppRoute.BibleHome },
+                onBackClick = { currentRoute = AppRoute.Main },
                 onVerseClick = { bId, chap, verseNum ->
-                    currentRoute = AppRoute.BibleReader(bId, chap, verseNum, isReadingPlanMode = false)
+                    currentRoute = AppRoute.BibleReader(bId, chap, verseNum, isReadingPlanMode = false, previousRoute = AppRoute.BibleSaved)
                 }
             )
         }
@@ -1485,7 +1483,7 @@ fun AppNavigationHost(
         is AppRoute.AdminPanel -> {
             com.example.ui.admin.AdminPanelScreen(
                 viewModel = viewModel,
-                onNavigateBack = { currentRoute = AppRoute.Main }
+                onNavigateBack = { currentRoute = AppRoute.UserProfile }
             )
         }
     }

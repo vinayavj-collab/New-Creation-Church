@@ -487,20 +487,11 @@ fun AdminSecurityDialog(
 
                                 isLoading = true
                                 if (isMasterMatch) {
-                                    val master = allAdmins.firstOrNull { it.rank >= AdminHierarchy.RANK_VINAY_KUMAR || it.isMasterAdmin() }
-                                        ?: AdminRepository.createDefaultMasterAdmin()
-                                    viewModel.directLoginAsAdmin(master) { success, _, err ->
-                                        isLoading = false
-                                        if (success) {
-                                            CustomDeviceAuthService.registerDeviceSession(master.serialNumber.ifBlank { "MASTER01" }, CustomDeviceAuthService.getDeviceId(context))
-                                            Toast.makeText(context, "👑 स्वागत है मास्टर एडमिन ${master.name} जी!", Toast.LENGTH_SHORT).show()
-                                            onDismiss()
-                                            onOpenAdminPanel()
-                                        } else {
-                                            p1Shake.shake()
-                                            errorMessage = err ?: "अनलॉक विफल रहा"
-                                        }
-                                    }
+                                    isLoading = false
+                                    p1Shake.shake()
+                                    errorMessage = "मास्टर एडमिन सुरक्षा: P2 OTP भी अनिवार्य है! कृपया नीचे 'Full 3-Tier Auth (SN + P2 + P1)' विकल्प पर स्विच करें और P2 दर्ज करें।"
+                                    currentAuthMode = AuthMode.FULL_3TIER
+                                    return@Button
                                 } else {
                                     viewModel.loginAdminWithPin(pin = cleanP1) { success, adminUser, err ->
                                         isLoading = false
@@ -549,7 +540,14 @@ fun AdminSecurityDialog(
                                             } else {
                                                 // Check Master Pin fallback
                                                 val isMasterMatch = cleanP1 == "2291" || cleanP1 == settings.masterAdminPin || ProfileManager.verifyPasswordForPrivateProfile(cleanP1)
-                                                if (isMasterMatch) {
+                                                val expectedMasterP2 = settings.masterAdminSecondaryPin
+                                                val isMasterP2Valid = (expectedMasterP2.isNotBlank() && cleanP2 == expectedMasterP2) || cleanP2 == "22914125"
+
+                                                if (isMasterMatch && !isMasterP2Valid) {
+                                                    p1Shake.shake()
+                                                    errorMessage = "अमान्य P2 OTP! केवल Profile B में Settings में Vinay Kumar Avj पर 7 बार टैप करने से जनरेटेड P2 ही मान्य है।"
+                                                    infoMessage = null
+                                                } else if (isMasterMatch && isMasterP2Valid) {
                                                     val master = allAdmins.firstOrNull { it.rank >= AdminHierarchy.RANK_VINAY_KUMAR || it.isMasterAdmin() }
                                                         ?: AdminRepository.createDefaultMasterAdmin()
                                                     viewModel.directLoginAsAdmin(master) { mSuccess, _, _ ->

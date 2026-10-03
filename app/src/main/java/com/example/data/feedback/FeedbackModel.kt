@@ -18,5 +18,6 @@ data class FeedbackSubmission(
     val androidVersion: Int = 0,
     val deviceModel: String = "",
     val timestamp: Long = System.currentTimeMillis(),
-    val status: String = "NEW"
+    val status: String = "NEW",
+    val adminReply: String = ""
 )

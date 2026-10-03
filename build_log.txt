@@ -1,0 +1,234 @@
+=== Building R8 Minified + ABI Split Release APKs ===
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :app
+w: file:///app/applet/app/build.gradle.kts:80:5: 'fun BaseAppModuleExtension.kotlinOptions(configure: Action<KotlinJvmOptions>): Unit' is deprecated. The kotlinOptions types are deprecated, please migrate to the compilerOptions types. More details are here: https://kotl.in/u1r8ln.
+Checking the license for package Android SDK Build-Tools 35 in /opt/android/sdk/licenses
+License for package Android SDK Build-Tools 35 accepted.
+Preparing "Install Android SDK Build-Tools 35 v.35.0.0".
+"Install Android SDK Build-Tools 35 v.35.0.0" ready.
+Installing Android SDK Build-Tools 35 in /opt/android/sdk/build-tools/35.0.0
+"Install Android SDK Build-Tools 35 v.35.0.0" complete.
+"Install Android SDK Build-Tools 35 v.35.0.0" finished.
+Checking the license for package Android SDK Platform 35 in /opt/android/sdk/licenses
+License for package Android SDK Platform 35 accepted.
+Preparing "Install Android SDK Platform 35 (revision 2)".
+"Install Android SDK Platform 35 (revision 2)" ready.
+Installing Android SDK Platform 35 in /opt/android/sdk/platforms/android-35
+"Install Android SDK Platform 35 (revision 2)" complete.
+"Install Android SDK Platform 35 (revision 2)" finished.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:mergeReleaseNativeLibs
+> Task :app:buildKotlinToolingMetadata
+
+> Task :app:stripReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:extractReleaseNativeSymbolTables
+> Task :app:generateReleaseBuildConfig
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:generateReleaseResValues
+> Task :app:checkReleaseAarMetadata
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:packageReleaseResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:parseReleaseLocalResources
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:mergeReleaseResources
+> Task :app:javaPreCompileRelease
+> Task :app:mergeReleaseArtProfile
+> Task :app:extractProguardFiles
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :app:processReleaseManifestForPackage
+> Task :app:compressReleaseAssets
+> Task :app:processReleaseResources
+> Task :app:convertLinkedResourcesToProtoRelease
+> Task :app:kspReleaseKotlin
+> Task :app:compileReleaseKotlin
+w: file:///app/applet/app/src/main/java/com/example/MainActivity.kt:88:32 '@property:Deprecated(...) val Icons.Filled.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Chat.
+w: file:///app/applet/app/src/main/java/com/example/MainActivity.kt:89:34 '@property:Deprecated(...) val Icons.Filled.Article: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Article.
+w: file:///app/applet/app/src/main/java/com/example/MainActivity.kt:91:34 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/MainActivity.kt:953:83 '@property:Deprecated(...) val Icons.Filled.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Chat.
+w: file:///app/applet/app/src/main/java/com/example/MainActivity.kt:954:84 '@property:Deprecated(...) val Icons.Filled.Article: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Article.
+w: file:///app/applet/app/src/main/java/com/example/MainActivity.kt:956:84 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/data/bible/local/BibleLocalDataSource.kt:367:79 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///app/applet/app/src/main/java/com/example/data/repository/FirebaseDataRepository.kt:1442:25 Condition is always 'true'.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminAccountsScreen.kt:277:43 '@property:Deprecated(...) val Icons.Filled.ReceiptLong: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ReceiptLong.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminAttendanceScreen.kt:497:21 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminAttendanceScreen.kt:513:21 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminAudioMessageScreen.kt:961:21 '@Deprecated(...) @Composable() @ComposableTarget(...) fun LinearProgressIndicator(progress: Float, modifier: Modifier = ..., color: Color = ..., trackColor: Color = ..., strokeCap: StrokeCap = ...): Unit' is deprecated. Use the overload that takes `progress` as a lambda.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminAuditLogScreen.kt:196:71 '@property:Deprecated(...) val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminBackgroundMusicScreen.kt:210:93 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminBibleResourceManagerScreen.kt:411:48 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminBlogSectionManagerScreen.kt:204:97 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminBlogSectionManagerScreen.kt:275:65 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminMembersScreen.kt:709:47 '@property:Deprecated(...) val Icons.Filled.CallSplit: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallSplit.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:1215:68 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:1525:53 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:1558:53 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:1585:53 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:2609:42 '@property:Deprecated(...) val Icons.Filled.FactCheck: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FactCheck.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:2852:48 '@property:Deprecated(...) val Icons.Filled.FactCheck: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FactCheck.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:3490:52 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:3872:56 '@property:Deprecated(...) val Icons.Filled.Undo: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Undo.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:6100:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:6403:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:6796:44 '@property:Deprecated(...) val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:6818:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:6917:40 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:6922:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPanelScreen.kt:7932:60 '@property:Deprecated(...) val Icons.Filled.Reply: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Reply.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminPushNotificationScreen.kt:217:48 '@property:Deprecated(...) val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminReminderConfigScreen.kt:248:69 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminRoleManagerScreen.kt:748:56 '@property:Deprecated(...) val Icons.Filled.ListAlt: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ListAlt.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminRoleManagerScreen.kt:5493:64 '@property:Deprecated(...) val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminThemeManagerDialog.kt:215:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminTranslationManagerScreen.kt:310:59 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminTranslationManagerScreen.kt:446:48 '@property:Deprecated(...) val Icons.Filled.InsertDriveFile: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.InsertDriveFile.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminTranslationManagerScreen.kt:765:43 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminVideoPlaylistManagerScreen.kt:315:59 '@property:Deprecated(...) val Icons.Filled.FeaturedPlayList: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FeaturedPlayList.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminVideoPlaylistManagerScreen.kt:735:40 '@property:Deprecated(...) val Icons.Filled.OpenInNew: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.OpenInNew.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminVideoPlaylistManagerScreen.kt:791:43 '@property:Deprecated(...) val Icons.Filled.FeaturedPlayList: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FeaturedPlayList.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/AdminVideoPlaylistManagerScreen.kt:892:44 '@property:Deprecated(...) val Icons.Filled.OpenInNew: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.OpenInNew.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/CommunicationManagementTab.kt:59:40 '@property:Deprecated(...) val Icons.Filled.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Chat.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/CommunicationManagementTab.kt:91:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/admin/MemberLifecycleBottomSheets.kt:777:40 '@property:Deprecated(...) val Icons.Filled.CallSplit: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallSplit.
+w: file:///app/applet/app/src/main/java/com/example/ui/attendance/EnterpriseAttendanceDashboardScreen.kt:880:52 '@property:Deprecated(...) val Icons.Filled.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Chat.
+w: file:///app/applet/app/src/main/java/com/example/ui/attendance/MemberSelfCheckInDialog.kt:221:86 '@property:Deprecated(...) val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleAudioPlayerBar.kt:77:61 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleHomeScreen.kt:100:97 '@property:Deprecated(...) val Icons.Filled.ViewList: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ViewList.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleNoteEditorDialog.kt:177:47 '@property:Deprecated(...) val Icons.Filled.FormatAlignLeft: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FormatAlignLeft.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleNoteEditorDialog.kt:193:47 '@property:Deprecated(...) val Icons.Filled.FormatAlignRight: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FormatAlignRight.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:140:29 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:144:29 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:152:29 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:156:29 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:295:25 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:299:25 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:307:25 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:311:25 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:1019:102 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:1019:130 '@property:Deprecated(...) val Icons.Filled.VolumeMute: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeMute.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:1268:62 '@property:Deprecated(...) val Icons.Filled.CompareArrows: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CompareArrows.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:1404:39 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2177:43 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2357:46 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2365:46 '@property:Deprecated(...) val Icons.Filled.CompareArrows: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CompareArrows.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2770:41 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2774:41 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2782:41 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2786:41 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2985:33 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2989:33 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:2997:33 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3001:33 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3509:41 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3513:41 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3521:41 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3525:41 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3737:33 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3741:33 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3749:33 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:3753:33 '@Deprecated(...) fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReaderScreen.kt:4033:57 '@property:Deprecated(...) val Icons.Filled.FormatListBulleted: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FormatListBulleted.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReadingPlanScreen.kt:228:48 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleReadingPlanScreen.kt:340:55 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleSelectorModal.kt:139:133 '@property:Deprecated(...) val Icons.Filled.ViewList: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ViewList.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleSelectorModal.kt:180:97 '@property:Deprecated(...) val Icons.Filled.ViewList: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ViewList.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/BibleSettingsDialog.kt:1095:37 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/components/ReadingInsightsDashboard.kt:341:42 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/bible/components/ReadingInsightsDashboard.kt:675:9 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/AdminSecurityDialog.kt:392:52 '@property:Deprecated(...) val Icons.Filled.SendToMobile: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.SendToMobile.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/AppDrawer.kt:606:38 '@property:Deprecated(...) val Icons.Filled.Label: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Label.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/AppOnboardingFlow.kt:490:32 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/CommonComponents.kt:184:17 Condition is always 'true'.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/DailyBibleQuizCard.kt:79:65 '@property:Deprecated(...) val Icons.Filled.Help: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Help.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/DailyBibleQuizCard.kt:239:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/DailyWallpaperOnboardingDialog.kt:415:38 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/DailyWallpaperOnboardingDialog.kt:595:49 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/DailymotionPlayerView.kt:119:33 'var databaseEnabled: Boolean' is deprecated. Deprecated in Java.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/DidYouKnowCard.kt:135:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/FeedbackDialog.kt:324:69 '@property:Deprecated(...) val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/ReadingProgressSummaryCard.kt:233:57 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/SerialQrComponents.kt:628:81 '@Deprecated(...) static field VIBRATOR_SERVICE: String' is deprecated. Deprecated in Java.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/SerialQrComponents.kt:638:27 '@Deprecated(...) fun vibrate(p0: Long): Unit' is deprecated. Deprecated in Java.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/UserSelfServiceActivationDialog.kt:302:52 '@property:Deprecated(...) val Icons.Filled.ArrowForward: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowForward.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/WelcomeCustomizationDialog.kt:224:44 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/components/YouTubePlayerView.kt:143:33 'var databaseEnabled: Boolean' is deprecated. Deprecated in Java.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/DailyPrayerScreen.kt:259:73 '@property:Deprecated(...) val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/DailyPrayerScreen.kt:259:102 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/DailyPrayerScreen.kt:443:61 'val outlinedButtonBorder: BorderStroke' is deprecated. Please use the version that takes an `enabled` param to get the `BorderStroke` with the correct opacity.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/DailyPrayerScreen.kt:471:61 'val outlinedButtonBorder: BorderStroke' is deprecated. Please use the version that takes an `enabled` param to get the `BorderStroke` with the correct opacity.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/DailyPrayerScreen.kt:621:69 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/DailyPrayerScreen.kt:753:65 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/DailyPrayerScreen.kt:1142:73 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PersonalPrayerJournalDialog.kt:71:57 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PersonalPrayerJournalDialog.kt:167:83 '@property:Deprecated(...) val Icons.Filled.NoteAdd: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.NoteAdd.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PrayerRequestAndTestimonySection.kt:275:40 '@property:Deprecated(...) val Icons.Filled.Sort: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Sort.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PrayerRequestAndTestimonySection.kt:1152:40 '@property:Deprecated(...) val Icons.Filled.Undo: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Undo.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PrayerRequestAndTestimonySection.kt:1631:94 '@property:Deprecated(...) val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PrayerRequestAndTestimonySection.kt:1815:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PrayerRequestAndTestimonySection.kt:2095:48 '@property:Deprecated(...) val Icons.Filled.Undo: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Undo.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PrayerRequestAndTestimonySection.kt:2181:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/prayer/PrayerRequestAndTestimonySection.kt:2289:44 '@property:Deprecated(...) val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/AboutScreen.kt:264:41 '@property:Deprecated(...) val Icons.Filled.OpenInNew: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.OpenInNew.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/BlogsScreen.kt:191:93 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/BlogsScreen.kt:386:103 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/CategoriesScreen.kt:148:49 '@property:Deprecated(...) val Icons.Filled.Label: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Label.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/ChatScreen.kt:268:48 '@property:Deprecated(...) val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/EventsScreen.kt:557:17 '@Deprecated(...) @Composable() @ComposableTarget(...) fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/MemberDashboardScreen.kt:706:55 '@property:Deprecated(...) val Icons.Filled.FactCheck: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.FactCheck.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/MemberDashboardScreen.kt:1148:48 '@property:Deprecated(...) val Icons.Filled.NoteAdd: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.NoteAdd.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/MoreScreen.kt:285:50 '@property:Deprecated(...) val Icons.Filled.Label: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Label.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/PlaylistDetailScreen.kt:83:57 '@property:Deprecated(...) val Icons.Filled.OpenInNew: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.OpenInNew.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/PlaylistDetailScreen.kt:260:52 '@property:Deprecated(...) val Icons.Filled.OpenInNew: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.OpenInNew.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/SettingsScreen.kt:399:48 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/SettingsScreen.kt:658:121 '@property:Deprecated(...) val Icons.Filled.EventNote: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.EventNote.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/SettingsScreen.kt:1758:91 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/StudyNotesScreen.kt:216:48 '@property:Deprecated(...) val Icons.Filled.Sort: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Sort.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/SyncCenterScreen.kt:156:42 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/UserProfileScreen.kt:1247:56 '@property:Deprecated(...) val Icons.Filled.DirectionsWalk: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.DirectionsWalk.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/UserProfileScreen.kt:1341:56 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/UserProfileScreen.kt:1587:61 '@property:Deprecated(...) val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///app/applet/app/src/main/java/com/example/ui/screens/UserProfileScreen.kt:1589:60 '@property:Deprecated(...) val Icons.Filled.Article: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Article.
+w: file:///app/applet/app/src/main/java/com/example/ui/viewmodel/MainViewModel.kt:1808:21 This declaration is in a preview state and can be changed in a backwards-incompatible manner with a best-effort migration. Its usage should be marked with '@kotlinx.coroutines.FlowPreview' or '@OptIn(kotlinx.coroutines.FlowPreview::class)' if you accept the drawback of relying on preview API
+w: file:///app/applet/app/src/main/java/com/example/util/ArticleBlockParser.kt:66:25 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'kotlin.String?'.
+w: file:///app/applet/app/src/main/java/com/example/util/VerseAlarmComponents.kt:472:40 '@property:Deprecated(...) val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:mergeReleaseGeneratedProguardFiles
+> Task :app:processReleaseJavaRes
+> Task :app:expandReleaseArtProfileWildcards
+> Task :app:mergeReleaseJavaResource
+Daemon is stopping immediately stop command received
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Gradle build daemon has been stopped: stop command received
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+> Task :app:minifyReleaseWithR8
