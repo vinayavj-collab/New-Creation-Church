@@ -10,7 +10,9 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import com.example.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -365,76 +367,31 @@ object DailyWallpaperService {
             canvas.drawLine(sunCenterX, sunCenterY, endX, endY, sunrayPaint)
         }
 
-        // 4. Symbolic Focal Point (Radiant Cross with Sacred Divine Aura)
-        val symbolPaint = Paint().apply {
-            color = accentColor
-            style = Paint.Style.STROKE
-            strokeWidth = 6.5f
-            isAntiAlias = true
-            strokeCap = Paint.Cap.ROUND
-        }
-
         val centerX = width / 2f
-        val crossY = height * 0.26f
-        val crossHeight = 110f
-        val crossWidth = 64f
+        val logoCenterY = height * 0.26f
 
-        // Vertical & Horizontal beams
-        canvas.drawLine(centerX, crossY - crossHeight * 0.4f, centerX, crossY + crossHeight * 0.6f, symbolPaint)
-        canvas.drawLine(centerX - crossWidth / 2f, crossY - crossHeight * 0.1f, centerX + crossWidth / 2f, crossY - crossHeight * 0.1f, symbolPaint)
-
-        // Sacred Halo Ring
-        val ringPaint = Paint().apply {
-            color = Color.argb(100, Color.red(accentColor), Color.green(accentColor), Color.blue(accentColor))
-            style = Paint.Style.STROKE
-            strokeWidth = 3.5f
-            isAntiAlias = true
+        // 4. Symbolic Focal Point: Church Brand Logo
+        try {
+            val logoDrawable = ContextCompat.getDrawable(context, R.drawable.church_brand_logo)
+            if (logoDrawable != null) {
+                val targetHeight = 130
+                val aspect = logoDrawable.intrinsicWidth.toFloat() / logoDrawable.intrinsicHeight.coerceAtLeast(1)
+                val targetWidth = (targetHeight * aspect).toInt()
+                val left = (centerX - targetWidth / 2f).toInt()
+                val top = (logoCenterY - targetHeight / 2f).toInt()
+                logoDrawable.setBounds(left, top, left + targetWidth, top + targetHeight)
+                logoDrawable.draw(canvas)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error drawing church brand logo on wallpaper", e)
         }
-        canvas.drawCircle(centerX, crossY - crossHeight * 0.1f, 32f, ringPaint)
 
-        // 5. Dark Vignette Protective Backdrop for Scripture Text Readability
-        val cardRect = RectF(60f, height * 0.35f, width - 60f, height * 0.86f)
-        val cardBackdropPaint = Paint().apply {
-            color = Color.argb(95, 8, 12, 20)
-            isAntiAlias = true
-        }
-        canvas.drawRoundRect(cardRect, 40f, 40f, cardBackdropPaint)
-
-        val cardBorderPaint = Paint().apply {
-            color = Color.argb(55, Color.red(accentColor), Color.green(accentColor), Color.blue(accentColor))
-            style = Paint.Style.STROKE
-            strokeWidth = 2f
-            isAntiAlias = true
-        }
-        canvas.drawRoundRect(cardRect, 40f, 40f, cardBorderPaint)
-
-        // 6. Header: "✝ आज का वचन ✝"
-        val headerPaint = TextPaint().apply {
-            color = accentColor
-            textSize = 36f
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setShadowLayer(10f, 0f, 4f, Color.argb(200, 0, 0, 0))
-        }
-        val headerY = height * 0.395f
-        canvas.drawText("✝  आज का वचन  ✝", centerX, headerY, headerPaint)
-
-        // Decorative subtle divider
-        val dividerPaint = Paint().apply {
-            color = Color.argb(90, Color.red(accentColor), Color.green(accentColor), Color.blue(accentColor))
-            strokeWidth = 2.5f
-            isAntiAlias = true
-        }
-        val dividerY = headerY + 24f
-        canvas.drawLine(centerX - 110f, dividerY, centerX + 110f, dividerY, dividerPaint)
-
-        // 7. Verse Text (Multi-line Hindi typography with proper frame-safe centering)
+        // 7. Verse Text Layout (Measure first for frame-safe left/right padding and adaptive backdrop)
         val fullVerse = "“${verseText.trim()}”"
         val dynamicTextSize = when {
-            fullVerse.length > 140 -> 40f
-            fullVerse.length > 80 -> 46f
-            else -> 52f
+            fullVerse.length > 150 -> 36f
+            fullVerse.length > 90 -> 42f
+            else -> 46f
         }
 
         val textPaint = TextPaint().apply {
@@ -445,8 +402,9 @@ object DailyWallpaperService {
             setShadowLayer(16f, 0f, 6f, Color.argb(230, 0, 0, 0))
         }
 
-        val paddingHorizontal = 90
-        val textWidth = width - (paddingHorizontal * 2)
+        // CRITICAL: Generous Left and Right frame-safe padding so text NEVER touches corners or display curved edges
+        val paddingHorizontal = 165
+        val textWidth = width - (paddingHorizontal * 2) // 750px safe center column
 
         val staticLayout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             StaticLayout.Builder.obtain(
@@ -457,7 +415,7 @@ object DailyWallpaperService {
                 textWidth
             )
                 .setAlignment(Layout.Alignment.ALIGN_CENTER)
-                .setLineSpacing(14f, 1.2f)
+                .setLineSpacing(16f, 1.25f)
                 .build()
         } else {
             @Suppress("DEPRECATION")
@@ -466,15 +424,58 @@ object DailyWallpaperService {
                 textPaint,
                 textWidth,
                 Layout.Alignment.ALIGN_CENTER,
-                1.2f,
-                14f,
+                1.25f,
+                16f,
                 false
             )
         }
 
+        // Layout positioning calculations
+        val cardMarginHorizontal = 110f
+        val cardTop = height * 0.36f
+        val headerY = cardTop + 65f
+        val dividerY = headerY + 24f
+        val textStartY = dividerY + 42f
+        val refY = textStartY + staticLayout.height + 46f
+        val cardBottom = refY + 65f
+        val cardRect = RectF(cardMarginHorizontal, cardTop, width - cardMarginHorizontal, cardBottom)
+
+        // 5. Dark Vignette Protective Backdrop for Scripture Text Readability
+        val cardBackdropPaint = Paint().apply {
+            color = Color.argb(105, 8, 12, 20)
+            isAntiAlias = true
+        }
+        canvas.drawRoundRect(cardRect, 48f, 48f, cardBackdropPaint)
+
+        val cardBorderPaint = Paint().apply {
+            color = Color.argb(60, Color.red(accentColor), Color.green(accentColor), Color.blue(accentColor))
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+            isAntiAlias = true
+        }
+        canvas.drawRoundRect(cardRect, 48f, 48f, cardBorderPaint)
+
+        // 6. Header: "✝ आज का वचन ✝"
+        val headerPaint = TextPaint().apply {
+            color = accentColor
+            textSize = 36f
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setShadowLayer(10f, 0f, 4f, Color.argb(200, 0, 0, 0))
+        }
+        canvas.drawText("✝  आज का वचन  ✝", centerX, headerY, headerPaint)
+
+        // Decorative subtle divider
+        val dividerPaint = Paint().apply {
+            color = Color.argb(90, Color.red(accentColor), Color.green(accentColor), Color.blue(accentColor))
+            strokeWidth = 2.5f
+            isAntiAlias = true
+        }
+        canvas.drawLine(centerX - 110f, dividerY, centerX + 110f, dividerY, dividerPaint)
+
+        // Draw Verse Text with safe horizontal padding
         canvas.save()
-        val textStartY = dividerY + 44f
-        // Frame-safe translation
         canvas.translate(paddingHorizontal.toFloat(), textStartY)
         staticLayout.draw(canvas)
         canvas.restore()
@@ -482,14 +483,14 @@ object DailyWallpaperService {
         // 8. Scripture Reference
         val refPaint = TextPaint().apply {
             color = accentColor
-            textSize = 38f
+            textSize = 36f
             isAntiAlias = true
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setShadowLayer(10f, 0f, 4f, Color.argb(200, 0, 0, 0))
         }
-        val refY = textStartY + staticLayout.height + 48f
-        canvas.drawText("— $verseRef —", centerX, refY, refPaint)
+        val refYFinal = textStartY + staticLayout.height + 46f
+        canvas.drawText("— $verseRef —", centerX, refYFinal, refPaint)
 
         // 9. Subtle Footer Branding & Style Indicator
         val footerPaint = TextPaint().apply {
@@ -499,7 +500,7 @@ object DailyWallpaperService {
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
-        canvas.drawText("New Creation Church • AI Daily Scripture", centerX, height * 0.92f, footerPaint)
+        canvas.drawText("New Creation Church", centerX, height * 0.92f, footerPaint)
 
         return bitmap
     }

@@ -624,7 +624,7 @@ fun SidebarContent(
 
             SidebarNavItem(
                 label = "बैकअप एवं रिस्टोर (Backup & Restore)",
-                subtitle = "नोट्स व डेटा एक्सपोर्ट/इम्पोर्ट",
+                subtitle = "क्लाउड व फ़ाइल बैकअप (रीडिंग प्लान, नोट्स)",
                 icon = Icons.Default.CloudUpload,
                 selected = currentRouteName == "BACKUP",
                 onClick = {

@@ -1,5 +1,6 @@
 package com.example.ui.theme
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -8,7 +9,11 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val DarkColorScheme =
   darkColorScheme(
@@ -117,6 +122,25 @@ fun MyApplicationTheme(
           )
       }
       scheme
+  }
+
+  val view = LocalView.current
+  if (!view.isInEditMode) {
+    SideEffect {
+      val window = (view.context as? Activity)?.window
+      if (window != null) {
+        val insetsController = WindowCompat.getInsetsController(window, view)
+        // Automatic Luminance-based contrast:
+        // Background luminance > 0.5f means bright background -> dark status bar icons (true)
+        // Background luminance <= 0.5f means dark background -> white status bar icons (false)
+        val bgLuminance = finalColorScheme.background.luminance()
+        val isLightBg = bgLuminance > 0.5f
+        insetsController.isAppearanceLightStatusBars = isLightBg
+
+        val navBgLuminance = finalColorScheme.surface.luminance()
+        insetsController.isAppearanceLightNavigationBars = navBgLuminance > 0.5f
+      }
+    }
   }
 
   MaterialTheme(colorScheme = finalColorScheme, typography = Typography, content = content)

@@ -44,6 +44,7 @@ fun BibleHomeScreen(
     modifier: Modifier = Modifier
 ) {
     val selectedTranslation by viewModel.selectedTranslation.collectAsState()
+    val availableTranslations by viewModel.availableTranslations.collectAsState()
     val readingSettings by viewModel.readingSettings.collectAsState()
     val lastPosition by viewModel.lastReadingPosition.collectAsState()
     val todayVerse = viewModel.todayVerse
@@ -234,7 +235,12 @@ fun BibleHomeScreen(
             onBgmVolumeChange = { viewModel.updateBgmVolume(it) },
             onSelectedBgmTrackChange = { viewModel.updateSelectedBgmTrack(it) },
             onThemeChange = { viewModel.updateTheme(it) },
-            onTranslationChange = { viewModel.selectTranslation(it) },
+            onTranslationChange = { translation ->
+                viewModel.selectTranslationIfAvailable(translation) { msg ->
+                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            },
+            availableTranslations = availableTranslations,
             onVerseTapSelectionModeChange = { viewModel.updateVerseTapSelectionMode(it) },
             onShowTodaysScriptureOnHomeChange = { viewModel.toggleShowTodaysScriptureOnHome(it) },
             onShowActivatedPlansOnHomeChange = { viewModel.toggleShowActivatedPlansOnHome(it) },

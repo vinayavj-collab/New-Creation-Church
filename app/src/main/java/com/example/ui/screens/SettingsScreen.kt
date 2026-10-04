@@ -97,7 +97,6 @@ fun SettingsScreen(
             showPasswordDialogForProfileB = false
             showVlogPasswordDialog = false
             showMasterAdminOverrideDialog = true
-            Toast.makeText(context, "👑 मास्टर एडमिन विशेष विंडो सक्रिय (Master Admin Override)", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -211,10 +210,6 @@ fun SettingsScreen(
                                         churchHeaderTapCount = 1
                                     }
                                     lastChurchHeaderTapTime = now
-
-                                    if (churchHeaderTapCount in 3..6) {
-                                        Toast.makeText(context, "👑 P2 OTP: ${7 - churchHeaderTapCount} और टैप करें...", Toast.LENGTH_SHORT).show()
-                                    }
 
                                     if (churchHeaderTapCount >= 7) {
                                         churchHeaderTapCount = 0
@@ -2078,7 +2073,7 @@ fun SettingsScreen(
 
                         SettingsClickableRow(
                             title = "Backup & Restore",
-                            subtitle = "Export or restore study notes, bookmarks & lyrics",
+                            subtitle = "Firebase क्लाउड व फ़ाइल बैकअप (रीडिंग प्लान, बुकमार्क्स, नोट्स)",
                             icon = Icons.Default.CloudUpload,
                             onClick = onBackupRestoreClick
                         )
@@ -2285,7 +2280,7 @@ fun SettingsScreen(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Lock Icon - Triple tap for Master Admin",
+                    contentDescription = "Lock Icon",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .size(36.dp)
@@ -2376,7 +2371,7 @@ fun SettingsScreen(
             icon = {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Lock Icon - Triple tap for Master Admin",
+                    contentDescription = "Lock Icon",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .size(36.dp)

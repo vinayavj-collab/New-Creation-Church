@@ -84,6 +84,7 @@ fun BibleSettingsDialog(
     onResetToDefault: () -> Unit = {},
     onThemeChange: (BibleTheme) -> Unit,
     onTranslationChange: (BibleTranslation) -> Unit,
+    availableTranslations: List<BibleTranslation> = emptyList(),
     onTranslationToggleBehaviorChange: (TranslationToggleBehavior) -> Unit = {},
     onVerseTapSelectionModeChange: (VerseTapSelectionMode) -> Unit = {},
     onShowTodaysScriptureOnHomeChange: (Boolean) -> Unit = {},
@@ -279,15 +280,26 @@ fun BibleSettingsDialog(
                     ) {
                         BibleTranslation.ALL.forEach { translation ->
                             val isSelected = selectedTranslation.id == translation.id
+                            val isAvailable = availableTranslations.isEmpty() || availableTranslations.any { it.id == translation.id }
                             FilterChip(
                                 selected = isSelected,
-                                onClick = { onTranslationChange(translation) },
+                                onClick = {
+                                    if (isAvailable) {
+                                        onTranslationChange(translation)
+                                    } else {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "यह अनुवाद (${translation.nameHindi}) वर्तमान में उपलब्ध नहीं है।",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
                                 label = {
                                     Text(
                                         when (translation.id) {
                                             BibleTranslation.HIOV.id -> "हिन्दी (HIOV)"
-                                            BibleTranslation.ENGLISH_NKJV.id -> "English (NKJV)"
-                                            else -> translation.nameHindi
+                                            BibleTranslation.ENGLISH_NKJV.id -> if (isAvailable) "English (NKJV)" else "English (NKJV) [अनुपलब्ध]"
+                                            else -> if (isAvailable) translation.nameHindi else "${translation.nameHindi} [अनुपलब्ध]"
                                         },
                                         fontSize = 12.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal

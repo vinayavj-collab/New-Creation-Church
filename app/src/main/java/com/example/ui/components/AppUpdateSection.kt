@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -8,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.ui.screens.SettingsSectionHeader
@@ -18,6 +21,7 @@ fun AppUpdateSection(
     viewModel: MainViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val updateState by viewModel.updateState.collectAsState()
     var dismissedLater by remember { mutableStateOf(false) }
 
@@ -221,6 +225,30 @@ fun AppUpdateSection(
                                 Text("Update Now")
                             }
                         }
+                    }
+                }
+
+                // Browser Download Fallback Option (If update available or error occurred)
+                if (updateState.isUpdateAvailable || updateState.errorMessage != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val browserUrl = updateState.apkDownloadUrl?.takeIf { it.isNotBlank() }
+                        ?: "https://github.com/${updateState.repoPath}/releases/latest"
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(browserUrl)).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("ब्राउज़र से सीधा डाउनलोड करें (Direct Download)")
                     }
                 }
 

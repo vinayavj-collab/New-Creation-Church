@@ -8,12 +8,16 @@ import android.content.Context
 import android.content.Intent
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -43,6 +47,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -377,6 +382,7 @@ fun BibleReaderScreen(
     val chapterSections by viewModel.chapterSections.collectAsState()
     val structuredBlocks by viewModel.structuredBlocks.collectAsState()
     val selectedTranslation by viewModel.selectedTranslation.collectAsState()
+    val availableTranslations by viewModel.availableTranslations.collectAsState()
     val readingSettings by viewModel.readingSettings.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isChapterIncomplete by viewModel.isChapterIncomplete.collectAsState()
@@ -514,6 +520,19 @@ fun BibleReaderScreen(
         }
     }
 
+    // Auto Hide Status Bar on scroll up (reading deeper into chapter) and show when scroll down / at top
+    LaunchedEffect(isHeaderVisible, isFullScreen) {
+        val activity = context as? Activity ?: return@LaunchedEffect
+        val window = activity.window ?: return@LaunchedEffect
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (isFullScreen || !isHeaderVisible) {
+            insetsController.hide(WindowInsetsCompat.Type.statusBars())
+        } else {
+            insetsController.show(WindowInsetsCompat.Type.statusBars())
+        }
+    }
+
     // Keep Screen On or apply custom timeout based on settings
     LaunchedEffect(lastUserInteractionTime, readingSettings.screenTimeoutMinutes) {
         val activity = context as? Activity ?: return@LaunchedEffect
@@ -539,7 +558,11 @@ fun BibleReaderScreen(
     DisposableEffect(Unit) {
         onDispose {
             val activity = context as? Activity
-            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            activity?.window?.let { window ->
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                insetsController.show(WindowInsetsCompat.Type.statusBars())
+            }
         }
     }
 
@@ -668,7 +691,6 @@ fun BibleReaderScreen(
         allChapterGroups
     ) {
         val items = mutableListOf<BibleReaderItem>()
-        items.add(BibleReaderItem.Header(bookName, currentChapter))
 
         // Chapter outline & verse grouping summary card
         if (readingSettings.showChapterOutline && allChapterGroups.isNotEmpty()) {
@@ -880,6 +902,15 @@ fun BibleReaderScreen(
         BibleTheme.SYSTEM -> MaterialTheme.colorScheme.background
     }
 
+    // Dynamic contrast synchronization for reader canvas background
+    LaunchedEffect(canvasBgColor) {
+        val activity = context as? Activity ?: return@LaunchedEffect
+        val window = activity.window ?: return@LaunchedEffect
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        val isLightBg = canvasBgColor.luminance() > 0.5f
+        insetsController.isAppearanceLightStatusBars = isLightBg
+    }
+
     val defaultTextColor = when (readingSettings.theme) {
         BibleTheme.PAPER -> Color(0xFF2C241E)
         BibleTheme.WOOD -> Color(0xFF3B2B20)
@@ -923,7 +954,22 @@ fun BibleReaderScreen(
 
     var showTopOverflowMenu by remember { mutableStateOf(false) }
 
+    val isSystemDark = isSystemInDarkTheme()
+    val isThemeDark = when (readingSettings.theme) {
+        BibleTheme.NIGHT, BibleTheme.DARK, BibleTheme.AMOLED -> true
+        BibleTheme.PAPER, BibleTheme.WOOD, BibleTheme.EYE_PROTECTION, BibleTheme.SEPIA, BibleTheme.LIGHT, BibleTheme.EMERALD -> false
+        BibleTheme.SYSTEM -> isSystemDark
+    }
+
+    // High-contrast, theme-adaptive header colors ensuring crystal-clear visibility across ALL themes
+    val headerIconColor = if (isThemeDark) Color(0xFFF1F5F9) else Color(0xFF0F172A)
+    val headerAccentColor = if (isThemeDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
+    val headerPillBg = if (isThemeDark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.07f)
+    val headerPillBorder = if (isThemeDark) Color.White.copy(alpha = 0.28f) else Color.Black.copy(alpha = 0.18f)
+    val headerPillTextColor = if (isThemeDark) Color(0xFFFFFFFF) else Color(0xFF0F172A)
+
     Scaffold(
+        containerColor = canvasBgColor,
         topBar = {
             if (!isFullScreen) {
                 AnimatedVisibility(
@@ -934,8 +980,9 @@ fun BibleReaderScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(canvasBgColor.copy(alpha = 0.96f))
                             .statusBarsPadding()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -952,9 +999,9 @@ fun BibleReaderScreen(
                         }
                         Surface(
                             shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)),
-                            shadowElevation = 4.dp,
+                            color = headerPillBg,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, headerPillBorder),
+                            shadowElevation = 2.dp,
                             modifier = Modifier
                                 .weight(1f, fill = false)
                                 .clickable { showNavigatorModal = true }
@@ -965,6 +1012,7 @@ fun BibleReaderScreen(
                             ) {
                                 Text(
                                     text = headerTitleText,
+                                    color = headerPillTextColor,
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         letterSpacing = 0.2.sp
@@ -977,6 +1025,7 @@ fun BibleReaderScreen(
                                 Icon(
                                     Icons.Default.ArrowDropDown,
                                     contentDescription = "Select Book, Chapter and Verse",
+                                    tint = headerPillTextColor,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -985,28 +1034,47 @@ fun BibleReaderScreen(
                         // 2. Remaining elements as standalone transparent toggle / icon buttons
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             // Transparent Translation Badge
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color.Transparent,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                                color = headerPillBg,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, headerAccentColor.copy(alpha = 0.5f)),
                                 modifier = Modifier.clickable {
-                                    val all = BibleTranslation.ALL
-                                    val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
-                                    val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
-                                    viewModel.selectTranslation(all[nextIndex])
+                                    val didChange = viewModel.cycleNextAvailableTranslation { msg ->
+                                        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                    if (didChange) {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "अनुवाद: ${viewModel.selectedTranslation.value.nameHindi}",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 }
                             ) {
                                 Text(
                                     text = selectedTranslation.shortName,
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = headerAccentColor,
                                         fontSize = 10.sp
                                     ),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
+                                )
+                            }
+
+                            // Theme Toggle Button (Display & Themes customisation)
+                            IconButton(
+                                onClick = { showQuickFontSheet = true },
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Palette,
+                                    contentDescription = "Display and Themes customisation",
+                                    tint = headerAccentColor,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
@@ -1018,7 +1086,7 @@ fun BibleReaderScreen(
                                 Icon(
                                     imageVector = if (readingSettings.showAudioPlayer) Icons.Default.VolumeUp else Icons.Default.VolumeMute,
                                     contentDescription = "Audio Bible",
-                                    tint = if (readingSettings.showAudioPlayer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    tint = if (readingSettings.showAudioPlayer) headerAccentColor else headerIconColor.copy(alpha = 0.85f),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -1032,7 +1100,7 @@ fun BibleReaderScreen(
                                     Icon(
                                         Icons.Default.MoreVert,
                                         contentDescription = "Options & Settings",
-                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        tint = headerIconColor,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -1098,10 +1166,16 @@ fun BibleReaderScreen(
                                         leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null) },
                                         onClick = {
                                             showTopOverflowMenu = false
-                                            val all = BibleTranslation.ALL
-                                            val currentIndex = all.indexOfFirst { it.id == selectedTranslation.id }
-                                            val nextIndex = if (currentIndex == -1 || currentIndex == all.lastIndex) 0 else currentIndex + 1
-                                            viewModel.selectTranslation(all[nextIndex])
+                                            val didChange = viewModel.cycleNextAvailableTranslation { msg ->
+                                                android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                                            }
+                                            if (didChange) {
+                                                android.widget.Toast.makeText(
+                                                    context,
+                                                    "अनुवाद: ${viewModel.selectedTranslation.value.nameHindi}",
+                                                    android.widget.Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         }
                                     )
                                     DropdownMenuItem(
@@ -1456,7 +1530,7 @@ fun BibleReaderScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        contentPadding = PaddingValues(top = 2.dp, bottom = 60.dp)
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 60.dp)
                     ) {
                         itemsIndexed(
                             readerItems,
@@ -1970,7 +2044,12 @@ fun BibleReaderScreen(
             onRememberPositionChange = { viewModel.toggleRememberPosition(it) },
             onResetToDefault = { viewModel.resetReadingSettings() },
             onThemeChange = { viewModel.updateTheme(it) },
-            onTranslationChange = { viewModel.selectTranslation(it) },
+            onTranslationChange = { translation ->
+                viewModel.selectTranslationIfAvailable(translation) { msg ->
+                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            },
+            availableTranslations = availableTranslations,
             onTranslationToggleBehaviorChange = { viewModel.updateTranslationToggleBehavior(it) },
             onVerseTapSelectionModeChange = { viewModel.updateVerseTapSelectionMode(it) },
             onOpenReadingPlan = onReadingPlanClick,

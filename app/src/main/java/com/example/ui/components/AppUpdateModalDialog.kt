@@ -182,14 +182,42 @@ fun AppUpdateModalDialog(
                     }
                 }
 
-                // Error Banner
+                // Error Banner with Browser Download Fallback
                 if (updateState.errorMessage != null && !updateState.isDownloading) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = updateState.errorMessage!!,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = updateState.errorMessage!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            val browserDownloadUrl = updateState.apkDownloadUrl?.takeIf { it.isNotBlank() }
+                                ?: "https://github.com/${updateState.repoPath}/releases/latest"
+                            OutlinedButton(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(browserDownloadUrl)).apply {
+                                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        // Ignore
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("ब्राउज़र से सीधा डाउनलोड करें (Open in Browser)")
+                            }
+                        }
+                    }
                 }
 
                 // Package Conflict Guidance Card & Quick Uninstall Shortcut

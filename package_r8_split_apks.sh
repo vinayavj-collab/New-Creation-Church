@@ -14,20 +14,25 @@ if [ -d "$RELEASE_DIR" ]; then
     echo "Release APKs found:"
     ls -lh "$RELEASE_DIR"/*.apk
 
-    # Copy split APKs to root directory with clear names
-    cp -fv "$RELEASE_DIR"/app-arm64-v8a-release.apk ./app-arm64-v8a-release.apk 2>/dev/null || true
-    cp -fv "$RELEASE_DIR"/app-armeabi-v7a-release.apk ./app-armeabi-v7a-release.apk 2>/dev/null || true
-    cp -fv "$RELEASE_DIR"/app-x86_64-release.apk ./app-x86_64-release.apk 2>/dev/null || true
-    cp -fv "$RELEASE_DIR"/app-universal-release.apk ./app-universal-release.apk 2>/dev/null || true
+    # Copy split APKs to root and apk_downloads and .build-outputs
+    mkdir -p apk_downloads .build-outputs
+    cp -fv "$RELEASE_DIR"/*.apk ./ 2>/dev/null || true
+    cp -fv "$RELEASE_DIR"/*.apk ./apk_downloads/ 2>/dev/null || true
+    cp -fv "$RELEASE_DIR"/*.apk ./.build-outputs/ 2>/dev/null || true
 
     # Create ZIP archive containing all R8 + Split ABI APKs
-    ZIP_NAME="NCCK_v72.11.0_R8_Split_APKs.zip"
-    rm -f "$ZIP_NAME"
+    V_MAJOR=$(grep "VERSION_MAJOR" version.properties | cut -d'=' -f2)
+    V_MINOR=$(grep "VERSION_MINOR" version.properties | cut -d'=' -f2)
+    V_PATCH=$(grep "VERSION_PATCH" version.properties | cut -d'=' -f2)
+    ZIP_NAME="NCCK_v${V_MAJOR}.${V_MINOR}.${V_PATCH}_R8_Split_APKs.zip"
+    rm -f "$ZIP_NAME" "./apk_downloads/$ZIP_NAME" "./.build-outputs/$ZIP_NAME"
     zip -j "$ZIP_NAME" "$RELEASE_DIR"/*.apk
+    cp -fv "$ZIP_NAME" ./apk_downloads/ 2>/dev/null || true
+    cp -fv "$ZIP_NAME" ./.build-outputs/ 2>/dev/null || true
 
     echo "=== Packaging Complete ==="
     ls -lh "$ZIP_NAME"
-    echo "Created: $ZIP_NAME in Root Directory!"
+    echo "Created: $ZIP_NAME in Root and apk_downloads/ Directory!"
 else
     echo "Error: $RELEASE_DIR directory not found!"
     exit 1

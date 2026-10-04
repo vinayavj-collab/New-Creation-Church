@@ -50,6 +50,9 @@ class BibleViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedTranslation = MutableStateFlow(BibleTranslation.HIOV)
     val selectedTranslation: StateFlow<BibleTranslation> = _selectedTranslation.asStateFlow()
 
+    private val _availableTranslations = MutableStateFlow<List<BibleTranslation>>(listOf(BibleTranslation.HIOV))
+    val availableTranslations: StateFlow<List<BibleTranslation>> = _availableTranslations.asStateFlow()
+
     private val _readingSettings = MutableStateFlow(BibleReadingSettings())
     val readingSettings: StateFlow<BibleReadingSettings> = _readingSettings.asStateFlow()
 
@@ -102,6 +105,7 @@ class BibleViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             localDataSource.ensureSeeded()
+            refreshAvailableTranslations()
             loadVerses()
         }
         viewModelScope.launch {
@@ -382,17 +386,86 @@ class BibleViewModel(application: Application) : AndroidViewModel(application) {
         openBook(bookId, chapter, targetVerse, isReadingPlan = false)
     }
 
+    fun refreshAvailableTranslations() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val list = mutableListOf<BibleTranslation>()
+            list.add(BibleTranslation.HIOV) // Base Hindi is always available
+
+            for (t in BibleTranslation.ALL) {
+                if (t.id == BibleTranslation.HIOV.id) continue
+                if (t.id == BibleTranslation.PARALLEL_HI_EN.id) {
+                    val nkjvCount = try { dao.getVerseCount("NKJV") } catch (_: Exception) { 0 }
+                    val kj21Count = try { dao.getVerseCount("KJ21") } catch (_: Exception) { 0 }
+                    val kjvCount = try { dao.getVerseCount("KJV") } catch (_: Exception) { 0 }
+                    if (nkjvCount > 0 || kj21Count > 0 || kjvCount > 0) {
+                        list.add(t)
+                    }
+                } else {
+                    val count = try { dao.getVerseCount(t.id) } catch (_: Exception) { 0 }
+                    if (count > 0) {
+                        list.add(t)
+                    }
+                }
+            }
+
+            try {
+                val context = getApplication<Application>()
+                val prefs = context.getSharedPreferences("admin_custom_translations", android.content.Context.MODE_PRIVATE)
+                val customRaw = prefs.getStringSet("custom_translation_ids", emptySet()) ?: emptySet()
+                for (cId in customRaw) {
+                    val count = try { dao.getVerseCount(cId) } catch (_: Exception) { 0 }
+                    if (count > 0 && list.none { it.id.equals(cId, ignoreCase = true) }) {
+                        val hi = prefs.getString("name_hi_$cId", cId) ?: cId
+                        val en = prefs.getString("name_en_$cId", cId) ?: cId
+                        list.add(BibleTranslation(id = cId, nameHindi = hi, nameEnglish = en))
+                    }
+                }
+            } catch (_: Exception) {}
+
+            _availableTranslations.value = list
+        }
+    }
+
+    fun isTranslationAvailable(translationId: String): Boolean {
+        return _availableTranslations.value.any { it.id.equals(translationId, ignoreCase = true) }
+    }
+
+    fun cycleNextAvailableTranslation(onUnavailable: ((String) -> Unit)? = null): Boolean {
+        val available = _availableTranslations.value
+        if (available.size <= 1) {
+            val current = _selectedTranslation.value.nameHindi
+            onUnavailable?.invoke("अन्य अनुवाद वर्तमान में उपलब्ध नहीं है (केवल $current उपलब्ध है)।")
+            return false
+        }
+        val currentIndex = available.indexOfFirst { it.id == _selectedTranslation.value.id }
+        val nextIndex = if (currentIndex == -1 || currentIndex == available.lastIndex) 0 else currentIndex + 1
+        val nextTranslation = available[nextIndex]
+        selectTranslation(nextTranslation)
+        return true
+    }
+
     fun selectTranslation(translation: BibleTranslation) {
         _selectedTranslation.value = translation
         currentTranslationId = translation.id
         loadVerses()
     }
 
+    fun selectTranslationIfAvailable(translation: BibleTranslation, onUnavailable: ((String) -> Unit)? = null): Boolean {
+        val isAvailable = isTranslationAvailable(translation.id)
+        if (isAvailable) {
+            selectTranslation(translation)
+            return true
+        } else {
+            onUnavailable?.invoke("यह अनुवाद (${translation.nameHindi}) वर्तमान में उपलब्ध नहीं है।")
+            return false
+        }
+    }
+
     fun setTranslation(translationId: String) {
-        currentTranslationId = translationId
         val found = BibleTranslation.ALL.find { it.id == translationId } ?: BibleTranslation.HIOV
-        _selectedTranslation.value = found
-        loadVerses()
+        if (isTranslationAvailable(found.id)) {
+            selectTranslation(found)
+        }
     }
 
     fun loadVerses() {

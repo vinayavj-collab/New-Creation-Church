@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.bible.model.BibleQuizItem
+import java.util.Calendar
 
 @Composable
 fun DailyBibleQuizCard(
@@ -30,8 +33,29 @@ fun DailyBibleQuizCard(
     val context = LocalContext.current
     val quiz = remember { BibleQuizItem.getQuizForToday() }
 
-    var selectedOptionIndex by remember { mutableStateOf<Int?>(null) }
-    var isSubmitted by remember { mutableStateOf(false) }
+    val calendar = remember { Calendar.getInstance() }
+    val quizDateKey = remember(quiz.id) {
+        "quiz_${calendar.get(Calendar.YEAR)}_${calendar.get(Calendar.DAY_OF_YEAR)}_${quiz.id}"
+    }
+
+    val prefs = remember {
+        context.getSharedPreferences("bible_quiz_prefs", Context.MODE_PRIVATE)
+    }
+
+    val savedOption = remember(quizDateKey) {
+        val opt = prefs.getInt("${quizDateKey}_selected", -1)
+        if (opt in 0..10) opt else null
+    }
+    val savedSubmitted = remember(quizDateKey) {
+        prefs.getBoolean("${quizDateKey}_submitted", false)
+    }
+
+    var selectedOptionIndex by rememberSaveable(quizDateKey) {
+        mutableStateOf<Int?>(savedOption)
+    }
+    var isSubmitted by rememberSaveable(quizDateKey) {
+        mutableStateOf(savedSubmitted)
+    }
 
     Card(
         modifier = modifier
@@ -139,6 +163,10 @@ fun DailyBibleQuizCard(
                             .clickable(enabled = !isSubmitted) {
                                 selectedOptionIndex = index
                                 isSubmitted = true
+                                prefs.edit()
+                                    .putInt("${quizDateKey}_selected", index)
+                                    .putBoolean("${quizDateKey}_submitted", true)
+                                    .apply()
                             },
                         shape = RoundedCornerShape(10.dp),
                         color = containerColor,
@@ -250,6 +278,10 @@ fun DailyBibleQuizCard(
                             onClick = {
                                 selectedOptionIndex = null
                                 isSubmitted = false
+                                prefs.edit()
+                                    .remove("${quizDateKey}_selected")
+                                    .remove("${quizDateKey}_submitted")
+                                    .apply()
                             },
                             contentPadding = PaddingValues(0.dp)
                         ) {
